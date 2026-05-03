@@ -1,22 +1,24 @@
 const STORAGE_KEY = "studyReviewApp.v1";
 
 const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
+const legacyDemoSchedule = [
+  { dayOfWeek: 0, period: 1, subjectId: "english" },
+  { dayOfWeek: 0, period: 2, subjectId: "math" },
+  { dayOfWeek: 1, period: 1, subjectId: "english" },
+  { dayOfWeek: 1, period: 2, subjectId: "math" },
+  { dayOfWeek: 2, period: 1, subjectId: "history" },
+  { dayOfWeek: 3, period: 2, subjectId: "english" },
+  { dayOfWeek: 4, period: 1, subjectId: "math" },
+  { dayOfWeek: 5, period: 3, subjectId: "history" }
+];
 const defaultState = {
   subjects: [
     { id: "english", name: "英語", color: "#6aa9ff" },
     { id: "math", name: "数学", color: "#73c69b" },
     { id: "history", name: "歴史", color: "#f0b56a" }
   ],
-  schedule: [
-    { dayOfWeek: 0, period: 1, subjectId: "english" },
-    { dayOfWeek: 0, period: 2, subjectId: "math" },
-    { dayOfWeek: 1, period: 1, subjectId: "english" },
-    { dayOfWeek: 1, period: 2, subjectId: "math" },
-    { dayOfWeek: 2, period: 1, subjectId: "history" },
-    { dayOfWeek: 3, period: 2, subjectId: "english" },
-    { dayOfWeek: 4, period: 1, subjectId: "math" },
-    { dayOfWeek: 5, period: 3, subjectId: "history" }
-  ],
+  schedule: [],
+  maxPeriods: 6,
   memos: [],
   streak: {
     count: 0,
@@ -26,6 +28,8 @@ const defaultState = {
 
 let state = loadState();
 let activeHistorySubject = "all";
+let settingsMode = "menu";
+let settingsDraft = null;
 
 const elements = {
   todayLabel: document.querySelector("#todayLabel"),
@@ -36,26 +40,39 @@ const elements = {
   studyPicker: document.querySelector("#studyPicker"),
   historyList: document.querySelector("#historyList"),
   subjectFilters: document.querySelector("#subjectFilters"),
-  subjectForm: document.querySelector("#subjectForm"),
-  subjectNameInput: document.querySelector("#subjectNameInput"),
-  subjectColorInput: document.querySelector("#subjectColorInput"),
-  subjectList: document.querySelector("#subjectList"),
-  scheduleForm: document.querySelector("#scheduleForm"),
-  dayInput: document.querySelector("#dayInput"),
-  periodInput: document.querySelector("#periodInput"),
-  scheduleSubjectInput: document.querySelector("#scheduleSubjectInput"),
-  scheduleList: document.querySelector("#scheduleList")
+  settingsContent: document.querySelector("#settingsContent")
 };
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return structuredClone(defaultState);
+  if (!raw) return clone(defaultState);
 
   try {
-    return { ...structuredClone(defaultState), ...JSON.parse(raw) };
+    const saved = JSON.parse(raw);
+    const migrated = { ...clone(defaultState), ...saved };
+    if (saved.maxPeriods === undefined && isSameSchedule(saved.schedule, legacyDemoSchedule)) {
+      migrated.schedule = [];
+    }
+    return migrated;
   } catch {
-    return structuredClone(defaultState);
+    return clone(defaultState);
   }
+}
+
+function isSameSchedule(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const other = b[index];
+    return (
+      item.dayOfWeek === other.dayOfWeek &&
+      item.period === other.period &&
+      item.subjectId === other.subjectId
+    );
+  });
 }
 
 function saveState() {
@@ -75,8 +92,8 @@ function getTodayLabel() {
   return `${now.getMonth() + 1}月${now.getDate()}日`;
 }
 
-function getSubject(subjectId) {
-  return state.subjects.find((subject) => subject.id === subjectId);
+function getSubject(subjectId, subjects = state.subjects) {
+  return subjects.find((subject) => subject.id === subjectId);
 }
 
 function getMemo(date, subjectId, period, type = "lesson") {
@@ -223,6 +240,26 @@ function autoResize(textarea) {
 }
 
 function renderHome() {
+  renderHeaderState();
+  elements.lessonList.innerHTML = "";
+  elements.addStudyButton.hidden = state.schedule.length === 0;
+  elements.studyPicker.hidden = true;
+
+  if (state.schedule.length === 0) {
+    const prompt = document.createElement("div");
+    prompt.className = "setup-prompt";
+    prompt.innerHTML = `
+      <p>時間割が未設定です</p>
+      <button class="primary-button" type="button">時間割を設定する</button>
+    `;
+    prompt.querySelector("button").addEventListener("click", () => {
+      showView("settingsView");
+      openSettingsDetail("schedule");
+    });
+    elements.lessonList.append(prompt);
+    return;
+  }
+
   const date = getToday();
   const lessons = todayLessons();
   const studies = todayStudies();
@@ -231,8 +268,6 @@ function renderHome() {
     const doneB = isComplete(b, date) ? 1 : 0;
     return doneA - doneB || a.period - b.period;
   });
-  renderHeaderState();
-  elements.lessonList.innerHTML = "";
 
   if (items.length === 0) {
     const empty = document.createElement("p");
@@ -252,13 +287,12 @@ function renderHeaderState() {
   elements.todayLabel.textContent = getTodayLabel();
   elements.streakCount.textContent = `${state.streak.count}日`;
   elements.completionLabel.textContent =
-    lessons.length === 0 ? "授業なし" : `${completeLessons} / ${lessons.length}`;
+    state.schedule.length === 0 ? "未設定" : lessons.length === 0 ? "授業なし" : `${completeLessons} / ${lessons.length}`;
 }
 
 function renderHistory() {
   elements.subjectFilters.innerHTML = "";
-  const allButton = createFilterButton("all", "すべて");
-  elements.subjectFilters.append(allButton);
+  elements.subjectFilters.append(createFilterButton("all", "すべて"));
   state.subjects.forEach((subject) => {
     elements.subjectFilters.append(createFilterButton(subject.id, subject.name));
   });
@@ -303,63 +337,218 @@ function createFilterButton(id, label) {
   return button;
 }
 
+function openSettingsDetail(mode) {
+  settingsMode = mode;
+  settingsDraft = {
+    subjects: clone(state.subjects),
+    schedule: clone(state.schedule),
+    maxPeriods: state.maxPeriods
+  };
+  renderSettings();
+}
+
+function closeSettingsDetail() {
+  settingsMode = "menu";
+  settingsDraft = null;
+  renderSettings();
+}
+
 function renderSettings() {
-  elements.dayInput.innerHTML = dayNames
-    .map((name, index) => `<option value="${index}">${name}曜日</option>`)
-    .join("");
-  elements.scheduleSubjectInput.innerHTML = state.subjects
-    .map((subject) => `<option value="${subject.id}">${subject.name}</option>`)
-    .join("");
+  elements.settingsContent.innerHTML = "";
+  if (settingsMode === "subjects") {
+    renderSubjectSettings();
+    return;
+  }
+  if (settingsMode === "schedule") {
+    renderScheduleSettings();
+    return;
+  }
+  renderSettingsMenu();
+}
 
-  elements.subjectList.innerHTML = "";
-  state.subjects.forEach((subject) => {
-    const row = document.createElement("div");
-    row.className = "subject-item";
-    row.style.setProperty("--subject-color", subject.color);
-    row.innerHTML = `
-      <span class="inline-name"><span class="swatch"></span><span></span></span>
-      <button class="small-button" type="button">削除</button>
-    `;
-    row.querySelector(".inline-name span:last-child").textContent = subject.name;
-    row.querySelector("button").addEventListener("click", () => deleteSubject(subject.id));
-    elements.subjectList.append(row);
+function renderSettingsMenu() {
+  const menu = document.createElement("div");
+  menu.className = "settings-menu";
+  menu.innerHTML = `
+    <button class="settings-menu-button" type="button">
+      <span>科目登録・編集</span>
+      <small>${state.subjects.length}件</small>
+    </button>
+    <button class="settings-menu-button" type="button">
+      <span>時間割の登録・編集</span>
+      <small>${state.maxPeriods}限 / ${state.schedule.length}コマ</small>
+    </button>
+  `;
+  const [subjectButton, scheduleButton] = menu.querySelectorAll("button");
+  subjectButton.addEventListener("click", () => openSettingsDetail("subjects"));
+  scheduleButton.addEventListener("click", () => openSettingsDetail("schedule"));
+  elements.settingsContent.append(menu);
+}
+
+function renderSubjectSettings() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail";
+  wrapper.innerHTML = `
+    <button class="back-button" type="button">← 設定に戻る</button>
+    <div class="settings-block">
+      <h3>科目登録・編集</h3>
+      <div id="subjectEditorList" class="editor-list"></div>
+      <button id="addSubjectRowButton" class="wide-button" type="button">＋ 科目を追加</button>
+    </div>
+    <button id="saveSubjectSettingsButton" class="primary-button" type="button">保存する</button>
+  `;
+  elements.settingsContent.append(wrapper);
+  wrapper.querySelector(".back-button").addEventListener("click", closeSettingsDetail);
+  wrapper.querySelector("#addSubjectRowButton").addEventListener("click", () => {
+    settingsDraft.subjects.push({
+      id: `subject-${Date.now()}`,
+      name: "",
+      color: "#6aa9ff"
+    });
+    renderSettings();
   });
+  wrapper.querySelector("#saveSubjectSettingsButton").addEventListener("click", saveSubjectSettings);
+  renderSubjectEditorRows(wrapper.querySelector("#subjectEditorList"));
+}
 
-  elements.scheduleList.innerHTML = "";
-  const schedule = [...state.schedule].sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period);
-  if (schedule.length === 0) {
+function renderSubjectEditorRows(container) {
+  container.innerHTML = "";
+  if (settingsDraft.subjects.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "時間割が未設定です";
-    elements.scheduleList.append(empty);
+    empty.textContent = "科目がありません";
+    container.append(empty);
     return;
   }
 
-  schedule.forEach((item) => {
-    const subject = getSubject(item.subjectId);
+  settingsDraft.subjects.forEach((subject, index) => {
     const row = document.createElement("div");
-    row.className = "schedule-item";
+    row.className = "subject-editor-row";
     row.innerHTML = `
-      <strong></strong>
+      <input class="subject-name-editor" type="text" placeholder="科目名">
+      <input class="subject-color-editor" type="color">
       <button class="small-button" type="button">削除</button>
     `;
-    row.querySelector("strong").textContent = `${dayNames[item.dayOfWeek]}曜 ${item.period}限 ${
-      subject ? subject.name : "未登録科目"
-    }`;
-    row.querySelector("button").addEventListener("click", () => {
-      state.schedule = state.schedule.filter(
-        (entry) =>
-          !(
-            entry.dayOfWeek === item.dayOfWeek &&
-            entry.period === item.period &&
-            entry.subjectId === item.subjectId
-          )
-      );
-      saveState();
-      render();
+    const nameInput = row.querySelector(".subject-name-editor");
+    const colorInput = row.querySelector(".subject-color-editor");
+    nameInput.value = subject.name;
+    colorInput.value = subject.color;
+    nameInput.addEventListener("input", () => {
+      settingsDraft.subjects[index].name = nameInput.value;
     });
-    elements.scheduleList.append(row);
+    colorInput.addEventListener("input", () => {
+      settingsDraft.subjects[index].color = colorInput.value;
+    });
+    row.querySelector("button").addEventListener("click", () => {
+      const removedId = settingsDraft.subjects[index].id;
+      settingsDraft.subjects.splice(index, 1);
+      settingsDraft.schedule = settingsDraft.schedule.filter((item) => item.subjectId !== removedId);
+      renderSettings();
+    });
+    container.append(row);
   });
+}
+
+function renderScheduleSettings() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail";
+  wrapper.innerHTML = `
+    <button class="back-button" type="button">← 設定に戻る</button>
+    <div class="settings-block">
+      <h3>時間割の登録・編集</h3>
+      <label class="period-count-label">
+        <span>何限まで表示するか</span>
+        <input id="maxPeriodsInput" type="number" min="1" max="12">
+      </label>
+      <div id="scheduleTableWrap" class="schedule-table-wrap"></div>
+    </div>
+    <button id="saveScheduleSettingsButton" class="primary-button" type="button">保存する</button>
+  `;
+  elements.settingsContent.append(wrapper);
+  const maxPeriodsInput = wrapper.querySelector("#maxPeriodsInput");
+  maxPeriodsInput.value = settingsDraft.maxPeriods;
+  maxPeriodsInput.addEventListener("change", () => {
+    settingsDraft.maxPeriods = clamp(Number(maxPeriodsInput.value), 1, 12);
+    settingsDraft.schedule = settingsDraft.schedule.filter((item) => item.period <= settingsDraft.maxPeriods);
+    renderSettings();
+  });
+  wrapper.querySelector(".back-button").addEventListener("click", closeSettingsDetail);
+  wrapper.querySelector("#saveScheduleSettingsButton").addEventListener("click", saveScheduleSettings);
+  renderScheduleTable(wrapper.querySelector("#scheduleTableWrap"));
+}
+
+function renderScheduleTable(container) {
+  const table = document.createElement("table");
+  table.className = "schedule-table";
+  const thead = document.createElement("thead");
+  thead.innerHTML = `<tr><th>時限</th>${dayNames.map((day) => `<th>${day}</th>`).join("")}</tr>`;
+  const tbody = document.createElement("tbody");
+
+  for (let period = 1; period <= settingsDraft.maxPeriods; period += 1) {
+    const row = document.createElement("tr");
+    row.innerHTML = `<th>${period}限</th>`;
+    dayNames.forEach((_, dayOfWeek) => {
+      const cell = document.createElement("td");
+      const select = document.createElement("select");
+      select.className = "schedule-cell-select";
+      select.innerHTML = `<option value="">-</option>${settingsDraft.subjects
+        .map((subject) => `<option value="${subject.id}">${subject.name || "名称未入力"}</option>`)
+        .join("")}`;
+      select.value = getScheduleSubjectId(dayOfWeek, period);
+      select.addEventListener("change", () => setScheduleCell(dayOfWeek, period, select.value));
+      cell.append(select);
+      row.append(cell);
+    });
+    tbody.append(row);
+  }
+
+  table.append(thead, tbody);
+  container.innerHTML = "";
+  container.append(table);
+}
+
+function getScheduleSubjectId(dayOfWeek, period) {
+  const item = settingsDraft.schedule.find(
+    (entry) => entry.dayOfWeek === dayOfWeek && entry.period === period
+  );
+  return item ? item.subjectId : "";
+}
+
+function setScheduleCell(dayOfWeek, period, subjectId) {
+  settingsDraft.schedule = settingsDraft.schedule.filter(
+    (entry) => !(entry.dayOfWeek === dayOfWeek && entry.period === period)
+  );
+  if (subjectId) {
+    settingsDraft.schedule.push({ dayOfWeek, period, subjectId });
+  }
+}
+
+function saveSubjectSettings() {
+  const validSubjects = settingsDraft.subjects
+    .map((subject) => ({ ...subject, name: subject.name.trim() }))
+    .filter((subject) => subject.name.length > 0);
+  const validIds = new Set(validSubjects.map((subject) => subject.id));
+  state.subjects = validSubjects;
+  state.schedule = state.schedule.filter((item) => validIds.has(item.subjectId));
+  saveState();
+  closeSettingsDetail();
+  render();
+}
+
+function saveScheduleSettings() {
+  const validSubjectIds = new Set(state.subjects.map((subject) => subject.id));
+  state.maxPeriods = clamp(settingsDraft.maxPeriods, 1, 12);
+  state.schedule = settingsDraft.schedule
+    .filter((item) => validSubjectIds.has(item.subjectId) && item.period <= state.maxPeriods)
+    .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period);
+  saveState();
+  closeSettingsDetail();
+  render();
+}
+
+function clamp(value, min, max) {
+  if (Number.isNaN(value)) return min;
+  return Math.min(Math.max(value, min), max);
 }
 
 function renderStudyPicker() {
@@ -382,56 +571,11 @@ function renderStudyPicker() {
   });
 }
 
-function deleteSubject(subjectId) {
-  state.subjects = state.subjects.filter((subject) => subject.id !== subjectId);
-  state.schedule = state.schedule.filter((item) => item.subjectId !== subjectId);
-  saveState();
-  render();
-}
-
-function addSubject(event) {
-  event.preventDefault();
-  const name = elements.subjectNameInput.value.trim();
-  if (!name) return;
-  state.subjects.push({
-    id: `subject-${Date.now()}`,
-    name,
-    color: elements.subjectColorInput.value
-  });
-  elements.subjectNameInput.value = "";
-  saveState();
-  render();
-}
-
-function addSchedule(event) {
-  event.preventDefault();
-  if (state.subjects.length === 0) return;
-  state.schedule.push({
-    dayOfWeek: Number(elements.dayInput.value),
-    period: Number(elements.periodInput.value),
-    subjectId: elements.scheduleSubjectInput.value
-  });
-  saveState();
-  render();
-}
-
 function addStudy(subjectId) {
   const date = getToday();
   const studyCount = state.memos.filter((memo) => memo.date === date && memo.type === "study").length;
   elements.studyPicker.hidden = true;
   setMemo(date, subjectId, 100 + studyCount + 1, "", "study");
-}
-
-function bindNavigation() {
-  document.querySelectorAll(".nav-button").forEach((button) => {
-    button.addEventListener("click", () => {
-      document.querySelectorAll(".nav-button").forEach((item) => item.classList.remove("is-active"));
-      document.querySelectorAll(".view").forEach((view) => view.classList.remove("is-active"));
-      button.classList.add("is-active");
-      document.querySelector(`#${button.dataset.view}`).classList.add("is-active");
-      render();
-    });
-  });
 }
 
 function render() {
@@ -441,8 +585,28 @@ function render() {
   renderStudyPicker();
 }
 
-elements.subjectForm.addEventListener("submit", addSubject);
-elements.scheduleForm.addEventListener("submit", addSchedule);
+function showView(viewId) {
+  document.querySelectorAll(".nav-button").forEach((item) => {
+    item.classList.toggle("is-active", item.dataset.view === viewId);
+  });
+  document.querySelectorAll(".view").forEach((view) => {
+    view.classList.toggle("is-active", view.id === viewId);
+  });
+  render();
+}
+
+function bindNavigation() {
+  document.querySelectorAll(".nav-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (button.dataset.view !== "settingsView") {
+        settingsMode = "menu";
+        settingsDraft = null;
+      }
+      showView(button.dataset.view);
+    });
+  });
+}
+
 elements.addStudyButton.addEventListener("click", () => {
   elements.studyPicker.hidden = !elements.studyPicker.hidden;
 });
