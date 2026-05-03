@@ -95,7 +95,8 @@ function getToday() {
 
 function getTodayLabel() {
   const date = parseDateKey(selectedDate);
-  return `${date.getMonth() + 1}月${date.getDate()}日`;
+  const dateLabel = `${date.getMonth() + 1}月${date.getDate()}日（${dayNames[date.getDay()]}）`;
+  return selectedDate === getToday() ? `Today ${dateLabel}` : dateLabel;
 }
 
 function parseDateKey(dateKey) {
