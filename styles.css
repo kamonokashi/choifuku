@@ -287,6 +287,12 @@ h3 {
   overflow: visible;
 }
 
+.history-item {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  overflow: visible;
+}
+
 .lesson-card.is-complete {
   background: var(--surface-muted);
   box-shadow: none;
@@ -463,9 +469,12 @@ input[type="color"] {
 }
 
 .subject-item,
-.history-item,
 .empty-state {
   padding: 12px;
+}
+
+.history-content {
+  padding: 12px 12px 12px 10px;
 }
 
 .subject-item {
@@ -511,6 +520,9 @@ input[type="color"] {
 
 .filter-button {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
@@ -518,6 +530,14 @@ input[type="color"] {
   padding: 8px 12px;
   font-size: 0.86rem;
   font-weight: 800;
+}
+
+.filter-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--subject-color, var(--accent));
+  flex: 0 0 auto;
 }
 
 .study-subject-button {

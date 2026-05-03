@@ -412,7 +412,7 @@ function renderHistory() {
   elements.subjectFilters.innerHTML = "";
   elements.subjectFilters.append(createFilterButton("all", "すべて"));
   state.subjects.forEach((subject) => {
-    elements.subjectFilters.append(createFilterButton(subject.id, subject.name));
+    elements.subjectFilters.append(createFilterButton(subject.id, subject.name, subject.color));
   });
 
   const memos = state.memos
@@ -433,9 +433,13 @@ function renderHistory() {
     const subject = getSubject(memo.subjectId);
     const item = document.createElement("article");
     item.className = "history-item";
+    item.style.setProperty("--subject-color", subject ? subject.color : "#aab4bd");
     item.innerHTML = `
-      <div class="history-date"></div>
-      <p class="history-memo"></p>
+      <div class="color-bar"></div>
+      <div class="history-content">
+        <div class="history-date"></div>
+        <p class="history-memo"></p>
+      </div>
     `;
     item.querySelector(".history-date").textContent = `${formatDisplayDate(memo.date, {
       markToday: true
@@ -445,11 +449,13 @@ function renderHistory() {
   });
 }
 
-function createFilterButton(id, label) {
+function createFilterButton(id, label, color = null) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = `filter-button${activeHistorySubject === id ? " is-active" : ""}`;
-  button.textContent = label;
+  if (color) button.style.setProperty("--subject-color", color);
+  button.innerHTML = color ? `<span class="filter-dot"></span><span></span>` : `<span></span>`;
+  button.querySelector("span:last-child").textContent = label;
   button.addEventListener("click", () => {
     activeHistorySubject = id;
     renderHistory();
