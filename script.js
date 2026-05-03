@@ -468,7 +468,15 @@ function renderHistoryControls() {
   `;
   elements.historyControls.innerHTML = `
     <div class="history-period-bar" aria-label="期間">
-      <span class="period-control-label"><span class="period-icon" aria-hidden="true"></span>期間:</span>
+      <span class="period-control-label">
+        <svg class="period-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="16" rx="3"></rect>
+          <path d="M3 9H21"></path>
+          <path d="M8 3V7"></path>
+          <path d="M16 3V7"></path>
+        </svg>
+        期間:
+      </span>
       <button class="period-option${historyRange === "all" ? " is-active" : ""}" type="button" data-range="all">すべて</button>
       <button class="period-option${historyRange === "7" ? " is-active" : ""}" type="button" data-range="7">7日</button>
       <button class="period-option${historyRange === "30" ? " is-active" : ""}" type="button" data-range="30">30日</button>
