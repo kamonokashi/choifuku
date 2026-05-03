@@ -455,6 +455,14 @@ function renderScheduleSettings() {
   wrapper.innerHTML = `
     <button class="back-button" type="button">← 設定に戻る</button>
     <div class="settings-block">
+      <h3>科目を追加</h3>
+      <div class="inline-subject-form">
+        <input id="scheduleSubjectNameInput" type="text" placeholder="例：物理">
+        <input id="scheduleSubjectColorInput" type="color" value="#6aa9ff">
+        <button id="addScheduleSubjectButton" class="small-button" type="button">追加</button>
+      </div>
+    </div>
+    <div class="settings-block">
       <h3>時間割の登録・編集</h3>
       <label class="period-count-label">
         <span>何限まで表示するか</span>
@@ -465,6 +473,7 @@ function renderScheduleSettings() {
     <button id="saveScheduleSettingsButton" class="primary-button" type="button">保存する</button>
   `;
   elements.settingsContent.append(wrapper);
+  wrapper.querySelector("#addScheduleSubjectButton").addEventListener("click", () => addSubjectFromSchedule(wrapper));
   const maxPeriodsInput = wrapper.querySelector("#maxPeriodsInput");
   maxPeriodsInput.value = settingsDraft.maxPeriods;
   maxPeriodsInput.addEventListener("change", () => {
@@ -475,6 +484,20 @@ function renderScheduleSettings() {
   wrapper.querySelector(".back-button").addEventListener("click", closeSettingsDetail);
   wrapper.querySelector("#saveScheduleSettingsButton").addEventListener("click", saveScheduleSettings);
   renderScheduleTable(wrapper.querySelector("#scheduleTableWrap"));
+}
+
+function addSubjectFromSchedule(wrapper) {
+  const nameInput = wrapper.querySelector("#scheduleSubjectNameInput");
+  const colorInput = wrapper.querySelector("#scheduleSubjectColorInput");
+  const name = nameInput.value.trim();
+  if (!name) return;
+
+  settingsDraft.subjects.push({
+    id: `subject-${Date.now()}`,
+    name,
+    color: colorInput.value
+  });
+  renderSettings();
 }
 
 function renderScheduleTable(container) {
@@ -536,7 +559,11 @@ function saveSubjectSettings() {
 }
 
 function saveScheduleSettings() {
-  const validSubjectIds = new Set(state.subjects.map((subject) => subject.id));
+  const validSubjects = settingsDraft.subjects
+    .map((subject) => ({ ...subject, name: subject.name.trim() }))
+    .filter((subject) => subject.name.length > 0);
+  const validSubjectIds = new Set(validSubjects.map((subject) => subject.id));
+  state.subjects = validSubjects;
   state.maxPeriods = clamp(settingsDraft.maxPeriods, 1, 12);
   state.schedule = settingsDraft.schedule
     .filter((item) => validSubjectIds.has(item.subjectId) && item.period <= state.maxPeriods)

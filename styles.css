@@ -468,6 +468,13 @@ input[type="color"] {
   align-items: center;
 }
 
+.inline-subject-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px auto;
+  gap: 8px;
+  align-items: center;
+}
+
 .period-count-label {
   display: block;
   margin-bottom: 12px;
