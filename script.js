@@ -1,6 +1,6 @@
 const STORAGE_KEY = "studyReviewApp.v1";
 
-const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
+const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const legacyDemoSchedule = [
   { dayOfWeek: 0, period: 1, subjectId: "english" },
   { dayOfWeek: 0, period: 2, subjectId: "math" },
@@ -96,9 +96,13 @@ function getToday() {
 }
 
 function getTodayLabel() {
-  const date = parseDateKey(selectedDate);
-  const dateLabel = `${date.getMonth() + 1}月${date.getDate()}日（${dayNames[date.getDay()]}）`;
-  return selectedDate === getToday() ? `Today ${dateLabel}` : dateLabel;
+  return formatDisplayDate(selectedDate, { markToday: true });
+}
+
+function formatDisplayDate(dateKey, options = {}) {
+  const date = parseDateKey(dateKey);
+  const dateLabel = `${date.getMonth() + 1}/${date.getDate()} ${dayNames[date.getDay()]}`;
+  return options.markToday && dateKey === getToday() ? `Today ${dateLabel}` : dateLabel;
 }
 
 function parseDateKey(dateKey) {
@@ -350,7 +354,7 @@ function renderCalendar() {
   elements.calendarPanel.innerHTML = `
     <div class="calendar-header">
       <button class="calendar-arrow" type="button" data-month="-1">‹</button>
-      <strong>${year}年${month + 1}月</strong>
+      <strong>${year}/${month + 1}</strong>
       <button class="calendar-arrow" type="button" data-month="1">›</button>
     </div>
     <div class="calendar-grid calendar-weekdays">
@@ -433,7 +437,9 @@ function renderHistory() {
       <div class="history-date"></div>
       <p class="history-memo"></p>
     `;
-    item.querySelector(".history-date").textContent = `${memo.date} ${subject ? subject.name : "未登録科目"}`;
+    item.querySelector(".history-date").textContent = `${formatDisplayDate(memo.date, {
+      markToday: true
+    })} ${subject ? subject.name : "未登録科目"}`;
     item.querySelector(".history-memo").textContent = memo.content;
     elements.historyList.append(item);
   });
