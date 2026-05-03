@@ -46,6 +46,7 @@ const elements = {
   streakCount: document.querySelector("#streakCount"),
   completionLabel: document.querySelector("#completionLabel"),
   homeTitle: document.querySelector("#homeTitle"),
+  dateChevron: document.querySelector("#dateChevron"),
   lessonList: document.querySelector("#lessonList"),
   calendarPanel: document.querySelector("#calendarPanel"),
   addStudyButton: document.querySelector("#addStudyButton"),
@@ -252,7 +253,11 @@ function createLessonCard(item, date) {
   doneButton.type = "button";
   doneButton.className = "done-button";
   doneButton.setAttribute("aria-label", "入力完了");
-  doneButton.textContent = "✓";
+  doneButton.innerHTML = `
+    <svg class="done-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6.5 12.4L10.2 16L17.8 8"></path>
+    </svg>
+  `;
   doneButton.disabled = textarea.value.trim().length === 0;
 
   textarea.addEventListener("input", () => {
@@ -340,6 +345,7 @@ function renderHeaderState() {
   const lessons = lessonsForDate(date);
   const completeLessons = lessons.filter((lesson) => isComplete(lesson, date)).length;
   elements.todayLabel.textContent = getTodayLabel();
+  elements.dateChevron.classList.toggle("is-open", isCalendarOpen);
   elements.homeTitle.textContent = selectedDate === getToday() ? "今日の授業" : "選択日の授業";
   elements.streakCount.textContent = `${state.streak.count}日`;
   elements.completionLabel.textContent =
@@ -359,9 +365,17 @@ function renderCalendar() {
 
   elements.calendarPanel.innerHTML = `
     <div class="calendar-header">
-      <button class="calendar-arrow" type="button" data-month="-1">‹</button>
+      <button class="calendar-arrow" type="button" data-month="-1" aria-label="前の月">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 6L9 12L15 18"></path>
+        </svg>
+      </button>
       <strong>${year}/${month + 1}</strong>
-      <button class="calendar-arrow" type="button" data-month="1">›</button>
+      <button class="calendar-arrow" type="button" data-month="1" aria-label="次の月">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 6L15 12L9 18"></path>
+        </svg>
+      </button>
     </div>
     <div class="calendar-grid calendar-weekdays">
       ${dayNames.map((day) => `<span>${day}</span>`).join("")}
@@ -940,6 +954,7 @@ elements.addStudyButton.addEventListener("click", () => {
 elements.dateButton.addEventListener("click", () => {
   calendarMonthDate = parseDateKey(selectedDate);
   isCalendarOpen = !isCalendarOpen;
+  renderHeaderState();
   renderCalendar();
 });
 window.addEventListener("beforeunload", (event) => {
