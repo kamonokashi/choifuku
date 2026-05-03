@@ -28,6 +28,10 @@ const defaultState = {
 
 let state = loadState();
 let activeHistorySubject = "all";
+let historySortOrder = "desc";
+let historyRange = "all";
+let historyCustomStart = "";
+let historyCustomEnd = "";
 let settingsMode = "menu";
 let settingsDraft = null;
 let settingsDraftSnapshot = "";
@@ -47,6 +51,8 @@ const elements = {
   addStudyButton: document.querySelector("#addStudyButton"),
   studyPicker: document.querySelector("#studyPicker"),
   historyList: document.querySelector("#historyList"),
+  historyControls: document.querySelector("#historyControls"),
+  historySortControl: document.querySelector("#historySortControl"),
   subjectFilters: document.querySelector("#subjectFilters"),
   settingsContent: document.querySelector("#settingsContent")
 };
@@ -409,6 +415,7 @@ function getDateStatus(dateKey) {
 }
 
 function renderHistory() {
+  renderHistoryControls();
   elements.subjectFilters.innerHTML = "";
   elements.subjectFilters.append(createFilterButton("all", "すべて"));
   state.subjects.forEach((subject) => {
@@ -418,7 +425,12 @@ function renderHistory() {
   const memos = state.memos
     .filter((memo) => memo.content.trim().length > 0)
     .filter((memo) => activeHistorySubject === "all" || memo.subjectId === activeHistorySubject)
-    .sort((a, b) => b.date.localeCompare(a.date) || a.period - b.period);
+    .filter((memo) => isMemoInHistoryRange(memo))
+    .sort((a, b) => {
+      const dateSort =
+        historySortOrder === "asc" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
+      return dateSort || a.period - b.period;
+    });
 
   elements.historyList.innerHTML = "";
   if (memos.length === 0) {
@@ -447,6 +459,63 @@ function renderHistory() {
     item.querySelector(".history-memo").textContent = memo.content;
     elements.historyList.append(item);
   });
+}
+
+function renderHistoryControls() {
+  elements.historySortControl.innerHTML = `
+    <button class="${historySortOrder === "desc" ? "is-active" : ""}" type="button" data-sort="desc">新しい順</button>
+    <button class="${historySortOrder === "asc" ? "is-active" : ""}" type="button" data-sort="asc">古い順</button>
+  `;
+  elements.historyControls.innerHTML = `
+    <div class="history-period-bar" aria-label="期間">
+      <span class="period-control-label"><span class="period-icon" aria-hidden="true"></span>期間:</span>
+      <button class="period-option${historyRange === "all" ? " is-active" : ""}" type="button" data-range="all">すべて</button>
+      <button class="period-option${historyRange === "7" ? " is-active" : ""}" type="button" data-range="7">7日</button>
+      <button class="period-option${historyRange === "30" ? " is-active" : ""}" type="button" data-range="30">30日</button>
+      <button class="period-option${historyRange === "custom" ? " is-active" : ""}" type="button" data-range="custom">期間指定</button>
+    </div>
+    <div class="custom-range${historyRange === "custom" ? " is-active" : ""}">
+      <input id="historyStartInput" type="date" value="${historyCustomStart}">
+      <input id="historyEndInput" type="date" value="${historyCustomEnd}">
+    </div>
+  `;
+
+  elements.historySortControl.querySelectorAll("[data-sort]").forEach((button) => {
+    button.addEventListener("click", () => {
+      historySortOrder = button.dataset.sort;
+      renderHistory();
+    });
+  });
+  elements.historyControls.querySelectorAll("[data-range]").forEach((button) => {
+    button.addEventListener("click", () => {
+      historyRange = button.dataset.range;
+      renderHistory();
+    });
+  });
+
+  const startInput = elements.historyControls.querySelector("#historyStartInput");
+  const endInput = elements.historyControls.querySelector("#historyEndInput");
+  startInput.addEventListener("change", () => {
+    historyCustomStart = startInput.value;
+    renderHistory();
+  });
+  endInput.addEventListener("change", () => {
+    historyCustomEnd = endInput.value;
+    renderHistory();
+  });
+}
+
+function isMemoInHistoryRange(memo) {
+  if (historyRange === "all") return true;
+  if (historyRange === "custom") {
+    if (historyCustomStart && memo.date < historyCustomStart) return false;
+    if (historyCustomEnd && memo.date > historyCustomEnd) return false;
+    return true;
+  }
+
+  const days = Number(historyRange);
+  const startDate = addDays(getToday(), -(days - 1));
+  return memo.date >= startDate && memo.date <= getToday();
 }
 
 function createFilterButton(id, label, color = null) {

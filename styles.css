@@ -132,6 +132,31 @@ h3 {
   font-weight: 700;
 }
 
+.sort-segment {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.sort-segment button {
+  min-height: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.sort-segment button.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
 .view {
   display: none;
 }
@@ -516,6 +541,95 @@ input[type="color"] {
   overflow-x: auto;
   margin-bottom: 12px;
   padding-bottom: 2px;
+}
+
+.history-controls {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-label {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.history-period-bar {
+  display: grid;
+  grid-template-columns: 96px repeat(4, minmax(84px, 1fr));
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.period-icon {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #98a6b4;
+  border-radius: 3px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.period-icon::before {
+  content: "";
+  position: absolute;
+  right: 2px;
+  left: 2px;
+  top: 3px;
+  border-top: 2px solid #98a6b4;
+}
+
+.period-control-label,
+.period-option {
+  min-height: 42px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 0.84rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.period-control-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+  line-height: 1;
+}
+
+.period-option:last-child {
+  border-right: 0;
+}
+
+.period-option.is-active {
+  margin: 6px;
+  min-height: 30px;
+  border-right: 0;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.custom-range {
+  display: none;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.custom-range.is-active {
+  display: grid;
 }
 
 .filter-button {
