@@ -30,6 +30,8 @@ let state = loadState();
 let activeHistorySubject = "all";
 let settingsMode = "menu";
 let settingsDraft = null;
+let settingsDraftSnapshot = "";
+let pendingSettingsAction = null;
 let selectedDate = getToday();
 let calendarMonthDate = parseDateKey(selectedDate);
 let isCalendarOpen = false;
@@ -456,17 +458,64 @@ function openSettingsDetail(mode) {
     schedule: clone(state.schedule),
     maxPeriods: state.maxPeriods
   };
+  settingsDraftSnapshot = serializeSettingsDraft();
   renderSettings();
 }
 
-function closeSettingsDetail() {
+function closeSettingsDetail(force = false) {
+  if (!force && !requestSettingsExit(() => closeSettingsDetail(true))) return;
   settingsMode = "menu";
   settingsDraft = null;
+  settingsDraftSnapshot = "";
+  pendingSettingsAction = null;
+  renderSettings();
+}
+
+function serializeSettingsDraft() {
+  if (!settingsDraft) return "";
+  return JSON.stringify(settingsDraft);
+}
+
+function hasUnsavedSettingsChanges() {
+  return settingsDraft !== null && serializeSettingsDraft() !== settingsDraftSnapshot;
+}
+
+function requestSettingsExit(action) {
+  if (!hasUnsavedSettingsChanges()) {
+    action();
+    return true;
+  }
+  pendingSettingsAction = action;
+  renderSettings();
+  return false;
+}
+
+function discardSettingsAndContinue() {
+  const action = pendingSettingsAction;
+  pendingSettingsAction = null;
+  settingsDraft = null;
+  settingsDraftSnapshot = "";
+  if (action) action();
+}
+
+function saveSettingsAndContinue() {
+  const action = pendingSettingsAction;
+  pendingSettingsAction = null;
+  applyCurrentSettingsDraft();
+  settingsDraft = null;
+  settingsDraftSnapshot = "";
+  if (action) action();
+  render();
+}
+
+function cancelPendingSettingsAction() {
+  pendingSettingsAction = null;
   renderSettings();
 }
 
 function renderSettings() {
   elements.settingsContent.innerHTML = "";
+  if (pendingSettingsAction) renderUnsavedSettingsNotice();
   if (settingsMode === "subjects") {
     renderSubjectSettings();
     return;
@@ -476,6 +525,25 @@ function renderSettings() {
     return;
   }
   renderSettingsMenu();
+}
+
+function renderUnsavedSettingsNotice() {
+  const notice = document.createElement("div");
+  notice.className = "unsaved-overlay";
+  notice.innerHTML = `
+    <div class="unsaved-notice">
+      <p>保存しなくて大丈夫ですか？</p>
+      <div class="unsaved-actions">
+        <button class="small-button danger-button" type="button" data-action="discard">保存しないで移動する</button>
+        <button class="small-button primary-mini-button" type="button" data-action="save">保存して移動する</button>
+        <button class="small-button" type="button" data-action="cancel">キャンセル</button>
+      </div>
+    </div>
+  `;
+  notice.querySelector('[data-action="discard"]').addEventListener("click", discardSettingsAndContinue);
+  notice.querySelector('[data-action="save"]').addEventListener("click", saveSettingsAndContinue);
+  notice.querySelector('[data-action="cancel"]').addEventListener("click", cancelPendingSettingsAction);
+  elements.settingsContent.append(notice);
 }
 
 function renderSettingsMenu() {
@@ -501,16 +569,18 @@ function renderSubjectSettings() {
   const wrapper = document.createElement("div");
   wrapper.className = "settings-detail";
   wrapper.innerHTML = `
-    <button class="back-button" type="button">← 設定に戻る</button>
+    <div class="settings-action-bar">
+      <button class="back-button" type="button">← 設定に戻る</button>
+      <button id="saveSubjectSettingsButton" class="primary-button" type="button">保存する</button>
+    </div>
     <div class="settings-block">
       <h3>科目登録・編集</h3>
       <div id="subjectEditorList" class="editor-list"></div>
       <button id="addSubjectRowButton" class="wide-button" type="button">＋ 科目を追加</button>
     </div>
-    <button id="saveSubjectSettingsButton" class="primary-button" type="button">保存する</button>
   `;
   elements.settingsContent.append(wrapper);
-  wrapper.querySelector(".back-button").addEventListener("click", closeSettingsDetail);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
   wrapper.querySelector("#addSubjectRowButton").addEventListener("click", () => {
     settingsDraft.subjects.push({
       id: `subject-${Date.now()}`,
@@ -565,7 +635,10 @@ function renderScheduleSettings() {
   const wrapper = document.createElement("div");
   wrapper.className = "settings-detail";
   wrapper.innerHTML = `
-    <button class="back-button" type="button">← 設定に戻る</button>
+    <div class="settings-action-bar">
+      <button class="back-button" type="button">← 設定に戻る</button>
+      <button id="saveScheduleSettingsButton" class="primary-button" type="button">保存する</button>
+    </div>
     <div class="settings-block">
       <h3>科目を追加</h3>
       <div class="inline-subject-form">
@@ -582,7 +655,6 @@ function renderScheduleSettings() {
       </label>
       <div id="scheduleTableWrap" class="schedule-table-wrap"></div>
     </div>
-    <button id="saveScheduleSettingsButton" class="primary-button" type="button">保存する</button>
   `;
   elements.settingsContent.append(wrapper);
   wrapper.querySelector("#addScheduleSubjectButton").addEventListener("click", () => addSubjectFromSchedule(wrapper));
@@ -593,7 +665,7 @@ function renderScheduleSettings() {
     settingsDraft.schedule = settingsDraft.schedule.filter((item) => item.period <= settingsDraft.maxPeriods);
     renderSettings();
   });
-  wrapper.querySelector(".back-button").addEventListener("click", closeSettingsDetail);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
   wrapper.querySelector("#saveScheduleSettingsButton").addEventListener("click", saveScheduleSettings);
   renderScheduleTable(wrapper.querySelector("#scheduleTableWrap"));
 }
@@ -659,6 +731,29 @@ function setScheduleCell(dayOfWeek, period, subjectId) {
 }
 
 function saveSubjectSettings() {
+  applyCurrentSettingsDraft();
+  closeSettingsDetail(true);
+  render();
+}
+
+function saveScheduleSettings() {
+  applyCurrentSettingsDraft();
+  closeSettingsDetail(true);
+  render();
+}
+
+function applyCurrentSettingsDraft() {
+  if (!settingsDraft) return;
+  if (settingsMode === "subjects") {
+    applySubjectSettingsDraft();
+    return;
+  }
+  if (settingsMode === "schedule") {
+    applyScheduleSettingsDraft();
+  }
+}
+
+function applySubjectSettingsDraft() {
   const validSubjects = settingsDraft.subjects
     .map((subject) => ({ ...subject, name: subject.name.trim() }))
     .filter((subject) => subject.name.length > 0);
@@ -667,11 +762,9 @@ function saveSubjectSettings() {
   state.schedule = state.schedule.filter((item) => validIds.has(item.subjectId));
   updateStreak();
   saveState();
-  closeSettingsDetail();
-  render();
 }
 
-function saveScheduleSettings() {
+function applyScheduleSettingsDraft() {
   const validSubjects = settingsDraft.subjects
     .map((subject) => ({ ...subject, name: subject.name.trim() }))
     .filter((subject) => subject.name.length > 0);
@@ -683,8 +776,6 @@ function saveScheduleSettings() {
     .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period);
   updateStreak();
   saveState();
-  closeSettingsDetail();
-  render();
 }
 
 function clamp(value, min, max) {
@@ -740,8 +831,14 @@ function bindNavigation() {
   document.querySelectorAll(".nav-button").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.view !== "settingsView") {
-        settingsMode = "menu";
-        settingsDraft = null;
+        requestSettingsExit(() => {
+          settingsMode = "menu";
+          settingsDraft = null;
+          settingsDraftSnapshot = "";
+          pendingSettingsAction = null;
+          showView(button.dataset.view);
+        });
+        return;
       }
       showView(button.dataset.view);
     });
@@ -755,6 +852,11 @@ elements.dateButton.addEventListener("click", () => {
   calendarMonthDate = parseDateKey(selectedDate);
   isCalendarOpen = !isCalendarOpen;
   renderCalendar();
+});
+window.addEventListener("beforeunload", (event) => {
+  if (!hasUnsavedSettingsChanges()) return;
+  event.preventDefault();
+  event.returnValue = "";
 });
 updateStreak();
 bindNavigation();

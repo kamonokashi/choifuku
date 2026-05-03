@@ -580,6 +580,62 @@ input[type="color"] {
   box-shadow: var(--shadow);
 }
 
+.settings-action-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.6fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.settings-action-bar .primary-button,
+.settings-action-bar .back-button {
+  min-height: 42px;
+}
+
+.unsaved-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: 86px 16px 16px;
+  background: rgba(31, 41, 51, 0.18);
+}
+
+.unsaved-notice {
+  width: min(100%, 420px);
+  margin-bottom: 12px;
+  border: 1px solid #f0c66c;
+  border-radius: 8px;
+  background: #fff8e8;
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+
+.unsaved-notice p {
+  margin-bottom: 10px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.unsaved-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.primary-mini-button {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.danger-button {
+  border-color: #e3b7b7;
+  color: #a23c3c;
+}
+
 .settings-menu-button {
   display: flex;
   align-items: center;
@@ -598,7 +654,6 @@ input[type="color"] {
 }
 
 .back-button {
-  margin-bottom: 12px;
   min-height: 42px;
   color: var(--muted);
   font-weight: 900;
