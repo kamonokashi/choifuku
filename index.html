@@ -11,7 +11,9 @@
       <header class="top-bar">
         <div>
           <p class="eyebrow">choihuku</p>
-          <h1 id="todayLabel">今日</h1>
+          <button id="dateButton" class="date-button" type="button">
+            <span id="todayLabel">今日</span>
+          </button>
         </div>
         <div class="streak-pill" aria-label="ストリーク">
           <span aria-hidden="true">🔥</span>
@@ -21,6 +23,7 @@
 
       <main>
         <section id="homeView" class="view is-active" aria-labelledby="homeTitle">
+          <div id="calendarPanel" class="calendar-panel" hidden></div>
           <div class="section-heading">
             <h2 id="homeTitle">今日の授業</h2>
             <p id="completionLabel">0 / 0</p>

@@ -68,6 +68,32 @@ h1 {
   font-size: 1.55rem;
 }
 
+.date-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 7px 12px;
+  box-shadow: var(--shadow);
+  font-weight: 900;
+  text-align: left;
+}
+
+.date-button::after {
+  content: "⌄";
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.date-button span {
+  font-size: 1.22rem;
+  line-height: 1.2;
+}
+
 h2 {
   margin-bottom: 0;
   font-size: 1.05rem;
@@ -112,6 +138,130 @@ h3 {
 
 .view.is-active {
   display: block;
+}
+
+.calendar-panel {
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.calendar-arrow {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.calendar-day {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.calendar-day.is-no-lesson {
+  background: #eef2f5;
+  color: #8a97a3;
+}
+
+.calendar-day.is-incomplete {
+  border-color: #d5dde4;
+  background: #fff;
+}
+
+.calendar-day.is-complete {
+  border-color: #b9dfc8;
+  background: #dcf5e5;
+  color: #176b3a;
+}
+
+.calendar-day.is-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.calendar-day.is-today:not(.is-selected) {
+  border-color: var(--accent);
+}
+
+.calendar-day:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+
+.legend-swatch.is-complete {
+  border-color: #b9dfc8;
+  background: #dcf5e5;
+}
+
+.legend-swatch.is-incomplete {
+  background: #fff;
+}
+
+.legend-swatch.is-no-lesson {
+  background: #eef2f5;
 }
 
 .lesson-list,

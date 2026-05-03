@@ -30,12 +30,18 @@ let state = loadState();
 let activeHistorySubject = "all";
 let settingsMode = "menu";
 let settingsDraft = null;
+let selectedDate = getToday();
+let calendarMonthDate = parseDateKey(selectedDate);
+let isCalendarOpen = false;
 
 const elements = {
+  dateButton: document.querySelector("#dateButton"),
   todayLabel: document.querySelector("#todayLabel"),
   streakCount: document.querySelector("#streakCount"),
   completionLabel: document.querySelector("#completionLabel"),
+  homeTitle: document.querySelector("#homeTitle"),
   lessonList: document.querySelector("#lessonList"),
+  calendarPanel: document.querySelector("#calendarPanel"),
   addStudyButton: document.querySelector("#addStudyButton"),
   studyPicker: document.querySelector("#studyPicker"),
   historyList: document.querySelector("#historyList"),
@@ -88,8 +94,26 @@ function getToday() {
 }
 
 function getTodayLabel() {
-  const now = new Date();
-  return `${now.getMonth() + 1}月${now.getDate()}日`;
+  const date = parseDateKey(selectedDate);
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function parseDateKey(dateKey) {
+  const [year, month, date] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, date);
+}
+
+function formatDateKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function addDays(dateKey, amount) {
+  const date = parseDateKey(dateKey);
+  date.setDate(date.getDate() + amount);
+  return formatDateKey(date);
 }
 
 function getSubject(subjectId, subjects = state.subjects) {
@@ -126,20 +150,27 @@ function setMemo(date, subjectId, period, content, type = "lesson", shouldRender
   if (shouldRender) render();
 }
 
-function todayLessons() {
-  const today = new Date().getDay();
+function lessonsForDate(dateKey) {
+  const dayOfWeek = parseDateKey(dateKey).getDay();
   return state.schedule
-    .filter((item) => item.dayOfWeek === today)
+    .filter((item) => item.dayOfWeek === dayOfWeek)
     .map((item) => ({ ...item, type: "lesson" }))
     .sort((a, b) => a.period - b.period);
 }
 
-function todayStudies() {
-  const today = getToday();
+function todayLessons() {
+  return lessonsForDate(getToday());
+}
+
+function studiesForDate(dateKey) {
   return state.memos
-    .filter((memo) => memo.date === today && memo.type === "study")
+    .filter((memo) => memo.date === dateKey && memo.type === "study")
     .map((memo) => ({ ...memo, type: "study" }))
     .sort((a, b) => a.period - b.period);
+}
+
+function todayStudies() {
+  return studiesForDate(getToday());
 }
 
 function isComplete(item, date) {
@@ -148,21 +179,31 @@ function isComplete(item, date) {
 }
 
 function updateStreak() {
-  const today = getToday();
-  const lessons = todayLessons();
-  if (lessons.length === 0) return;
-  const complete = lessons.every((lesson) => isComplete(lesson, today));
-  if (!complete || state.streak.lastCompletedDate === today) return;
+  let cursor = getToday();
+  let count = 0;
+  let foundCompletedDay = false;
+  state.streak.lastCompletedDate = null;
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const y = yesterday.getFullYear();
-  const m = String(yesterday.getMonth() + 1).padStart(2, "0");
-  const d = String(yesterday.getDate()).padStart(2, "0");
-  const yesterdayKey = `${y}-${m}-${d}`;
+  for (let i = 0; i < 365; i += 1) {
+    const lessons = lessonsForDate(cursor);
+    const isToday = cursor === getToday();
 
-  state.streak.count = state.streak.lastCompletedDate === yesterdayKey ? state.streak.count + 1 : 1;
-  state.streak.lastCompletedDate = today;
+    if (lessons.length > 0) {
+      const complete = lessons.every((lesson) => isComplete(lesson, cursor));
+      if (complete) {
+        count += 1;
+        foundCompletedDay = true;
+        state.streak.lastCompletedDate = state.streak.lastCompletedDate || cursor;
+      } else if (foundCompletedDay || !isToday) {
+        break;
+      }
+    }
+
+    cursor = addDays(cursor, -1);
+  }
+
+  state.streak.count = count;
+  if (count === 0) state.streak.lastCompletedDate = null;
 }
 
 function createLessonCard(item, date) {
@@ -241,6 +282,7 @@ function autoResize(textarea) {
 
 function renderHome() {
   renderHeaderState();
+  renderCalendar();
   elements.lessonList.innerHTML = "";
   elements.addStudyButton.hidden = state.schedule.length === 0;
   elements.studyPicker.hidden = true;
@@ -260,9 +302,9 @@ function renderHome() {
     return;
   }
 
-  const date = getToday();
-  const lessons = todayLessons();
-  const studies = todayStudies();
+  const date = selectedDate;
+  const lessons = lessonsForDate(date);
+  const studies = studiesForDate(date);
   const items = [...lessons, ...studies].sort((a, b) => {
     const doneA = isComplete(a, date) ? 1 : 0;
     const doneB = isComplete(b, date) ? 1 : 0;
@@ -272,7 +314,7 @@ function renderHome() {
   if (items.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "今日の授業はありません";
+    empty.textContent = "この日の授業はありません";
     elements.lessonList.append(empty);
     return;
   }
@@ -281,13 +323,82 @@ function renderHome() {
 }
 
 function renderHeaderState() {
-  const date = getToday();
-  const lessons = todayLessons();
+  const date = selectedDate;
+  const lessons = lessonsForDate(date);
   const completeLessons = lessons.filter((lesson) => isComplete(lesson, date)).length;
   elements.todayLabel.textContent = getTodayLabel();
+  elements.homeTitle.textContent = selectedDate === getToday() ? "今日の授業" : "選択日の授業";
   elements.streakCount.textContent = `${state.streak.count}日`;
   elements.completionLabel.textContent =
     state.schedule.length === 0 ? "未設定" : lessons.length === 0 ? "授業なし" : `${completeLessons} / ${lessons.length}`;
+}
+
+function renderCalendar() {
+  elements.calendarPanel.hidden = !isCalendarOpen;
+  if (!isCalendarOpen) return;
+
+  const year = calendarMonthDate.getFullYear();
+  const month = calendarMonthDate.getMonth();
+  const firstDate = new Date(year, month, 1);
+  const startOffset = firstDate.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayKey = getToday();
+
+  elements.calendarPanel.innerHTML = `
+    <div class="calendar-header">
+      <button class="calendar-arrow" type="button" data-month="-1">‹</button>
+      <strong>${year}年${month + 1}月</strong>
+      <button class="calendar-arrow" type="button" data-month="1">›</button>
+    </div>
+    <div class="calendar-grid calendar-weekdays">
+      ${dayNames.map((day) => `<span>${day}</span>`).join("")}
+    </div>
+    <div class="calendar-grid" id="calendarDays"></div>
+    <div class="calendar-legend">
+      <span><i class="legend-swatch is-complete"></i>完了</span>
+      <span><i class="legend-swatch is-incomplete"></i>未入力</span>
+      <span><i class="legend-swatch is-no-lesson"></i>授業なし</span>
+    </div>
+  `;
+
+  elements.calendarPanel.querySelectorAll(".calendar-arrow").forEach((button) => {
+    button.addEventListener("click", () => {
+      calendarMonthDate = new Date(year, month + Number(button.dataset.month), 1);
+      renderCalendar();
+    });
+  });
+
+  const days = elements.calendarPanel.querySelector("#calendarDays");
+  for (let i = 0; i < startOffset; i += 1) {
+    days.append(document.createElement("span"));
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dateKey = formatDateKey(new Date(year, month, day));
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-day";
+    button.textContent = day;
+    button.disabled = dateKey > todayKey;
+    button.classList.toggle("is-selected", dateKey === selectedDate);
+    button.classList.toggle("is-today", dateKey === todayKey);
+    const dateStatus = getDateStatus(dateKey);
+    button.classList.add(`is-${dateStatus}`);
+    button.addEventListener("click", () => {
+      selectedDate = dateKey;
+      isCalendarOpen = false;
+      render();
+    });
+    days.append(button);
+  }
+}
+
+function getDateStatus(dateKey) {
+  const lessons = lessonsForDate(dateKey);
+  const completedStudies = studiesForDate(dateKey).filter((study) => isComplete(study, dateKey));
+  if (lessons.length === 0 && completedStudies.length > 0) return "complete";
+  if (lessons.length === 0) return "no-lesson";
+  return lessons.every((lesson) => isComplete(lesson, dateKey)) ? "complete" : "incomplete";
 }
 
 function renderHistory() {
@@ -553,6 +664,7 @@ function saveSubjectSettings() {
   const validIds = new Set(validSubjects.map((subject) => subject.id));
   state.subjects = validSubjects;
   state.schedule = state.schedule.filter((item) => validIds.has(item.subjectId));
+  updateStreak();
   saveState();
   closeSettingsDetail();
   render();
@@ -568,6 +680,7 @@ function saveScheduleSettings() {
   state.schedule = settingsDraft.schedule
     .filter((item) => validSubjectIds.has(item.subjectId) && item.period <= state.maxPeriods)
     .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period);
+  updateStreak();
   saveState();
   closeSettingsDetail();
   render();
@@ -599,7 +712,7 @@ function renderStudyPicker() {
 }
 
 function addStudy(subjectId) {
-  const date = getToday();
+  const date = selectedDate;
   const studyCount = state.memos.filter((memo) => memo.date === date && memo.type === "study").length;
   elements.studyPicker.hidden = true;
   setMemo(date, subjectId, 100 + studyCount + 1, "", "study");
@@ -637,5 +750,11 @@ function bindNavigation() {
 elements.addStudyButton.addEventListener("click", () => {
   elements.studyPicker.hidden = !elements.studyPicker.hidden;
 });
+elements.dateButton.addEventListener("click", () => {
+  calendarMonthDate = parseDateKey(selectedDate);
+  isCalendarOpen = !isCalendarOpen;
+  renderCalendar();
+});
+updateStreak();
 bindNavigation();
 render();
