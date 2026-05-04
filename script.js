@@ -47,6 +47,10 @@ const defaultState = {
   scheduleRanges: [],
   dateExceptions: [],
   weekOverrides: [],
+  theme: {
+    mode: "light",
+    accent: "#2f80ed"
+  },
   maxPeriods: 6,
   memos: [],
   streak: {
@@ -56,6 +60,7 @@ const defaultState = {
 };
 
 let state = loadState();
+applyTheme();
 let activeHistorySubject = "all";
 let historySortOrder = "desc";
 let historyRange = "all";
@@ -119,6 +124,16 @@ function ensureScheduleState(targetState) {
   targetState.scheduleRanges = Array.isArray(targetState.scheduleRanges) ? targetState.scheduleRanges : [];
   targetState.dateExceptions = Array.isArray(targetState.dateExceptions) ? targetState.dateExceptions : [];
   targetState.weekOverrides = Array.isArray(targetState.weekOverrides) ? targetState.weekOverrides : [];
+  targetState.theme = {
+    ...clone(defaultState.theme),
+    ...(targetState.theme || {})
+  };
+  if (!/^#[0-9a-f]{6}$/i.test(targetState.theme.accent)) {
+    targetState.theme.accent = defaultState.theme.accent;
+  }
+  if (!["light", "dark"].includes(targetState.theme.mode)) {
+    targetState.theme.mode = defaultState.theme.mode;
+  }
   targetState.maxPeriods = clamp(Number(targetState.maxPeriods || 6), 1, 12);
 
   if (targetState.scheduleTemplates.length === 0 && targetState.schedule.length > 0) {
@@ -155,6 +170,13 @@ function isSameSchedule(a, b) {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function applyTheme(theme = state.theme) {
+  const mode = theme?.mode === "dark" ? "dark" : "light";
+  const accent = /^#[0-9a-f]{6}$/i.test(theme?.accent || "") ? theme.accent : defaultState.theme.accent;
+  document.documentElement.dataset.theme = mode;
+  document.documentElement.style.setProperty("--accent", accent);
 }
 
 function getToday() {
@@ -861,6 +883,7 @@ function openSettingsDetail(mode) {
     scheduleRanges: clone(state.scheduleRanges),
     dateExceptions: clone(state.dateExceptions),
     weekOverrides: clone(state.weekOverrides),
+    theme: clone(state.theme),
     maxPeriods: state.maxPeriods
   };
   settingsDraftSnapshot = serializeSettingsDraft();
@@ -946,6 +969,10 @@ function renderSettings() {
     renderArchiveSettings();
     return;
   }
+  if (settingsMode === "theme") {
+    renderThemeSettings();
+    return;
+  }
   renderSettingsMenu();
 }
 
@@ -984,6 +1011,7 @@ function renderSettingsMenu() {
       `${state.dateExceptions.length + state.weekOverrides.length}件`,
       "holiday"
     )}
+    ${createSettingsMenuButton("theme", "画面の色設定", "ダークモードやアクセントカラーを変更できます", getThemeModeLabel(state.theme.mode), "palette")}
     ${createSettingsMenuButton("archive", "アーカイブされた時間割一覧", "過去に使っていた時間割を確認・復元できます", `${archivedTemplateCount}件`, "archive")}
   `;
   menu.querySelectorAll("[data-settings-mode]").forEach((button) => {
@@ -1041,6 +1069,15 @@ function getSettingsMenuIcon(icon) {
         <path d="M12 13.2L13 15.1L15.1 15.4L13.6 16.9L13.9 19L12 18L10.1 19L10.4 16.9L8.9 15.4L11 15.1L12 13.2Z"></path>
       </svg>
     `,
+    palette: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4C7.6 4 4 7.2 4 11.5C4 15.7 7.4 19 11.5 19H13.2C14.2 19 14.8 17.9 14.3 17.1C13.9 16.4 14.4 15.5 15.2 15.5H16.5C18.4 15.5 20 13.9 20 12C20 7.6 16.4 4 12 4Z"></path>
+        <circle cx="8.4" cy="11" r="0.7"></circle>
+        <circle cx="10.6" cy="8.4" r="0.7"></circle>
+        <circle cx="13.8" cy="8.6" r="0.7"></circle>
+        <circle cx="16" cy="11.2" r="0.7"></circle>
+      </svg>
+    `,
     archive: `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
         <rect x="4" y="4.5" width="16" height="4" rx="1.5"></rect>
@@ -1050,6 +1087,10 @@ function getSettingsMenuIcon(icon) {
     `
   };
   return icons[icon] || icons.book;
+}
+
+function getThemeModeLabel(mode) {
+  return mode === "dark" ? "ダーク" : "ライト";
 }
 
 function renderSubjectSettings() {
@@ -1591,6 +1632,67 @@ function renderArchiveSettings() {
   });
 }
 
+function renderThemeSettings() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail";
+  wrapper.innerHTML = `
+    <div class="settings-action-bar">
+      <button class="back-button" type="button">← 設定に戻る</button>
+      <button id="saveThemeSettingsButton" class="primary-button" type="button">保存する</button>
+    </div>
+    <div class="settings-block">
+      <h3>画面の色設定</h3>
+      <div class="theme-mode-grid" role="group" aria-label="画面モード">
+        <button class="theme-choice${settingsDraft.theme.mode === "light" ? " is-selected" : ""}" type="button" data-theme-mode="light">
+          <span class="theme-choice-sample is-light"></span>
+          <span>ライト</span>
+        </button>
+        <button class="theme-choice${settingsDraft.theme.mode === "dark" ? " is-selected" : ""}" type="button" data-theme-mode="dark">
+          <span class="theme-choice-sample is-dark"></span>
+          <span>ダーク</span>
+        </button>
+      </div>
+      <label class="theme-color-label">
+        <span>アクセントカラー</span>
+        <input id="themeAccentInput" type="color" value="${settingsDraft.theme.accent}">
+      </label>
+      <div class="accent-preset-row" aria-label="おすすめカラー">
+        ${["#2f80ed", "#35b978", "#f59e0b", "#e24d76", "#7c3aed", "#14b8a6"]
+          .map(
+            (color) =>
+              `<button class="accent-preset${settingsDraft.theme.accent.toLowerCase() === color ? " is-selected" : ""}" style="--preset-color: ${color}" type="button" data-color="${color}" aria-label="${color}"></button>`
+          )
+          .join("")}
+      </div>
+      <div class="theme-preview">
+        <span class="theme-preview-pill">Today 5/3 Sun</span>
+        <span class="theme-preview-button">保存する</span>
+      </div>
+    </div>
+  `;
+  elements.settingsContent.append(wrapper);
+  wrapper.style.setProperty("--accent", settingsDraft.theme.accent);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
+  wrapper.querySelector("#saveThemeSettingsButton").addEventListener("click", saveThemeSettings);
+  wrapper.querySelectorAll("[data-theme-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      settingsDraft.theme.mode = button.dataset.themeMode;
+      renderSettings();
+    });
+  });
+  const accentInput = wrapper.querySelector("#themeAccentInput");
+  accentInput.addEventListener("input", () => {
+    settingsDraft.theme.accent = accentInput.value;
+    wrapper.style.setProperty("--accent", accentInput.value);
+  });
+  wrapper.querySelectorAll("[data-color]").forEach((button) => {
+    button.addEventListener("click", () => {
+      settingsDraft.theme.accent = button.dataset.color;
+      renderSettings();
+    });
+  });
+}
+
 function saveSubjectSettings() {
   applyCurrentSettingsDraft();
   closeSettingsDetail(true);
@@ -1622,6 +1724,12 @@ function saveArchiveSettings() {
   render();
 }
 
+function saveThemeSettings() {
+  applyCurrentSettingsDraft();
+  closeSettingsDetail(true);
+  render();
+}
+
 function applyCurrentSettingsDraft() {
   if (!settingsDraft) return;
   if (settingsMode === "subjects") {
@@ -1642,6 +1750,10 @@ function applyCurrentSettingsDraft() {
   }
   if (settingsMode === "archive") {
     applyArchiveSettingsDraft();
+    return;
+  }
+  if (settingsMode === "theme") {
+    applyThemeSettingsDraft();
   }
 }
 
@@ -1710,6 +1822,17 @@ function applyExceptionSettingsDraft() {
 function applyArchiveSettingsDraft() {
   state.scheduleTemplates = settingsDraft.scheduleTemplates;
   updateStreak();
+  saveState();
+}
+
+function applyThemeSettingsDraft() {
+  state.theme = {
+    mode: settingsDraft.theme.mode === "dark" ? "dark" : "light",
+    accent: /^#[0-9a-f]{6}$/i.test(settingsDraft.theme.accent)
+      ? settingsDraft.theme.accent
+      : defaultState.theme.accent
+  };
+  applyTheme();
   saveState();
 }
 
