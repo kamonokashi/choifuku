@@ -976,34 +976,82 @@ function renderSettingsMenu() {
   const activeTemplateCount = getActiveTemplates(state.scheduleTemplates).length;
   const archivedTemplateCount = state.scheduleTemplates.length - activeTemplateCount;
   menu.innerHTML = `
-    <button class="settings-menu-button" type="button">
-      <span>科目設定</span>
-      <small>${state.subjects.length}件</small>
-    </button>
-    <button class="settings-menu-button" type="button">
-      <span>時間割設定</span>
-      <small>${activeTemplateCount}件</small>
-    </button>
-    <button class="settings-menu-button" type="button">
-      <span>時間割の期間設定</span>
-      <small>${state.scheduleRanges.length}件</small>
-    </button>
-    <button class="settings-menu-button" type="button">
-      <span>休日・日ごとの予定の設定</span>
-      <small>${state.dateExceptions.length + state.weekOverrides.length}件</small>
-    </button>
-    <button class="settings-menu-button" type="button">
-      <span>アーカイブされた時間割一覧</span>
-      <small>${archivedTemplateCount}件</small>
+    ${createSettingsMenuButton("subjects", "科目設定", "科目の追加・編集を行います", `${state.subjects.length}件`, "book")}
+    ${createSettingsMenuButton("schedule", "時間割設定", "時間割テンプレートの作成・編集を行います", `${activeTemplateCount}件`, "clock")}
+    ${createSettingsMenuButton("ranges", "時間割の期間設定", "時間割を使う期間を設定します", `${state.scheduleRanges.length}件`, "calendar")}
+    ${createSettingsMenuButton(
+      "exceptions",
+      "休日・日ごとの予定の設定",
+      "特定日の休日設定や曜日変更を行います",
+      `${state.dateExceptions.length + state.weekOverrides.length}件`,
+      "holiday"
+    )}
+    ${createSettingsMenuButton("archive", "アーカイブされた時間割一覧", "過去に使っていた時間割を確認・復元できます", `${archivedTemplateCount}件`, "archive")}
+  `;
+  menu.querySelectorAll("[data-settings-mode]").forEach((button) => {
+    button.addEventListener("click", () => openSettingsDetail(button.dataset.settingsMode));
+  });
+  elements.settingsContent.append(menu);
+}
+
+function createSettingsMenuButton(mode, title, description, count, icon) {
+  return `
+    <button class="settings-menu-button settings-icon-${icon}" type="button" data-settings-mode="${mode}">
+      <span class="settings-menu-icon" aria-hidden="true">${getSettingsMenuIcon(icon)}</span>
+      <span class="settings-menu-copy">
+        <span class="settings-menu-title">${title}</span>
+        <span class="settings-menu-description">${description}</span>
+      </span>
+      <span class="settings-menu-meta">
+        <small>${count}</small>
+        <svg class="settings-menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 6L15 12L9 18"></path>
+        </svg>
+      </span>
     </button>
   `;
-  const [subjectButton, scheduleButton, rangeButton, exceptionButton, archiveButton] = menu.querySelectorAll("button");
-  subjectButton.addEventListener("click", () => openSettingsDetail("subjects"));
-  scheduleButton.addEventListener("click", () => openSettingsDetail("schedule"));
-  rangeButton.addEventListener("click", () => openSettingsDetail("ranges"));
-  exceptionButton.addEventListener("click", () => openSettingsDetail("exceptions"));
-  archiveButton.addEventListener("click", () => openSettingsDetail("archive"));
-  elements.settingsContent.append(menu);
+}
+
+function getSettingsMenuIcon(icon) {
+  const icons = {
+    book: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 5.5C6.8 4.4 9.3 4.6 12 6.2V20C9.3 18.4 6.8 18.2 4.5 19.3V5.5Z"></path>
+        <path d="M19.5 5.5C17.2 4.4 14.7 4.6 12 6.2V20C14.7 18.4 17.2 18.2 19.5 19.3V5.5Z"></path>
+      </svg>
+    `,
+    clock: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8.5"></circle>
+        <path d="M12 7.5V12L15 14"></path>
+      </svg>
+    `,
+    calendar: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="5.5" width="16" height="15" rx="3"></rect>
+        <path d="M4 10H20"></path>
+        <path d="M8 3.5V7"></path>
+        <path d="M16 3.5V7"></path>
+      </svg>
+    `,
+    holiday: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="5.5" width="16" height="15" rx="3"></rect>
+        <path d="M4 10H20"></path>
+        <path d="M8 3.5V7"></path>
+        <path d="M16 3.5V7"></path>
+        <path d="M12 13.2L13 15.1L15.1 15.4L13.6 16.9L13.9 19L12 18L10.1 19L10.4 16.9L8.9 15.4L11 15.1L12 13.2Z"></path>
+      </svg>
+    `,
+    archive: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="4.5" width="16" height="4" rx="1.5"></rect>
+        <path d="M6 8.5V19.5H18V8.5"></path>
+        <path d="M9.5 13H14.5"></path>
+      </svg>
+    `
+  };
+  return icons[icon] || icons.book;
 }
 
 function renderSubjectSettings() {
