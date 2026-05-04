@@ -712,9 +712,7 @@ function renderCalendar() {
     const dateStatus = getDateStatus(dateKey);
     button.classList.add(`is-${dateStatus}`);
     button.addEventListener("click", () => {
-      selectedDate = dateKey;
-      isCalendarOpen = false;
-      render();
+      selectCalendarDate(dateKey);
     });
     days.append(button);
   }
@@ -1794,15 +1792,45 @@ function showView(viewId) {
   render();
 }
 
+function getActiveViewId() {
+  return document.querySelector(".view.is-active")?.id || "homeView";
+}
+
+function resetSettingsDetail() {
+  settingsMode = "menu";
+  settingsDraft = null;
+  settingsDraftSnapshot = "";
+  pendingSettingsAction = null;
+}
+
+function openHeaderCalendar() {
+  calendarMonthDate = parseDateKey(selectedDate);
+  isCalendarOpen = !isCalendarOpen;
+  renderHeaderState();
+  renderCalendar();
+}
+
+function selectCalendarDate(dateKey) {
+  const moveHome = () => {
+    selectedDate = dateKey;
+    isCalendarOpen = false;
+    resetSettingsDetail();
+    showView("homeView");
+  };
+
+  if (getActiveViewId() === "settingsView") {
+    requestSettingsExit(moveHome);
+    return;
+  }
+  moveHome();
+}
+
 function bindNavigation() {
   document.querySelectorAll(".nav-button").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.view !== "settingsView") {
         requestSettingsExit(() => {
-          settingsMode = "menu";
-          settingsDraft = null;
-          settingsDraftSnapshot = "";
-          pendingSettingsAction = null;
+          resetSettingsDetail();
           showView(button.dataset.view);
         });
         return;
@@ -1816,10 +1844,7 @@ elements.addStudyButton.addEventListener("click", () => {
   elements.studyPicker.hidden = !elements.studyPicker.hidden;
 });
 elements.dateButton.addEventListener("click", () => {
-  calendarMonthDate = parseDateKey(selectedDate);
-  isCalendarOpen = !isCalendarOpen;
-  renderHeaderState();
-  renderCalendar();
+  openHeaderCalendar();
 });
 window.addEventListener("beforeunload", (event) => {
   if (!hasUnsavedSettingsChanges()) return;
