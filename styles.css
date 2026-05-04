@@ -242,9 +242,9 @@ h3 {
 }
 
 .calendar-day.is-complete {
-  border-color: #b9dfc8;
-  background: #dcf5e5;
-  color: #176b3a;
+  border-color: #bfdbfe;
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .calendar-day.is-selected {
@@ -286,8 +286,8 @@ h3 {
 }
 
 .legend-swatch.is-complete {
-  border-color: #b9dfc8;
-  background: #dcf5e5;
+  border-color: #bfdbfe;
+  background: #dbeafe;
 }
 
 .legend-swatch.is-incomplete {
