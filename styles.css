@@ -728,6 +728,31 @@ input[type="color"] {
   text-align: center;
 }
 
+.day-status {
+  margin: 0 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.day-status.is-holiday,
+.day-status.is-user-holiday {
+  border-color: #cfe2f3;
+  background: #f4f9ff;
+  color: #4e6c87;
+}
+
+.day-status.is-weekday-override,
+.day-status.is-schedule-override {
+  border-color: #c9dcff;
+  background: #f2f7ff;
+  color: var(--accent);
+}
+
 .settings-menu {
   display: grid;
   gap: 10px;
@@ -842,9 +867,93 @@ input[type="color"] {
   align-items: center;
 }
 
+.template-editor-list {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.template-card {
+  display: grid;
+  gap: 10px;
+}
+
+.template-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
 .period-count-label {
   display: block;
   margin-bottom: 12px;
+}
+
+.range-editor-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.exception-type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.small-button.is-selected {
+  border-color: transparent;
+  background: var(--surface-muted);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.14);
+}
+
+.weekday-override-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.weekday-override-panel p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.weekday-choice-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.week-override-form {
+  display: grid;
+  gap: 8px;
+}
+
+.wide-select {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.simple-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px;
+}
+
+.simple-list-row span {
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 800;
 }
 
 .schedule-table-wrap {
@@ -902,5 +1011,15 @@ input[type="color"] {
   .form-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: end;
+  }
+}
+
+@media (max-width: 560px) {
+  .range-editor-row {
+    grid-template-columns: 1fr;
+  }
+
+  .exception-type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

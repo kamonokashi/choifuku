@@ -1,6 +1,31 @@
 const STORAGE_KEY = "studyReviewApp.v1";
 
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const weekdayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"];
+const weekdayFullLabels = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+const holidaysByYear = {
+  2026: {
+    "2026-01-01": "元日",
+    "2026-01-12": "成人の日",
+    "2026-02-11": "建国記念の日",
+    "2026-02-23": "天皇誕生日",
+    "2026-03-20": "春分の日",
+    "2026-04-29": "昭和の日",
+    "2026-05-03": "憲法記念日",
+    "2026-05-04": "みどりの日",
+    "2026-05-05": "こどもの日",
+    "2026-05-06": "振替休日",
+    "2026-07-20": "海の日",
+    "2026-08-11": "山の日",
+    "2026-09-21": "敬老の日",
+    "2026-09-22": "国民の休日",
+    "2026-09-23": "秋分の日",
+    "2026-10-12": "スポーツの日",
+    "2026-11-03": "文化の日",
+    "2026-11-23": "勤労感謝の日"
+  }
+};
 const legacyDemoSchedule = [
   { dayOfWeek: 0, period: 1, subjectId: "english" },
   { dayOfWeek: 0, period: 2, subjectId: "math" },
@@ -18,6 +43,10 @@ const defaultState = {
     { id: "history", name: "歴史", color: "#f0b56a" }
   ],
   schedule: [],
+  scheduleTemplates: [],
+  scheduleRanges: [],
+  dateExceptions: [],
+  weekOverrides: [],
   maxPeriods: 6,
   memos: [],
   streak: {
@@ -36,6 +65,8 @@ let settingsMode = "menu";
 let settingsDraft = null;
 let settingsDraftSnapshot = "";
 let pendingSettingsAction = null;
+let exceptionEditorDate = getToday();
+let weekOverrideEditorDate = getToday();
 let selectedDate = getToday();
 let calendarMonthDate = parseDateKey(selectedDate);
 let isCalendarOpen = false;
@@ -72,9 +103,41 @@ function loadState() {
     if (saved.maxPeriods === undefined && isSameSchedule(saved.schedule, legacyDemoSchedule)) {
       migrated.schedule = [];
     }
+    ensureScheduleState(migrated);
     return migrated;
   } catch {
     return clone(defaultState);
+  }
+}
+
+function ensureScheduleState(targetState) {
+  targetState.subjects = Array.isArray(targetState.subjects) ? targetState.subjects : [];
+  targetState.schedule = Array.isArray(targetState.schedule) ? targetState.schedule : [];
+  targetState.scheduleTemplates = Array.isArray(targetState.scheduleTemplates)
+    ? targetState.scheduleTemplates
+    : [];
+  targetState.scheduleRanges = Array.isArray(targetState.scheduleRanges) ? targetState.scheduleRanges : [];
+  targetState.dateExceptions = Array.isArray(targetState.dateExceptions) ? targetState.dateExceptions : [];
+  targetState.weekOverrides = Array.isArray(targetState.weekOverrides) ? targetState.weekOverrides : [];
+  targetState.maxPeriods = clamp(Number(targetState.maxPeriods || 6), 1, 12);
+
+  if (targetState.scheduleTemplates.length === 0 && targetState.schedule.length > 0) {
+    const templateId = `schedule-${Date.now()}`;
+    const year = Number(getToday().slice(0, 4));
+    targetState.scheduleTemplates.push({
+      id: templateId,
+      name: "移行済み時間割",
+      archived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      schedule: scheduleArrayToTemplateSchedule(targetState.schedule)
+    });
+    targetState.scheduleRanges.push({
+      id: `range-${Date.now()}`,
+      scheduleId: templateId,
+      startDate: `${year}-01-01`,
+      endDate: `${year}-12-31`
+    });
   }
 }
 
@@ -130,8 +193,159 @@ function addDays(dateKey, amount) {
   return formatDateKey(date);
 }
 
+function getWeekStartDate(dateKey) {
+  const date = parseDateKey(dateKey);
+  const day = date.getDay();
+  date.setDate(date.getDate() - ((day + 6) % 7));
+  return formatDateKey(date);
+}
+
+function getHolidayName(dateKey) {
+  const year = Number(dateKey.slice(0, 4));
+  return holidaysByYear[year] ? holidaysByYear[year][dateKey] : null;
+}
+
 function getSubject(subjectId, subjects = state.subjects) {
   return subjects.find((subject) => subject.id === subjectId);
+}
+
+function getScheduleTemplate(scheduleId, source = state.scheduleTemplates) {
+  return source.find((template) => template.id === scheduleId);
+}
+
+function getActiveTemplates(source = state.scheduleTemplates) {
+  return source.filter((template) => !template.archived);
+}
+
+function buildTemplateOptions(source, currentId = "", includeArchivedCurrent = false) {
+  const activeTemplates = getActiveTemplates(source);
+  const currentTemplate = includeArchivedCurrent
+    ? source.find((template) => template.id === currentId && template.archived)
+    : null;
+  const options = currentTemplate ? [...activeTemplates, currentTemplate] : activeTemplates;
+  return options
+    .map((template) => {
+      const archivedLabel = template.archived ? "（アーカイブ）" : "";
+      return `<option value="${template.id}">${template.name || "名称未入力"}${archivedLabel}</option>`;
+    })
+    .join("");
+}
+
+function scheduleArrayToTemplateSchedule(scheduleArray) {
+  return scheduleArray.reduce((schedule, item) => {
+    const key = weekdayKeys[item.dayOfWeek];
+    if (!key) return schedule;
+    if (!schedule[key]) schedule[key] = {};
+    schedule[key][item.period] = item.subjectId;
+    return schedule;
+  }, createEmptyTemplateSchedule());
+}
+
+function createEmptyTemplateSchedule() {
+  return weekdayKeys.reduce((schedule, key) => {
+    schedule[key] = {};
+    return schedule;
+  }, {});
+}
+
+function getRangeForDate(dateKey) {
+  return state.scheduleRanges.find((range) => range.startDate <= dateKey && range.endDate >= dateKey);
+}
+
+function getWeekOverrideForDate(dateKey) {
+  const weekStartDate = getWeekStartDate(dateKey);
+  const once = state.weekOverrides.find(
+    (override) => override.type === "week_override_once" && override.weekStartDate === weekStartDate
+  );
+  if (once) return once;
+
+  return state.weekOverrides
+    .filter(
+      (override) =>
+        override.type === "week_override_from" && override.fromWeekStartDate <= weekStartDate
+    )
+    .sort((a, b) => b.fromWeekStartDate.localeCompare(a.fromWeekStartDate))[0];
+}
+
+function getBaseScheduleTemplateForDate(dateKey) {
+  const weekOverride = getWeekOverrideForDate(dateKey);
+  if (weekOverride) return getScheduleTemplate(weekOverride.scheduleId);
+  const range = getRangeForDate(dateKey);
+  return range ? getScheduleTemplate(range.scheduleId) : null;
+}
+
+function getLessonsFromTemplate(template, dateKey, dayOfWeek = parseDateKey(dateKey).getDay()) {
+  if (!template) return [];
+  const daySchedule = template.schedule?.[weekdayKeys[dayOfWeek]] || {};
+  return Object.entries(daySchedule)
+    .filter(([, subjectId]) => subjectId)
+    .map(([period, subjectId]) => ({
+      period: Number(period),
+      subjectId,
+      type: "lesson",
+      scheduleId: template.id
+    }))
+    .sort((a, b) => a.period - b.period);
+}
+
+function getEffectiveDayPlan(dateKey) {
+  const exception = state.dateExceptions.find((item) => item.date === dateKey);
+  const holidayName = getHolidayName(dateKey);
+
+  if (exception?.type === "holiday") {
+    return {
+      lessons: [],
+      kind: "user-holiday",
+      message: "本日は休日設定です。"
+    };
+  }
+
+  if (exception?.type === "weekday_override") {
+    const dayOfWeek = weekdayKeys.indexOf(exception.weekday);
+    const template = getBaseScheduleTemplateForDate(dateKey);
+    const label = weekdayFullLabels[dayOfWeek] || "別曜日";
+    return {
+      lessons: getLessonsFromTemplate(template, dateKey, dayOfWeek),
+      kind: "weekday-override",
+      scheduleName: template ? template.name : "",
+      message: `本日は${label}時程です。`
+    };
+  }
+
+  if (exception?.type === "schedule_override") {
+    const template = getScheduleTemplate(exception.scheduleId);
+    return {
+      lessons: getLessonsFromTemplate(template, dateKey),
+      kind: "schedule-override",
+      scheduleName: template ? template.name : "",
+      message: template ? `本日は「${template.name}」の時間割です。` : "今日は授業が設定されていません。"
+    };
+  }
+
+  if (holidayName) {
+    return {
+      lessons: [],
+      kind: "holiday",
+      holidayName,
+      message: "本日は祝日です。授業なしとして扱われます。"
+    };
+  }
+
+  const template = getBaseScheduleTemplateForDate(dateKey);
+  if (!template) {
+    return {
+      lessons: [],
+      kind: "unset",
+      message: "今日は授業が設定されていません。"
+    };
+  }
+
+  return {
+    lessons: getLessonsFromTemplate(template, dateKey),
+    kind: "normal",
+    scheduleName: template.name,
+    message: template.name ? `現在の時間割：${template.name}` : ""
+  };
 }
 
 function getMemo(date, subjectId, period, type = "lesson") {
@@ -171,11 +385,7 @@ function setMemo(date, subjectId, period, content, type = "lesson", shouldRender
 }
 
 function lessonsForDate(dateKey) {
-  const dayOfWeek = parseDateKey(dateKey).getDay();
-  return state.schedule
-    .filter((item) => item.dayOfWeek === dayOfWeek)
-    .map((item) => ({ ...item, type: "lesson" }))
-    .sort((a, b) => a.period - b.period);
+  return getEffectiveDayPlan(dateKey).lessons;
 }
 
 function todayLessons() {
@@ -356,10 +566,17 @@ function renderHome() {
   renderCalendar();
   const previousPositions = captureLessonPositions();
   elements.lessonList.innerHTML = "";
-  elements.addStudyButton.hidden = state.schedule.length === 0;
+  const plan = getEffectiveDayPlan(selectedDate);
+  const hasConfiguredSchedule = state.scheduleTemplates.length > 0 && state.scheduleRanges.length > 0;
+  elements.addStudyButton.hidden = !hasConfiguredSchedule && plan.kind === "unset";
   elements.studyPicker.hidden = true;
 
-  if (state.schedule.length === 0) {
+  const status = document.createElement("p");
+  status.className = `day-status is-${plan.kind}`;
+  status.textContent = plan.message;
+  if (plan.message) elements.lessonList.append(status);
+
+  if (!hasConfiguredSchedule && plan.kind === "unset") {
     const prompt = document.createElement("div");
     prompt.className = "setup-prompt";
     prompt.innerHTML = `
@@ -368,7 +585,7 @@ function renderHome() {
     `;
     prompt.querySelector("button").addEventListener("click", () => {
       showView("settingsView");
-      openSettingsDetail("schedule");
+      openSettingsDetail("ranges");
     });
     elements.lessonList.append(prompt);
     return;
@@ -380,7 +597,7 @@ function renderHome() {
   if (items.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "この日の授業はありません";
+    empty.textContent = plan.kind === "unset" ? "この日の授業はありません" : "今日の授業メモはありません";
     elements.lessonList.append(empty);
     return;
   }
@@ -424,7 +641,7 @@ function renderHeaderState() {
   elements.homeTitle.textContent = selectedDate === getToday() ? "今日の授業" : "選択日の授業";
   elements.streakCount.textContent = `${state.streak.count}日`;
   elements.completionLabel.textContent =
-    state.schedule.length === 0 ? "未設定" : lessons.length === 0 ? "授業なし" : `${completeLessons} / ${lessons.length}`;
+    state.scheduleTemplates.length === 0 ? "未設定" : lessons.length === 0 ? "授業なし" : `${completeLessons} / ${lessons.length}`;
 }
 
 function renderCalendar() {
@@ -634,7 +851,10 @@ function openSettingsDetail(mode) {
   settingsMode = mode;
   settingsDraft = {
     subjects: clone(state.subjects),
-    schedule: clone(state.schedule),
+    scheduleTemplates: clone(state.scheduleTemplates),
+    scheduleRanges: clone(state.scheduleRanges),
+    dateExceptions: clone(state.dateExceptions),
+    weekOverrides: clone(state.weekOverrides),
     maxPeriods: state.maxPeriods
   };
   settingsDraftSnapshot = serializeSettingsDraft();
@@ -680,6 +900,11 @@ function discardSettingsAndContinue() {
 function saveSettingsAndContinue() {
   const action = pendingSettingsAction;
   pendingSettingsAction = null;
+  if (settingsMode === "ranges" && !validateScheduleRanges(settingsDraft.scheduleRanges)) {
+    pendingSettingsAction = action;
+    renderSettings();
+    return;
+  }
   applyCurrentSettingsDraft();
   settingsDraft = null;
   settingsDraftSnapshot = "";
@@ -701,6 +926,18 @@ function renderSettings() {
   }
   if (settingsMode === "schedule") {
     renderScheduleSettings();
+    return;
+  }
+  if (settingsMode === "ranges") {
+    renderRangeSettings();
+    return;
+  }
+  if (settingsMode === "exceptions") {
+    renderExceptionSettings();
+    return;
+  }
+  if (settingsMode === "archive") {
+    renderArchiveSettings();
     return;
   }
   renderSettingsMenu();
@@ -728,19 +965,36 @@ function renderUnsavedSettingsNotice() {
 function renderSettingsMenu() {
   const menu = document.createElement("div");
   menu.className = "settings-menu";
+  const activeTemplateCount = getActiveTemplates(state.scheduleTemplates).length;
+  const archivedTemplateCount = state.scheduleTemplates.length - activeTemplateCount;
   menu.innerHTML = `
     <button class="settings-menu-button" type="button">
-      <span>科目登録・編集</span>
+      <span>科目設定</span>
       <small>${state.subjects.length}件</small>
     </button>
     <button class="settings-menu-button" type="button">
-      <span>時間割の登録・編集</span>
-      <small>${state.maxPeriods}限 / ${state.schedule.length}コマ</small>
+      <span>時間割設定</span>
+      <small>${activeTemplateCount}件</small>
+    </button>
+    <button class="settings-menu-button" type="button">
+      <span>時間割の期間設定</span>
+      <small>${state.scheduleRanges.length}件</small>
+    </button>
+    <button class="settings-menu-button" type="button">
+      <span>休日・日ごとの予定の設定</span>
+      <small>${state.dateExceptions.length + state.weekOverrides.length}件</small>
+    </button>
+    <button class="settings-menu-button" type="button">
+      <span>アーカイブされた時間割一覧</span>
+      <small>${archivedTemplateCount}件</small>
     </button>
   `;
-  const [subjectButton, scheduleButton] = menu.querySelectorAll("button");
+  const [subjectButton, scheduleButton, rangeButton, exceptionButton, archiveButton] = menu.querySelectorAll("button");
   subjectButton.addEventListener("click", () => openSettingsDetail("subjects"));
   scheduleButton.addEventListener("click", () => openSettingsDetail("schedule"));
+  rangeButton.addEventListener("click", () => openSettingsDetail("ranges"));
+  exceptionButton.addEventListener("click", () => openSettingsDetail("exceptions"));
+  archiveButton.addEventListener("click", () => openSettingsDetail("archive"));
   elements.settingsContent.append(menu);
 }
 
@@ -803,7 +1057,13 @@ function renderSubjectEditorRows(container) {
     row.querySelector("button").addEventListener("click", () => {
       const removedId = settingsDraft.subjects[index].id;
       settingsDraft.subjects.splice(index, 1);
-      settingsDraft.schedule = settingsDraft.schedule.filter((item) => item.subjectId !== removedId);
+      settingsDraft.scheduleTemplates.forEach((template) => {
+        weekdayKeys.forEach((dayKey) => {
+          Object.keys(template.schedule?.[dayKey] || {}).forEach((period) => {
+            if (template.schedule[dayKey][period] === removedId) delete template.schedule[dayKey][period];
+          });
+        });
+      });
       renderSettings();
     });
     container.append(row);
@@ -827,12 +1087,13 @@ function renderScheduleSettings() {
       </div>
     </div>
     <div class="settings-block">
-      <h3>時間割の登録・編集</h3>
+      <h3>時間割テンプレート</h3>
       <label class="period-count-label">
         <span>何限まで表示するか</span>
         <input id="maxPeriodsInput" type="number" min="1" max="12">
       </label>
-      <div id="scheduleTableWrap" class="schedule-table-wrap"></div>
+      <div id="templateEditorList" class="template-editor-list"></div>
+      <button id="addTemplateButton" class="wide-button" type="button">＋ 時間割テンプレートを追加</button>
     </div>
   `;
   elements.settingsContent.append(wrapper);
@@ -841,12 +1102,15 @@ function renderScheduleSettings() {
   maxPeriodsInput.value = settingsDraft.maxPeriods;
   maxPeriodsInput.addEventListener("change", () => {
     settingsDraft.maxPeriods = clamp(Number(maxPeriodsInput.value), 1, 12);
-    settingsDraft.schedule = settingsDraft.schedule.filter((item) => item.period <= settingsDraft.maxPeriods);
+    renderSettings();
+  });
+  wrapper.querySelector("#addTemplateButton").addEventListener("click", () => {
+    settingsDraft.scheduleTemplates.push(createScheduleTemplate("新しい時間割"));
     renderSettings();
   });
   wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
   wrapper.querySelector("#saveScheduleSettingsButton").addEventListener("click", saveScheduleSettings);
-  renderScheduleTable(wrapper.querySelector("#scheduleTableWrap"));
+  renderTemplateEditors(wrapper.querySelector("#templateEditorList"));
 }
 
 function addSubjectFromSchedule(wrapper) {
@@ -863,25 +1127,82 @@ function addSubjectFromSchedule(wrapper) {
   renderSettings();
 }
 
-function renderScheduleTable(container) {
+function createScheduleTemplate(name) {
+  const now = new Date().toISOString();
+  return {
+    id: `schedule-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name,
+    archived: false,
+    createdAt: now,
+    updatedAt: now,
+    schedule: createEmptyTemplateSchedule()
+  };
+}
+
+function renderTemplateEditors(container) {
+  container.innerHTML = "";
+  const templates = settingsDraft.scheduleTemplates.filter((template) => !template.archived);
+  if (templates.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "時間割テンプレートがありません";
+    container.append(empty);
+    return;
+  }
+
+  templates.forEach((template) => {
+    const card = document.createElement("div");
+    card.className = "template-card";
+    card.innerHTML = `
+      <div class="template-card-head">
+        <input class="template-name-input" type="text" placeholder="時間割名">
+        <button class="small-button" type="button">アーカイブ</button>
+      </div>
+      <div class="schedule-table-wrap"></div>
+    `;
+    const nameInput = card.querySelector(".template-name-input");
+    nameInput.value = template.name;
+    nameInput.addEventListener("input", () => {
+      template.name = nameInput.value;
+      template.updatedAt = new Date().toISOString();
+    });
+    card.querySelector(".small-button").addEventListener("click", () => {
+      template.archived = true;
+      template.updatedAt = new Date().toISOString();
+      renderSettings();
+    });
+    renderTemplateScheduleTable(card.querySelector(".schedule-table-wrap"), template);
+    container.append(card);
+  });
+}
+
+function renderTemplateScheduleTable(container, template) {
   const table = document.createElement("table");
   table.className = "schedule-table";
   const thead = document.createElement("thead");
-  thead.innerHTML = `<tr><th>時限</th>${dayNames.map((day) => `<th>${day}</th>`).join("")}</tr>`;
+  thead.innerHTML = `<tr><th>時限</th>${weekdayLabels.map((day) => `<th>${day}</th>`).join("")}</tr>`;
   const tbody = document.createElement("tbody");
 
   for (let period = 1; period <= settingsDraft.maxPeriods; period += 1) {
     const row = document.createElement("tr");
     row.innerHTML = `<th>${period}限</th>`;
-    dayNames.forEach((_, dayOfWeek) => {
+    weekdayKeys.forEach((dayKey) => {
       const cell = document.createElement("td");
       const select = document.createElement("select");
       select.className = "schedule-cell-select";
       select.innerHTML = `<option value="">-</option>${settingsDraft.subjects
         .map((subject) => `<option value="${subject.id}">${subject.name || "名称未入力"}</option>`)
         .join("")}`;
-      select.value = getScheduleSubjectId(dayOfWeek, period);
-      select.addEventListener("change", () => setScheduleCell(dayOfWeek, period, select.value));
+      select.value = template.schedule?.[dayKey]?.[period] || "";
+      select.addEventListener("change", () => {
+        if (!template.schedule[dayKey]) template.schedule[dayKey] = {};
+        if (select.value) {
+          template.schedule[dayKey][period] = select.value;
+        } else {
+          delete template.schedule[dayKey][period];
+        }
+        template.updatedAt = new Date().toISOString();
+      });
       cell.append(select);
       row.append(cell);
     });
@@ -893,20 +1214,327 @@ function renderScheduleTable(container) {
   container.append(table);
 }
 
-function getScheduleSubjectId(dayOfWeek, period) {
-  const item = settingsDraft.schedule.find(
-    (entry) => entry.dayOfWeek === dayOfWeek && entry.period === period
-  );
-  return item ? item.subjectId : "";
+function renderRangeSettings() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail";
+  wrapper.innerHTML = `
+    <div class="settings-action-bar">
+      <button class="back-button" type="button">← 設定に戻る</button>
+      <button id="saveRangeSettingsButton" class="primary-button" type="button">保存する</button>
+    </div>
+    <div class="settings-block">
+      <h3>時間割の期間設定</h3>
+      <div id="rangeEditorList" class="editor-list"></div>
+      <button id="addRangeButton" class="wide-button" type="button">＋ 期間を追加</button>
+    </div>
+  `;
+  elements.settingsContent.append(wrapper);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
+  wrapper.querySelector("#saveRangeSettingsButton").addEventListener("click", saveRangeSettings);
+  wrapper.querySelector("#addRangeButton").addEventListener("click", () => {
+    const activeTemplate = getActiveTemplates(settingsDraft.scheduleTemplates)[0];
+    settingsDraft.scheduleRanges.push({
+      id: `range-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      scheduleId: activeTemplate ? activeTemplate.id : "",
+      startDate: getToday(),
+      endDate: getToday()
+    });
+    renderSettings();
+  });
+  renderRangeEditorRows(wrapper.querySelector("#rangeEditorList"));
 }
 
-function setScheduleCell(dayOfWeek, period, subjectId) {
-  settingsDraft.schedule = settingsDraft.schedule.filter(
-    (entry) => !(entry.dayOfWeek === dayOfWeek && entry.period === period)
-  );
-  if (subjectId) {
-    settingsDraft.schedule.push({ dayOfWeek, period, subjectId });
+function renderRangeEditorRows(container) {
+  container.innerHTML = "";
+  if (settingsDraft.scheduleRanges.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "期間設定がありません";
+    container.append(empty);
+    return;
   }
+
+  [...settingsDraft.scheduleRanges]
+    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+    .forEach((range) => {
+      const row = document.createElement("div");
+      row.className = "range-editor-row";
+      row.innerHTML = `
+        <select class="range-template-select"></select>
+        <input class="range-start-input" type="date">
+        <input class="range-end-input" type="date">
+        <button class="small-button" type="button">削除</button>
+      `;
+      const select = row.querySelector(".range-template-select");
+      select.innerHTML = `<option value="">時間割を選択</option>${buildTemplateOptions(
+        settingsDraft.scheduleTemplates,
+        range.scheduleId,
+        true
+      )}`;
+      select.value = range.scheduleId;
+      select.addEventListener("change", () => {
+        range.scheduleId = select.value;
+      });
+      const startInput = row.querySelector(".range-start-input");
+      const endInput = row.querySelector(".range-end-input");
+      startInput.value = range.startDate;
+      endInput.value = range.endDate;
+      startInput.addEventListener("change", () => {
+        range.startDate = startInput.value;
+      });
+      endInput.addEventListener("change", () => {
+        range.endDate = endInput.value;
+      });
+      row.querySelector("button").addEventListener("click", () => {
+        settingsDraft.scheduleRanges = settingsDraft.scheduleRanges.filter((item) => item.id !== range.id);
+        renderSettings();
+      });
+      container.append(row);
+    });
+}
+
+function renderExceptionSettings() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail";
+  const selectedException = settingsDraft.dateExceptions.find((item) => item.date === exceptionEditorDate);
+  const originalDayOfWeek = parseDateKey(exceptionEditorDate).getDay();
+  wrapper.innerHTML = `
+    <div class="settings-action-bar">
+      <button class="back-button" type="button">← 設定に戻る</button>
+      <button id="saveExceptionSettingsButton" class="primary-button" type="button">保存する</button>
+    </div>
+    <div class="settings-block">
+      <h3>${formatExceptionHeading(exceptionEditorDate)}の設定</h3>
+      <input id="exceptionDateInput" type="date" value="${exceptionEditorDate}">
+      <div class="exception-type-grid">
+        <button class="small-button${!selectedException ? " is-selected" : ""}" type="button" data-type="normal">通常</button>
+        <button class="small-button${selectedException?.type === "holiday" ? " is-selected" : ""}" type="button" data-type="holiday">休日</button>
+        <button class="small-button${selectedException?.type === "weekday_override" ? " is-selected" : ""}" type="button" data-type="weekday_override">曜日変更</button>
+        <button class="small-button${selectedException?.type === "schedule_override" ? " is-selected" : ""}" type="button" data-type="schedule_override">別時間割</button>
+      </div>
+      <div id="exceptionDetail"></div>
+    </div>
+    <div class="settings-block">
+      <h3>今週の時間割を変更</h3>
+      <div class="week-override-form">
+        <input id="weekOverrideDateInput" type="date" value="${weekOverrideEditorDate}">
+        <select id="weekOverrideScheduleSelect"></select>
+        <div class="exception-type-grid">
+          <button class="small-button is-selected" type="button" data-scope="once">今週だけ</button>
+          <button class="small-button" type="button" data-scope="from">今週以降</button>
+        </div>
+        <button id="addWeekOverrideButton" class="wide-button" type="button">週の変更を追加</button>
+      </div>
+      <div id="weekOverrideList" class="editor-list"></div>
+    </div>
+    <div class="settings-block">
+      <h3>登録済みの日ごとの設定</h3>
+      <div id="exceptionList" class="editor-list"></div>
+    </div>
+  `;
+  elements.settingsContent.append(wrapper);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
+  wrapper.querySelector("#saveExceptionSettingsButton").addEventListener("click", saveExceptionSettings);
+  wrapper.querySelector("#exceptionDateInput").addEventListener("change", (event) => {
+    exceptionEditorDate = event.target.value || getToday();
+    renderSettings();
+  });
+  wrapper.querySelectorAll("[data-type]").forEach((button) => {
+    button.addEventListener("click", () => setDateExceptionType(button.dataset.type));
+  });
+  renderExceptionDetail(wrapper.querySelector("#exceptionDetail"), selectedException, originalDayOfWeek);
+  renderWeekOverrideEditor(wrapper);
+  renderExceptionLists(wrapper);
+}
+
+function formatExceptionHeading(dateKey) {
+  const date = parseDateKey(dateKey);
+  return `${date.getMonth() + 1}月${date.getDate()}日（${weekdayLabels[date.getDay()]}）`;
+}
+
+function setDateExceptionType(type) {
+  settingsDraft.dateExceptions = settingsDraft.dateExceptions.filter((item) => item.date !== exceptionEditorDate);
+  if (type === "holiday") {
+    settingsDraft.dateExceptions.push({ date: exceptionEditorDate, type: "holiday" });
+  }
+  if (type === "weekday_override") {
+    const original = parseDateKey(exceptionEditorDate).getDay();
+    const weekday = weekdayKeys.find((_, index) => index !== original) || "monday";
+    settingsDraft.dateExceptions.push({ date: exceptionEditorDate, type: "weekday_override", weekday });
+  }
+  if (type === "schedule_override") {
+    const activeTemplate = getActiveTemplates(settingsDraft.scheduleTemplates)[0];
+    settingsDraft.dateExceptions.push({
+      date: exceptionEditorDate,
+      type: "schedule_override",
+      scheduleId: activeTemplate ? activeTemplate.id : ""
+    });
+  }
+  renderSettings();
+}
+
+function renderExceptionDetail(container, selectedException, originalDayOfWeek) {
+  container.innerHTML = "";
+  if (!selectedException) {
+    container.innerHTML = `<p class="empty-state">この日は通常どおり扱います。</p>`;
+    return;
+  }
+  if (selectedException.type === "holiday") {
+    container.innerHTML = `<p class="empty-state">この日は休日として扱います。</p>`;
+    return;
+  }
+  if (selectedException.type === "weekday_override") {
+    const detail = document.createElement("div");
+    detail.className = "weekday-override-panel";
+    detail.innerHTML = `<p>本日は［${weekdayFullLabels[weekdayKeys.indexOf(selectedException.weekday)]}］として扱う</p>`;
+    const row = document.createElement("div");
+    row.className = "weekday-choice-row";
+    weekdayLabels.forEach((label, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `small-button${selectedException.weekday === weekdayKeys[index] ? " is-selected" : ""}`;
+      button.textContent = label;
+      button.disabled = index === originalDayOfWeek;
+      button.addEventListener("click", () => {
+        selectedException.weekday = weekdayKeys[index];
+        renderSettings();
+      });
+      row.append(button);
+    });
+    detail.append(row);
+    container.append(detail);
+    return;
+  }
+
+  const select = document.createElement("select");
+  select.className = "wide-select";
+  select.innerHTML = `<option value="">時間割を選択</option>${buildTemplateOptions(
+    settingsDraft.scheduleTemplates,
+    selectedException.scheduleId,
+    true
+  )}`;
+  select.value = selectedException.scheduleId;
+  select.addEventListener("change", () => {
+    selectedException.scheduleId = select.value;
+  });
+  container.append(select);
+}
+
+function renderWeekOverrideEditor(wrapper) {
+  let scope = "once";
+  const select = wrapper.querySelector("#weekOverrideScheduleSelect");
+  select.innerHTML = `<option value="">時間割を選択</option>${buildTemplateOptions(settingsDraft.scheduleTemplates)}`;
+  wrapper.querySelector("#weekOverrideDateInput").addEventListener("change", (event) => {
+    weekOverrideEditorDate = event.target.value || getToday();
+  });
+  wrapper.querySelectorAll("[data-scope]").forEach((button) => {
+    button.addEventListener("click", () => {
+      scope = button.dataset.scope;
+      wrapper.querySelectorAll("[data-scope]").forEach((candidate) => {
+        candidate.classList.toggle("is-selected", candidate === button);
+      });
+    });
+  });
+  wrapper.querySelector("#addWeekOverrideButton").addEventListener("click", () => {
+    if (!select.value) return;
+    const weekStartDate = getWeekStartDate(weekOverrideEditorDate);
+    settingsDraft.weekOverrides = settingsDraft.weekOverrides.filter((override) => {
+      if (scope === "once") return override.weekStartDate !== weekStartDate;
+      return override.fromWeekStartDate !== weekStartDate;
+    });
+    settingsDraft.weekOverrides.push(
+      scope === "once"
+        ? { type: "week_override_once", weekStartDate, scheduleId: select.value }
+        : { type: "week_override_from", fromWeekStartDate: weekStartDate, scheduleId: select.value }
+    );
+    renderSettings();
+  });
+}
+
+function renderExceptionLists(wrapper) {
+  const exceptionList = wrapper.querySelector("#exceptionList");
+  exceptionList.innerHTML = "";
+  if (settingsDraft.dateExceptions.length === 0) {
+    exceptionList.innerHTML = `<p class="empty-state">日ごとの設定はありません</p>`;
+  } else {
+    [...settingsDraft.dateExceptions]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .forEach((exception) => {
+        const row = document.createElement("div");
+        row.className = "simple-list-row";
+        row.innerHTML = `<span>${exception.date} / ${describeException(exception)}</span><button class="small-button" type="button">削除</button>`;
+        row.querySelector("button").addEventListener("click", () => {
+          settingsDraft.dateExceptions = settingsDraft.dateExceptions.filter((item) => item !== exception);
+          renderSettings();
+        });
+        exceptionList.append(row);
+      });
+  }
+
+  const weekList = wrapper.querySelector("#weekOverrideList");
+  weekList.innerHTML = "";
+  if (settingsDraft.weekOverrides.length === 0) {
+    weekList.innerHTML = `<p class="empty-state">週単位の変更はありません</p>`;
+    return;
+  }
+  settingsDraft.weekOverrides.forEach((override) => {
+    const schedule = getScheduleTemplate(override.scheduleId, settingsDraft.scheduleTemplates);
+    const dateLabel = override.weekStartDate || override.fromWeekStartDate;
+    const row = document.createElement("div");
+    row.className = "simple-list-row";
+    row.innerHTML = `<span>${dateLabel} / ${override.type === "week_override_once" ? "今週だけ" : "今週以降"} / ${
+      schedule ? schedule.name : "不明な時間割"
+    }</span><button class="small-button" type="button">削除</button>`;
+    row.querySelector("button").addEventListener("click", () => {
+      settingsDraft.weekOverrides = settingsDraft.weekOverrides.filter((item) => item !== override);
+      renderSettings();
+    });
+    weekList.append(row);
+  });
+}
+
+function describeException(exception) {
+  if (exception.type === "holiday") return "休日";
+  if (exception.type === "weekday_override") {
+    return `${weekdayFullLabels[weekdayKeys.indexOf(exception.weekday)]}時程`;
+  }
+  const template = getScheduleTemplate(exception.scheduleId, settingsDraft.scheduleTemplates);
+  return template ? template.name : "別時間割";
+}
+
+function renderArchiveSettings() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail";
+  wrapper.innerHTML = `
+    <div class="settings-action-bar">
+      <button class="back-button" type="button">← 設定に戻る</button>
+      <button id="saveArchiveSettingsButton" class="primary-button" type="button">保存する</button>
+    </div>
+    <div class="settings-block">
+      <h3>アーカイブされた時間割一覧</h3>
+      <div id="archiveTemplateList" class="editor-list"></div>
+    </div>
+  `;
+  elements.settingsContent.append(wrapper);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
+  wrapper.querySelector("#saveArchiveSettingsButton").addEventListener("click", saveArchiveSettings);
+  const list = wrapper.querySelector("#archiveTemplateList");
+  const archived = settingsDraft.scheduleTemplates.filter((template) => template.archived);
+  if (archived.length === 0) {
+    list.innerHTML = `<p class="empty-state">アーカイブされた時間割はありません</p>`;
+    return;
+  }
+  archived.forEach((template) => {
+    const row = document.createElement("div");
+    row.className = "simple-list-row";
+    row.innerHTML = `<span>${template.name || "名称未入力"}</span><button class="small-button" type="button">復元</button>`;
+    row.querySelector("button").addEventListener("click", () => {
+      template.archived = false;
+      template.updatedAt = new Date().toISOString();
+      renderSettings();
+    });
+    list.append(row);
+  });
 }
 
 function saveSubjectSettings() {
@@ -921,6 +1549,25 @@ function saveScheduleSettings() {
   render();
 }
 
+function saveRangeSettings() {
+  if (!validateScheduleRanges(settingsDraft.scheduleRanges)) return;
+  applyCurrentSettingsDraft();
+  closeSettingsDetail(true);
+  render();
+}
+
+function saveExceptionSettings() {
+  applyCurrentSettingsDraft();
+  closeSettingsDetail(true);
+  render();
+}
+
+function saveArchiveSettings() {
+  applyCurrentSettingsDraft();
+  closeSettingsDetail(true);
+  render();
+}
+
 function applyCurrentSettingsDraft() {
   if (!settingsDraft) return;
   if (settingsMode === "subjects") {
@@ -929,6 +1576,18 @@ function applyCurrentSettingsDraft() {
   }
   if (settingsMode === "schedule") {
     applyScheduleSettingsDraft();
+    return;
+  }
+  if (settingsMode === "ranges") {
+    applyRangeSettingsDraft();
+    return;
+  }
+  if (settingsMode === "exceptions") {
+    applyExceptionSettingsDraft();
+    return;
+  }
+  if (settingsMode === "archive") {
+    applyArchiveSettingsDraft();
   }
 }
 
@@ -938,7 +1597,13 @@ function applySubjectSettingsDraft() {
     .filter((subject) => subject.name.length > 0);
   const validIds = new Set(validSubjects.map((subject) => subject.id));
   state.subjects = validSubjects;
-  state.schedule = state.schedule.filter((item) => validIds.has(item.subjectId));
+  state.scheduleTemplates.forEach((template) => {
+    weekdayKeys.forEach((dayKey) => {
+      Object.keys(template.schedule?.[dayKey] || {}).forEach((period) => {
+        if (!validIds.has(template.schedule[dayKey][period])) delete template.schedule[dayKey][period];
+      });
+    });
+  });
   updateStreak();
   saveState();
 }
@@ -950,11 +1615,78 @@ function applyScheduleSettingsDraft() {
   const validSubjectIds = new Set(validSubjects.map((subject) => subject.id));
   state.subjects = validSubjects;
   state.maxPeriods = clamp(settingsDraft.maxPeriods, 1, 12);
-  state.schedule = settingsDraft.schedule
-    .filter((item) => validSubjectIds.has(item.subjectId) && item.period <= state.maxPeriods)
-    .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.period - b.period);
+  state.scheduleTemplates = settingsDraft.scheduleTemplates.map((template) => ({
+    ...template,
+    name: template.name.trim() || "名称未入力",
+    schedule: sanitizeTemplateSchedule(template.schedule, validSubjectIds, state.maxPeriods),
+    updatedAt: template.updatedAt || new Date().toISOString()
+  }));
+  state.scheduleRanges = state.scheduleRanges.filter((range) =>
+    state.scheduleTemplates.some((template) => template.id === range.scheduleId)
+  );
+  state.dateExceptions = state.dateExceptions.filter(
+    (exception) =>
+      exception.type !== "schedule_override" ||
+      state.scheduleTemplates.some((template) => template.id === exception.scheduleId)
+  );
+  state.weekOverrides = state.weekOverrides.filter((override) =>
+    state.scheduleTemplates.some((template) => template.id === override.scheduleId)
+  );
   updateStreak();
   saveState();
+}
+
+function applyRangeSettingsDraft() {
+  state.scheduleRanges = settingsDraft.scheduleRanges
+    .filter((range) => range.scheduleId && range.startDate && range.endDate && range.startDate <= range.endDate)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  updateStreak();
+  saveState();
+}
+
+function applyExceptionSettingsDraft() {
+  state.dateExceptions = settingsDraft.dateExceptions
+    .filter((exception) => exception.date && exception.type)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  state.weekOverrides = settingsDraft.weekOverrides;
+  updateStreak();
+  saveState();
+}
+
+function applyArchiveSettingsDraft() {
+  state.scheduleTemplates = settingsDraft.scheduleTemplates;
+  updateStreak();
+  saveState();
+}
+
+function sanitizeTemplateSchedule(schedule, validSubjectIds, maxPeriods) {
+  const next = createEmptyTemplateSchedule();
+  weekdayKeys.forEach((dayKey) => {
+    Object.entries(schedule?.[dayKey] || {}).forEach(([period, subjectId]) => {
+      const periodNumber = Number(period);
+      if (validSubjectIds.has(subjectId) && periodNumber <= maxPeriods) {
+        next[dayKey][periodNumber] = subjectId;
+      }
+    });
+  });
+  return next;
+}
+
+function validateScheduleRanges(ranges) {
+  const validRanges = ranges.filter(
+    (range) => range.scheduleId && range.startDate && range.endDate && range.startDate <= range.endDate
+  );
+  for (let i = 0; i < validRanges.length; i += 1) {
+    for (let j = i + 1; j < validRanges.length; j += 1) {
+      const a = validRanges[i];
+      const b = validRanges[j];
+      if (a.startDate <= b.endDate && a.endDate >= b.startDate) {
+        window.alert("この期間は、すでに別の時間割が設定されています。期間が重複しないように変更してください。");
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 function clamp(value, min, max) {
