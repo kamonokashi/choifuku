@@ -166,7 +166,7 @@ function getToday() {
 }
 
 function getTodayLabel() {
-  return formatDisplayDate(selectedDate, { markToday: true });
+  return formatDisplayDate(selectedDate, { markToday: selectedDate === getToday() });
 }
 
 function formatDisplayDate(dateKey, options = {}) {
@@ -291,12 +291,13 @@ function getLessonsFromTemplate(template, dateKey, dayOfWeek = parseDateKey(date
 function getEffectiveDayPlan(dateKey) {
   const exception = state.dateExceptions.find((item) => item.date === dateKey);
   const holidayName = getHolidayName(dateKey);
+  const daySubject = dateKey === getToday() ? "本日" : "この日";
 
   if (exception?.type === "holiday") {
     return {
       lessons: [],
       kind: "user-holiday",
-      message: "本日は休日設定です。"
+      message: `${daySubject}は休日設定です。`
     };
   }
 
@@ -308,7 +309,7 @@ function getEffectiveDayPlan(dateKey) {
       lessons: getLessonsFromTemplate(template, dateKey, dayOfWeek),
       kind: "weekday-override",
       scheduleName: template ? template.name : "",
-      message: `本日は${label}時程です。`
+      message: `${daySubject}は${label}時程です。`
     };
   }
 
@@ -318,7 +319,9 @@ function getEffectiveDayPlan(dateKey) {
       lessons: getLessonsFromTemplate(template, dateKey),
       kind: "schedule-override",
       scheduleName: template ? template.name : "",
-      message: template ? `本日は「${template.name}」の時間割です。` : "今日は授業が設定されていません。"
+      message: template
+        ? `${daySubject}は「${template.name}」の時間割です。`
+        : `${daySubject}は授業が設定されていません。`
     };
   }
 
@@ -327,7 +330,7 @@ function getEffectiveDayPlan(dateKey) {
       lessons: [],
       kind: "holiday",
       holidayName,
-      message: "本日は祝日です。授業なしとして扱われます。"
+      message: `${daySubject}は祝日です。授業なしとして扱われます。`
     };
   }
 
@@ -336,7 +339,7 @@ function getEffectiveDayPlan(dateKey) {
     return {
       lessons: [],
       kind: "unset",
-      message: "今日は授業が設定されていません。"
+      message: `${daySubject}は授業が設定されていません。`
     };
   }
 
@@ -597,7 +600,12 @@ function renderHome() {
   if (items.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = plan.kind === "unset" ? "この日の授業はありません" : "今日の授業メモはありません";
+    empty.textContent =
+      plan.kind === "unset"
+        ? "この日の授業はありません"
+        : selectedDate === getToday()
+          ? "今日の授業メモはありません"
+          : "この日の授業メモはありません";
     elements.lessonList.append(empty);
     return;
   }
@@ -1386,7 +1394,7 @@ function renderExceptionDetail(container, selectedException, originalDayOfWeek) 
   if (selectedException.type === "weekday_override") {
     const detail = document.createElement("div");
     detail.className = "weekday-override-panel";
-    detail.innerHTML = `<p>本日は［${weekdayFullLabels[weekdayKeys.indexOf(selectedException.weekday)]}］として扱う</p>`;
+    detail.innerHTML = `<p>この日は［${weekdayFullLabels[weekdayKeys.indexOf(selectedException.weekday)]}］として扱う</p>`;
     const row = document.createElement("div");
     row.className = "weekday-choice-row";
     weekdayLabels.forEach((label, index) => {
