@@ -144,10 +144,15 @@ function getMemo(date, subjectId, period, type = "lesson") {
   );
 }
 
+function getItemKey(item) {
+  return `${item.type}:${item.subjectId}:${item.period}`;
+}
+
 function setMemo(date, subjectId, period, content, type = "lesson", shouldRender = true) {
   const existing = getMemo(date, subjectId, period, type);
   if (existing) {
     existing.content = content;
+    if (content.trim().length === 0) existing.completed = false;
     existing.updatedAt = new Date().toISOString();
   } else {
     state.memos.push({
@@ -156,6 +161,7 @@ function setMemo(date, subjectId, period, content, type = "lesson", shouldRender
       period,
       type,
       content,
+      completed: false,
       updatedAt: new Date().toISOString()
     });
   }
@@ -187,9 +193,19 @@ function todayStudies() {
   return studiesForDate(getToday());
 }
 
+function homeItemsForDate(dateKey) {
+  const lessons = lessonsForDate(dateKey);
+  const studies = studiesForDate(dateKey);
+  return [...lessons, ...studies].sort((a, b) => {
+    const doneA = isComplete(a, dateKey) ? 1 : 0;
+    const doneB = isComplete(b, dateKey) ? 1 : 0;
+    return doneA - doneB || a.period - b.period;
+  });
+}
+
 function isComplete(item, date) {
   const memo = getMemo(date, item.subjectId, item.period, item.type);
-  return Boolean(memo && memo.content.trim().length > 0);
+  return Boolean(memo && memo.content.trim().length > 0 && memo.completed !== false);
 }
 
 function updateStreak() {
@@ -226,9 +242,10 @@ function createLessonCard(item, date) {
     color: "#aab4bd"
   };
   const memo = getMemo(date, item.subjectId, item.period, item.type);
-  const complete = Boolean(memo && memo.content.trim().length > 0);
+  const complete = isComplete(item, date);
   const card = document.createElement("article");
   card.className = `lesson-card${complete ? " is-complete" : ""}`;
+  card.dataset.key = getItemKey(item);
   card.style.setProperty("--subject-color", subject.color);
 
   const bar = document.createElement("div");
@@ -245,6 +262,7 @@ function createLessonCard(item, date) {
 
   const textarea = document.createElement("textarea");
   textarea.className = "memo-input";
+  textarea.dataset.key = getItemKey(item);
   textarea.rows = 1;
   textarea.placeholder = "今日覚えたことを1つだけ";
   textarea.value = memo ? memo.content : "";
@@ -263,17 +281,21 @@ function createLessonCard(item, date) {
   textarea.addEventListener("input", () => {
     autoResize(textarea);
     setMemo(date, item.subjectId, item.period, textarea.value, item.type, false);
-    card.classList.toggle("is-complete", textarea.value.trim().length > 0);
     doneButton.disabled = textarea.value.trim().length === 0;
     renderHeaderState();
   });
   textarea.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      completeMemoInput(textarea, date, item);
+      completeMemoInput(textarea, date, item, { focusNext: true });
     }
   });
-  doneButton.addEventListener("click", () => {
+  textarea.addEventListener("blur", () => {
+    if (textarea.dataset.completing === "true") return;
+    completeMemoInput(textarea, date, item);
+  });
+  doneButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
     completeMemoInput(textarea, date, item);
   });
 
@@ -287,10 +309,41 @@ function createLessonCard(item, date) {
   return card;
 }
 
-function completeMemoInput(textarea, date, item) {
+function completeMemoInput(textarea, date, item, options = {}) {
+  if (textarea.dataset.completing === "true") return;
+  textarea.dataset.completing = "true";
+  const content = textarea.value;
   setMemo(date, item.subjectId, item.period, textarea.value, item.type, false);
-  textarea.blur();
+  const focusKey =
+    options.focusNext && content.trim().length > 0 ? getNextIncompleteKey(date, getItemKey(item)) : null;
+  const memo = getMemo(date, item.subjectId, item.period, item.type);
+  if (memo) memo.completed = content.trim().length > 0;
+  updateStreak();
+  saveState();
   render();
+  if (focusKey) focusMemoInput(focusKey);
+}
+
+function getNextIncompleteKey(date, currentKey) {
+  const items = homeItemsForDate(date);
+  const currentIndex = items.findIndex((entry) => getItemKey(entry) === currentKey);
+  if (currentIndex === -1) return null;
+
+  const next = items
+    .slice(currentIndex + 1)
+    .find((entry) => !isComplete(entry, date));
+  return next ? getItemKey(next) : null;
+}
+
+function focusMemoInput(key) {
+  requestAnimationFrame(() => {
+    const input = [...elements.lessonList.querySelectorAll(".memo-input")].find(
+      (candidate) => candidate.dataset.key === key
+    );
+    if (!input) return;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  });
 }
 
 function autoResize(textarea) {
@@ -301,6 +354,7 @@ function autoResize(textarea) {
 function renderHome() {
   renderHeaderState();
   renderCalendar();
+  const previousPositions = captureLessonPositions();
   elements.lessonList.innerHTML = "";
   elements.addStudyButton.hidden = state.schedule.length === 0;
   elements.studyPicker.hidden = true;
@@ -321,13 +375,7 @@ function renderHome() {
   }
 
   const date = selectedDate;
-  const lessons = lessonsForDate(date);
-  const studies = studiesForDate(date);
-  const items = [...lessons, ...studies].sort((a, b) => {
-    const doneA = isComplete(a, date) ? 1 : 0;
-    const doneB = isComplete(b, date) ? 1 : 0;
-    return doneA - doneB || a.period - b.period;
-  });
+  const items = homeItemsForDate(date);
 
   if (items.length === 0) {
     const empty = document.createElement("p");
@@ -338,6 +386,33 @@ function renderHome() {
   }
 
   items.forEach((item) => elements.lessonList.append(createLessonCard(item, date)));
+  animateLessonCards(previousPositions);
+}
+
+function captureLessonPositions() {
+  const positions = new Map();
+  elements.lessonList.querySelectorAll(".lesson-card").forEach((card) => {
+    positions.set(card.dataset.key, card.getBoundingClientRect().top);
+  });
+  return positions;
+}
+
+function animateLessonCards(previousPositions) {
+  if (previousPositions.size === 0) return;
+  elements.lessonList.querySelectorAll(".lesson-card").forEach((card) => {
+    const previousTop = previousPositions.get(card.dataset.key);
+    if (previousTop === undefined) return;
+    const currentTop = card.getBoundingClientRect().top;
+    const delta = previousTop - currentTop;
+    if (Math.abs(delta) < 1) return;
+
+    card.style.transition = "none";
+    card.style.transform = `translateY(${delta}px)`;
+    requestAnimationFrame(() => {
+      card.style.transition = "transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease";
+      card.style.transform = "";
+    });
+  });
 }
 
 function renderHeaderState() {
@@ -438,6 +513,7 @@ function renderHistory() {
 
   const memos = state.memos
     .filter((memo) => memo.content.trim().length > 0)
+    .filter((memo) => memo.completed !== false)
     .filter((memo) => activeHistorySubject === "all" || memo.subjectId === activeHistorySubject)
     .filter((memo) => isMemoInHistoryRange(memo))
     .sort((a, b) => {
