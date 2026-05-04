@@ -520,9 +520,17 @@ select {
   min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background-color: #fff;
   color: var(--text);
-  padding: 8px 10px;
+  padding: 8px 38px 8px 10px;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23667285' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10L12 15L17 10'/%3E%3C/svg%3E");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
 }
 
 input[type="color"] {
@@ -1033,7 +1041,7 @@ input[type="color"] {
 
 .schedule-table {
   width: 100%;
-  min-width: 680px;
+  min-width: 860px;
   border-collapse: collapse;
 }
 
@@ -1065,10 +1073,11 @@ input[type="color"] {
 }
 
 .schedule-cell-select {
-  min-width: 78px;
+  min-width: 104px;
   min-height: 38px;
-  padding: 6px;
+  padding: 6px 30px 6px 10px;
   font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 @media (min-width: 640px) {
