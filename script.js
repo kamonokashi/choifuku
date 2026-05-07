@@ -88,6 +88,9 @@ let weekOverrideScope = "once";
 let selectedDate = getToday();
 let calendarMonthDate = parseDateKey(selectedDate);
 let isCalendarOpen = false;
+let lastHeaderDateLabel = "";
+let lastStreakLabel = "";
+const viewOrder = ["homeView", "historyView", "settingsView"];
 
 const elements = {
   dateButton: document.querySelector("#dateButton"),
@@ -671,6 +674,12 @@ function getPeriodLabel(item) {
 function completeMemoInput(textarea, date, item, options = {}) {
   if (textarea.dataset.completing === "true") return;
   textarea.dataset.completing = "true";
+  const card = textarea.closest(".lesson-card");
+  const doneButton = card?.querySelector(".done-button");
+  if (doneButton && !doneButton.disabled) {
+    doneButton.classList.add("is-pressing");
+    window.setTimeout(() => doneButton.classList.remove("is-pressing"), 150);
+  }
   const content = textarea.value;
   setMemo(date, item.subjectId, item.period, textarea.value, item.type, false);
   const focusKey =
@@ -679,8 +688,10 @@ function completeMemoInput(textarea, date, item, options = {}) {
   if (memo) memo.completed = content.trim().length > 0;
   updateStreak();
   saveState();
-  render();
-  if (focusKey) focusMemoInput(focusKey);
+  window.setTimeout(() => {
+    render();
+    if (focusKey) focusMemoInput(focusKey);
+  }, 70);
 }
 
 function getNextIncompleteKey(date, currentKey) {
@@ -780,7 +791,8 @@ function animateLessonCards(previousPositions) {
     card.style.transition = "none";
     card.style.transform = `translateY(${delta}px)`;
     requestAnimationFrame(() => {
-      card.style.transition = "transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease";
+      card.style.transition =
+        "transform 190ms cubic-bezier(0.22, 1, 0.36, 1), background-color 190ms ease-out, box-shadow 190ms ease-out";
       card.style.transform = "";
     });
   });
@@ -790,12 +802,28 @@ function renderHeaderState() {
   const date = selectedDate;
   const lessons = lessonsForDate(date);
   const completeLessons = lessons.filter((lesson) => isComplete(lesson, date)).length;
-  elements.todayLabel.textContent = getTodayLabel();
+  const nextDateLabel = getTodayLabel();
+  const nextStreakLabel = `${state.streak.count}日`;
+  const dateChanged = lastHeaderDateLabel && lastHeaderDateLabel !== nextDateLabel;
+  const streakChanged = lastStreakLabel && lastStreakLabel !== nextStreakLabel;
+  elements.todayLabel.textContent = nextDateLabel;
   elements.dateChevron.classList.toggle("is-open", isCalendarOpen);
   elements.homeTitle.textContent = selectedDate === getToday() ? "今日の授業" : "選択日の授業";
-  elements.streakCount.textContent = `${state.streak.count}日`;
+  elements.streakCount.textContent = nextStreakLabel;
   elements.completionLabel.textContent =
     state.scheduleTemplates.length === 0 ? "未設定" : lessons.length === 0 ? "授業なし" : `${completeLessons} / ${lessons.length}`;
+  if (dateChanged) restartElementAnimation(elements.dateButton, "is-updating");
+  if (streakChanged) restartElementAnimation(elements.streakCount.closest(".streak-pill"), "is-pulsing");
+  lastHeaderDateLabel = nextDateLabel;
+  lastStreakLabel = nextStreakLabel;
+}
+
+function restartElementAnimation(element, className) {
+  if (!element) return;
+  element.classList.remove(className);
+  void element.offsetWidth;
+  element.classList.add(className);
+  window.setTimeout(() => element.classList.remove(className), 260);
 }
 
 function renderCalendar() {
@@ -885,6 +913,21 @@ function renderHistoryMenuButton() {
   elements.historyMenuButton.hidden = false;
 }
 
+function syncHistoryMenuState() {
+  const popover = elements.historyControls.querySelector(".history-menu-popover");
+  if (popover) popover.classList.toggle("is-open", isHistoryMenuOpen);
+  renderHistoryMenuButton();
+}
+
+function syncHistoryFilterState() {
+  const header = elements.historyControls.querySelector(".history-filter-header");
+  const body = elements.historyControls.querySelector(".history-filter-body");
+  const icon = header?.querySelector("svg");
+  if (header) header.setAttribute("aria-expanded", String(isHistoryFilterOpen));
+  if (body) body.classList.toggle("is-open", isHistoryFilterOpen);
+  if (icon) icon.classList.toggle("is-open", isHistoryFilterOpen);
+}
+
 function renderSubjectFilters() {
   elements.subjectFilters.innerHTML = "";
   elements.subjectFilters.append(createFilterButton("all", "すべて"));
@@ -943,7 +986,7 @@ function renderHistoryControls() {
   if (!memoActionStart) memoActionStart = defaults.startDate;
   if (!memoActionEnd) memoActionEnd = defaults.endDate;
   elements.historyControls.innerHTML = `
-    <div class="history-mode-tabs" role="tablist" aria-label="履歴種別">
+    <div class="history-mode-tabs${historyMemoMode === "archive" ? " is-archive" : ""}" role="tablist" aria-label="履歴種別">
       <button class="${historyMemoMode === "active" ? "is-active" : ""}" type="button" data-history-mode="active">通常メモ</button>
       <button class="${historyMemoMode === "archive" ? "is-active" : ""}" type="button" data-history-mode="archive">アーカイブ</button>
     </div>
@@ -1025,17 +1068,28 @@ function renderHistoryControls() {
 
   elements.historyControls.querySelectorAll("[data-history-mode]").forEach((button) => {
     button.addEventListener("click", () => {
-      historyMemoMode = button.dataset.historyMode;
+      const nextMode = button.dataset.historyMode;
+      if (nextMode === historyMemoMode) return;
+      const tabs = elements.historyControls.querySelector(".history-mode-tabs");
+      tabs.classList.toggle("is-archive", nextMode === "archive");
+      tabs.querySelectorAll("[data-history-mode]").forEach((tabButton) => {
+        tabButton.classList.toggle("is-active", tabButton.dataset.historyMode === nextMode);
+      });
+      elements.historyList.classList.add("is-switching");
+      historyMemoMode = nextMode;
       if (historyMemoMode === "archive") {
         isMemoActionPanelOpen = false;
         isHistoryMenuOpen = false;
       }
-      renderHistory();
+      window.setTimeout(() => {
+        renderHistory();
+        requestAnimationFrame(() => elements.historyList.classList.remove("is-switching"));
+      }, 260);
     });
   });
   elements.historyControls.querySelector(".history-filter-header").addEventListener("click", () => {
     isHistoryFilterOpen = !isHistoryFilterOpen;
-    renderHistory();
+    syncHistoryFilterState();
   });
   const rangeSelect = elements.historyControls.querySelector("#historyRangeSelect");
   rangeSelect.addEventListener("change", () => {
@@ -2295,12 +2349,27 @@ function render() {
 }
 
 function showView(viewId) {
+  const previousViewId = getActiveViewId();
+  const previousIndex = viewOrder.indexOf(previousViewId);
+  const nextIndex = viewOrder.indexOf(viewId);
+  const enterClass =
+    previousIndex !== -1 && nextIndex !== -1 && nextIndex < previousIndex
+      ? "view-enter-from-left"
+      : "view-enter-from-right";
   document.querySelectorAll(".nav-button").forEach((item) => {
     item.classList.toggle("is-active", item.dataset.view === viewId);
   });
   document.querySelectorAll(".view").forEach((view) => {
+    view.classList.remove("view-enter-from-right", "view-enter-from-left");
     view.classList.toggle("is-active", view.id === viewId);
   });
+  const activeView = document.querySelector(`#${viewId}`);
+  if (activeView && previousViewId !== viewId) {
+    activeView.classList.add(enterClass);
+    requestAnimationFrame(() => {
+      activeView.classList.remove(enterClass);
+    });
+  }
   render();
 }
 
@@ -2355,10 +2424,11 @@ function bindNavigation() {
 elements.addStudyButton.addEventListener("click", () => {
   elements.studyPicker.hidden = !elements.studyPicker.hidden;
 });
-elements.historyMenuButton.addEventListener("click", () => {
+elements.historyMenuButton.addEventListener("click", (event) => {
+  event.stopPropagation();
   if (historyMemoMode === "archive") return;
   isHistoryMenuOpen = !isHistoryMenuOpen;
-  renderHistory();
+  syncHistoryMenuState();
 });
 document.addEventListener("click", (event) => {
   if (!isHistoryMenuOpen) return;
@@ -2366,7 +2436,7 @@ document.addEventListener("click", (event) => {
   const clickedButton = event.target.closest("#historyMenuButton");
   if (clickedMenu || clickedButton) return;
   isHistoryMenuOpen = false;
-  renderHistory();
+  syncHistoryMenuState();
 });
 elements.dateButton.addEventListener("click", () => {
   openHeaderCalendar();
