@@ -246,11 +246,35 @@ h3 {
 }
 
 .calendar-panel {
-  margin-bottom: 14px;
-  border: 1px solid var(--line);
+  max-height: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
   border-radius: 8px;
   background: var(--surface);
+  opacity: 0;
+  padding: 0 12px;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transform-origin: top;
+  transition:
+    max-height 240ms var(--ease-standard),
+    margin-bottom 240ms var(--ease-standard),
+    opacity 210ms ease-out,
+    padding 240ms var(--ease-standard),
+    transform 240ms var(--ease-standard),
+    border-color 180ms ease-out,
+    box-shadow 180ms ease-out;
+}
+
+.calendar-panel.is-open {
+  max-height: 900px;
+  margin-bottom: 14px;
+  border-color: var(--line);
+  opacity: 1;
   padding: 12px;
+  pointer-events: auto;
+  transform: translateY(0);
   box-shadow: var(--shadow);
 }
 

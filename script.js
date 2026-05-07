@@ -86,6 +86,7 @@ let weekOverrideScope = "once";
 let selectedDate = getToday();
 let calendarMonthDate = parseDateKey(selectedDate);
 let isCalendarOpen = false;
+let calendarCloseTimer = null;
 let lastHeaderDateLabel = "";
 let lastStreakLabel = "";
 const viewOrder = ["homeView", "historyView", "settingsView"];
@@ -838,8 +839,18 @@ function restartElementAnimation(element, className) {
 }
 
 function renderCalendar() {
-  elements.calendarPanel.hidden = !isCalendarOpen;
-  if (!isCalendarOpen) return;
+  window.clearTimeout(calendarCloseTimer);
+  if (!isCalendarOpen) {
+    elements.calendarPanel.classList.remove("is-open");
+    calendarCloseTimer = window.setTimeout(() => {
+      if (!isCalendarOpen) elements.calendarPanel.hidden = true;
+    }, 240);
+    return;
+  }
+
+  const shouldAnimateOpen = elements.calendarPanel.hidden || !elements.calendarPanel.classList.contains("is-open");
+  elements.calendarPanel.hidden = false;
+  if (shouldAnimateOpen) elements.calendarPanel.classList.remove("is-open");
 
   const year = calendarMonthDate.getFullYear();
   const month = calendarMonthDate.getMonth();
@@ -900,6 +911,12 @@ function renderCalendar() {
       selectCalendarDate(dateKey);
     });
     days.append(button);
+  }
+
+  if (shouldAnimateOpen) {
+    requestAnimationFrame(() => elements.calendarPanel.classList.add("is-open"));
+  } else {
+    elements.calendarPanel.classList.add("is-open");
   }
 }
 
