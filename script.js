@@ -946,6 +946,16 @@ function renderCalendar() {
     button.classList.toggle("is-today", dateKey === todayKey);
     const dateStatus = getDateStatus(dateKey);
     button.classList.add(`is-${dateStatus}`);
+    if (dateStatus === "complete") {
+      button.insertAdjacentHTML(
+        "beforeend",
+        `<span class="calendar-check-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 12.4L10.2 16L17.8 8"></path>
+          </svg>
+        </span>`
+      );
+    }
     button.addEventListener("click", () => {
       selectCalendarDate(dateKey);
     });
