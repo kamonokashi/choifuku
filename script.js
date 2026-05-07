@@ -178,9 +178,73 @@ function saveState() {
 
 function applyTheme(theme = state.theme) {
   const mode = theme?.mode === "dark" ? "dark" : "light";
-  const accent = /^#[0-9a-f]{6}$/i.test(theme?.accent || "") ? theme.accent : defaultState.theme.accent;
   document.documentElement.dataset.theme = mode;
-  document.documentElement.style.setProperty("--accent", accent);
+  setThemeVariables(document.documentElement, theme);
+}
+
+function setThemeVariables(target, theme) {
+  const mode = theme?.mode === "dark" ? "dark" : "light";
+  const accent = /^#[0-9a-f]{6}$/i.test(theme?.accent || "") ? theme.accent : defaultState.theme.accent;
+  const readableAccent = getReadableAccent(accent, mode);
+  const onAccent = getContrastRatio(accent, "#ffffff") >= getContrastRatio(accent, "#111827")
+    ? "#ffffff"
+    : "#111827";
+  target.style.setProperty("--accent", accent);
+  target.style.setProperty("--accent-readable", readableAccent);
+  target.style.setProperty("--on-accent", onAccent);
+}
+
+function getReadableAccent(accent, mode) {
+  const background = mode === "dark" ? "#1f2937" : "#ffffff";
+  if (getContrastRatio(accent, background) >= 4.5) return accent;
+  const target = mode === "dark" ? "#ffffff" : "#000000";
+
+  for (let amount = 0.05; amount <= 1; amount += 0.05) {
+    const mixed = mixHex(accent, target, amount);
+    if (getContrastRatio(mixed, background) >= 4.5) return mixed;
+  }
+  return target;
+}
+
+function mixHex(fromHex, toHex, amount) {
+  const from = hexToRgb(fromHex);
+  const to = hexToRgb(toHex);
+  return rgbToHex({
+    r: Math.round(from.r + (to.r - from.r) * amount),
+    g: Math.round(from.g + (to.g - from.g) * amount),
+    b: Math.round(from.b + (to.b - from.b) * amount)
+  });
+}
+
+function getContrastRatio(hexA, hexB) {
+  const lumA = getRelativeLuminance(hexToRgb(hexA));
+  const lumB = getRelativeLuminance(hexToRgb(hexB));
+  const lighter = Math.max(lumA, lumB);
+  const darker = Math.min(lumA, lumB);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function getRelativeLuminance(rgb) {
+  const channels = [rgb.r, rgb.g, rgb.b].map((channel) => {
+    const value = channel / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function hexToRgb(hex) {
+  const value = hex.replace("#", "");
+  return {
+    r: parseInt(value.slice(0, 2), 16),
+    g: parseInt(value.slice(2, 4), 16),
+    b: parseInt(value.slice(4, 6), 16)
+  };
+}
+
+function rgbToHex(rgb) {
+  return `#${[rgb.r, rgb.g, rgb.b]
+    .map((channel) => channel.toString(16).padStart(2, "0"))
+    .join("")}`;
 }
 
 function getToday() {
@@ -1806,7 +1870,7 @@ function renderThemeSettings() {
     </div>
   `;
   elements.settingsContent.append(wrapper);
-  wrapper.style.setProperty("--accent", settingsDraft.theme.accent);
+  setThemeVariables(wrapper, settingsDraft.theme);
   wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
   wrapper.querySelector("#saveThemeSettingsButton").addEventListener("click", saveThemeSettings);
   wrapper.querySelectorAll("[data-theme-mode]").forEach((button) => {
@@ -1818,7 +1882,7 @@ function renderThemeSettings() {
   const accentInput = wrapper.querySelector("#themeAccentInput");
   accentInput.addEventListener("input", () => {
     settingsDraft.theme.accent = accentInput.value;
-    wrapper.style.setProperty("--accent", accentInput.value);
+    setThemeVariables(wrapper, settingsDraft.theme);
   });
   wrapper.querySelectorAll("[data-color]").forEach((button) => {
     button.addEventListener("click", () => {
