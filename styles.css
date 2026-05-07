@@ -630,9 +630,98 @@ input[type="color"] {
 }
 
 .history-controls {
+  position: relative;
   display: grid;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.icon-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow);
+}
+
+.icon-menu-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-menu-button.is-active {
+  color: var(--text);
+  background: var(--surface-muted);
+}
+
+.history-menu-popover {
+  display: none;
+  position: absolute;
+  top: -2px;
+  right: 0;
+  z-index: 3;
+  width: min(70vw, 320px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 8px;
+  box-shadow: var(--shadow);
+}
+
+.history-menu-popover.is-open {
+  display: grid;
+  gap: 8px;
+}
+
+.history-menu-popover .small-button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-height: 52px;
+  text-align: left;
+}
+
+.history-menu-popover .small-button span {
+  color: var(--text);
+}
+
+.history-menu-popover .small-button small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.history-menu-popover .danger-button span {
+  color: inherit;
+}
+
+.history-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  padding: 4px;
+}
+
+.history-mode-tabs button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.history-mode-tabs button.is-active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
 }
 
 .filter-label {
@@ -652,6 +741,14 @@ input[type="color"] {
   border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+
+.history-period-bar.sort-inline {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.history-period-bar.sort-inline .period-option:first-child {
+  border-right: 1px solid var(--line);
 }
 
 .period-icon {
@@ -704,6 +801,43 @@ input[type="color"] {
 
 .custom-range.is-active {
   display: grid;
+}
+
+.memo-action-panel {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px;
+  box-shadow: var(--shadow);
+}
+
+.memo-action-title {
+  margin-bottom: 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.memo-action-panel.is-hidden {
+  display: none;
+}
+
+.memo-action-toggle.is-hidden {
+  display: none;
+}
+
+.memo-action-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.memo-action-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .filter-button {

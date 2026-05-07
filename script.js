@@ -53,6 +53,8 @@ const defaultState = {
   },
   maxPeriods: 6,
   memos: [],
+  archivedMemos: [],
+  completedDates: [],
   streak: {
     count: 0,
     lastCompletedDate: null
@@ -62,10 +64,16 @@ const defaultState = {
 let state = loadState();
 applyTheme();
 let activeHistorySubject = "all";
+let historyMemoMode = "active";
 let historySortOrder = "desc";
 let historyRange = "all";
 let historyCustomStart = "";
 let historyCustomEnd = "";
+let memoActionStart = "";
+let memoActionEnd = "";
+let isMemoActionPanelOpen = false;
+let isHistoryMenuOpen = false;
+let selectedMemoAction = "archive";
 let settingsMode = "menu";
 let settingsDraft = null;
 let settingsDraftSnapshot = "";
@@ -93,7 +101,7 @@ const elements = {
   studyPicker: document.querySelector("#studyPicker"),
   historyList: document.querySelector("#historyList"),
   historyControls: document.querySelector("#historyControls"),
-  historySortControl: document.querySelector("#historySortControl"),
+  historyMenuButton: document.querySelector("#historyMenuButton"),
   subjectFilters: document.querySelector("#subjectFilters"),
   settingsContent: document.querySelector("#settingsContent")
 };
@@ -128,6 +136,9 @@ function ensureScheduleState(targetState) {
   targetState.scheduleRanges = Array.isArray(targetState.scheduleRanges) ? targetState.scheduleRanges : [];
   targetState.dateExceptions = Array.isArray(targetState.dateExceptions) ? targetState.dateExceptions : [];
   targetState.weekOverrides = Array.isArray(targetState.weekOverrides) ? targetState.weekOverrides : [];
+  targetState.memos = Array.isArray(targetState.memos) ? targetState.memos : [];
+  targetState.archivedMemos = Array.isArray(targetState.archivedMemos) ? targetState.archivedMemos : [];
+  targetState.completedDates = Array.isArray(targetState.completedDates) ? targetState.completedDates : [];
   targetState.theme = {
     ...clone(defaultState.theme),
     ...(targetState.theme || {})
@@ -559,7 +570,7 @@ function updateStreak() {
     const isToday = cursor === getToday();
 
     if (lessons.length > 0) {
-      const complete = lessons.every((lesson) => isComplete(lesson, cursor));
+      const complete = state.completedDates.includes(cursor) || lessons.every((lesson) => isComplete(lesson, cursor));
       if (complete) {
         count += 1;
         foundCompletedDay = true;
@@ -853,6 +864,7 @@ function renderCalendar() {
 }
 
 function getDateStatus(dateKey) {
+  if (state.completedDates.includes(dateKey)) return "complete";
   const lessons = lessonsForDate(dateKey);
   const completedStudies = studiesForDate(dateKey).filter((study) => isComplete(study, dateKey));
   if (lessons.length === 0 && completedStudies.length > 0) return "complete";
@@ -862,13 +874,26 @@ function getDateStatus(dateKey) {
 
 function renderHistory() {
   renderHistoryControls();
+  renderSubjectFilters();
+  renderHistoryList();
+  renderHistoryMenuButton();
+}
+
+function renderHistoryMenuButton() {
+  elements.historyMenuButton.classList.toggle("is-active", isHistoryMenuOpen);
+  elements.historyMenuButton.hidden = false;
+}
+
+function renderSubjectFilters() {
   elements.subjectFilters.innerHTML = "";
   elements.subjectFilters.append(createFilterButton("all", "すべて"));
   state.subjects.forEach((subject) => {
     elements.subjectFilters.append(createFilterButton(subject.id, subject.name, subject.color));
   });
+}
 
-  const memos = state.memos
+function renderHistoryList() {
+  const memos = getVisibleHistoryMemos()
     .filter((memo) => memo.content.trim().length > 0)
     .filter((memo) => memo.completed !== false)
     .filter((memo) => activeHistorySubject === "all" || memo.subjectId === activeHistorySubject)
@@ -883,7 +908,7 @@ function renderHistory() {
   if (memos.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "まだ履歴がありません";
+    empty.textContent = historyMemoMode === "archive" ? "アーカイブメモはありません" : "まだ履歴がありません";
     elements.historyList.append(empty);
     return;
   }
@@ -908,12 +933,49 @@ function renderHistory() {
   });
 }
 
+function getVisibleHistoryMemos() {
+  return historyMemoMode === "archive" ? state.archivedMemos : state.memos;
+}
+
 function renderHistoryControls() {
-  elements.historySortControl.innerHTML = `
-    <button class="${historySortOrder === "desc" ? "is-active" : ""}" type="button" data-sort="desc">新しい順</button>
-    <button class="${historySortOrder === "asc" ? "is-active" : ""}" type="button" data-sort="asc">古い順</button>
-  `;
+  const defaults = getMemoActionDefaultRange();
+  if (!memoActionStart) memoActionStart = defaults.startDate;
+  if (!memoActionEnd) memoActionEnd = defaults.endDate;
   elements.historyControls.innerHTML = `
+    <div class="history-mode-tabs" role="tablist" aria-label="履歴種別">
+      <button class="${historyMemoMode === "active" ? "is-active" : ""}" type="button" data-history-mode="active">通常メモ</button>
+      <button class="${historyMemoMode === "archive" ? "is-active" : ""}" type="button" data-history-mode="archive">アーカイブ</button>
+    </div>
+    <div class="history-menu-popover${isHistoryMenuOpen ? " is-open" : ""}">
+      <button class="small-button memo-action-menu-button${historyMemoMode === "archive" ? " is-hidden" : ""}" type="button" data-open-memo-action="archive">
+        <span>メモをアーカイブ</span>
+        <small>アーカイブする期間を選択します</small>
+      </button>
+      <button class="small-button danger-button memo-action-menu-button${historyMemoMode === "archive" ? " is-hidden" : ""}" type="button" data-open-memo-action="reset">
+        <span>メモを削除</span>
+        <small>削除する期間を選択します</small>
+      </button>
+    </div>
+    <div class="memo-action-panel${isMemoActionPanelOpen && historyMemoMode !== "archive" ? "" : " is-hidden"}">
+      <p class="memo-action-title">${selectedMemoAction === "archive" ? "メモをアーカイブ" : "メモを削除"}</p>
+      <div class="memo-action-range">
+        <label>
+          <span>開始日</span>
+          <input id="memoActionStartInput" type="date" value="${memoActionStart}">
+        </label>
+        <label>
+          <span>終了日</span>
+          <input id="memoActionEndInput" type="date" value="${memoActionEnd}">
+        </label>
+      </div>
+      <div class="memo-action-buttons">
+        <button class="small-button${selectedMemoAction === "reset" ? " danger-button" : ""}" type="button" data-memo-action="${selectedMemoAction}">${
+          selectedMemoAction === "archive" ? "この期間をアーカイブ" : "この期間を削除"
+        }</button>
+        <button class="small-button" type="button" data-memo-action-cancel>キャンセル</button>
+      </div>
+    </div>
+    <div class="history-period-bar sort-inline" aria-label="日付順"></div>
     <div class="history-period-bar" aria-label="期間">
       <span class="period-control-label">
         <svg class="period-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -934,10 +996,15 @@ function renderHistoryControls() {
       <input id="historyEndInput" type="date" value="${historyCustomEnd}">
     </div>
   `;
+  renderInlineHistorySort();
 
-  elements.historySortControl.querySelectorAll("[data-sort]").forEach((button) => {
+  elements.historyControls.querySelectorAll("[data-history-mode]").forEach((button) => {
     button.addEventListener("click", () => {
-      historySortOrder = button.dataset.sort;
+      historyMemoMode = button.dataset.historyMode;
+      if (historyMemoMode === "archive") {
+        isMemoActionPanelOpen = false;
+        isHistoryMenuOpen = false;
+      }
       renderHistory();
     });
   });
@@ -958,6 +1025,111 @@ function renderHistoryControls() {
     historyCustomEnd = endInput.value;
     renderHistory();
   });
+  const actionStartInput = elements.historyControls.querySelector("#memoActionStartInput");
+  const actionEndInput = elements.historyControls.querySelector("#memoActionEndInput");
+  if (actionStartInput && actionEndInput) {
+    actionStartInput.addEventListener("change", () => {
+      memoActionStart = actionStartInput.value;
+    });
+    actionEndInput.addEventListener("change", () => {
+      memoActionEnd = actionEndInput.value;
+    });
+  }
+  elements.historyControls.querySelectorAll("[data-memo-action]").forEach((button) => {
+    button.addEventListener("click", () => handleMemoRangeAction(button.dataset.memoAction));
+  });
+  elements.historyControls.querySelectorAll("[data-open-memo-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedMemoAction = button.dataset.openMemoAction;
+      isMemoActionPanelOpen = true;
+      isHistoryMenuOpen = false;
+      renderHistory();
+    });
+  });
+  const actionCancel = elements.historyControls.querySelector("[data-memo-action-cancel]");
+  if (actionCancel) {
+    actionCancel.addEventListener("click", () => {
+      isMemoActionPanelOpen = false;
+      renderHistory();
+    });
+  }
+}
+
+function renderInlineHistorySort() {
+  const sortContainer = elements.historyControls.querySelector(".sort-inline");
+  if (!sortContainer) return;
+  sortContainer.innerHTML = `
+    <button class="period-option${historySortOrder === "desc" ? " is-active" : ""}" type="button" data-sort="desc">新しい順</button>
+    <button class="period-option${historySortOrder === "asc" ? " is-active" : ""}" type="button" data-sort="asc">古い順</button>
+  `;
+  sortContainer.querySelectorAll("[data-sort]").forEach((button) => {
+    button.addEventListener("click", () => {
+      historySortOrder = button.dataset.sort;
+      renderHistory();
+    });
+  });
+}
+
+function getMemoActionDefaultRange() {
+  const activeDates = state.memos
+    .filter((memo) => memo.content.trim().length > 0)
+    .map((memo) => memo.date)
+    .sort();
+  return {
+    startDate: activeDates[0] || getToday(),
+    endDate: getToday()
+  };
+}
+
+function handleMemoRangeAction(action) {
+  const defaults = getMemoActionDefaultRange();
+  const startDate = memoActionStart || defaults.startDate;
+  const endDate = memoActionEnd || defaults.endDate;
+  if (!startDate || !endDate || startDate > endDate) {
+    window.alert("期間を正しく指定してください。");
+    return;
+  }
+
+  const targets = state.memos.filter((memo) => memo.date >= startDate && memo.date <= endDate);
+  if (targets.length === 0) {
+    window.alert("指定した期間に対象のメモがありません。");
+    return;
+  }
+  const message =
+    action === "archive"
+      ? "指定した期間のメモをアーカイブします。よろしいですか？"
+      : "指定した期間のメモを削除します。削除後も完了済みの日の連続記録は保持されます。よろしいですか？";
+  if (!window.confirm(message)) return;
+
+  preserveCompletedDatesForRange(startDate, endDate);
+
+  if (action === "archive") {
+    const archivedAt = new Date().toISOString();
+    state.archivedMemos.push(...targets.map((memo) => ({ ...memo, archivedAt })));
+  }
+  state.memos = state.memos.filter((memo) => memo.date < startDate || memo.date > endDate);
+  isMemoActionPanelOpen = false;
+  updateStreak();
+  saveState();
+  render();
+}
+
+function preserveCompletedDatesForRange(startDate, endDate) {
+  const completed = new Set(state.completedDates);
+  let cursor = startDate;
+  while (cursor <= endDate) {
+    if (isDateCompleteForStreak(cursor)) completed.add(cursor);
+    cursor = addDays(cursor, 1);
+  }
+  state.completedDates = [...completed].sort();
+}
+
+function isDateCompleteForStreak(dateKey) {
+  const lessons = lessonsForDate(dateKey);
+  if (lessons.length === 0) {
+    return studiesForDate(dateKey).some((study) => isComplete(study, dateKey));
+  }
+  return lessons.every((lesson) => isComplete(lesson, dateKey));
 }
 
 function isMemoInHistoryRange(memo) {
@@ -2164,6 +2336,19 @@ function bindNavigation() {
 
 elements.addStudyButton.addEventListener("click", () => {
   elements.studyPicker.hidden = !elements.studyPicker.hidden;
+});
+elements.historyMenuButton.addEventListener("click", () => {
+  if (historyMemoMode === "archive") return;
+  isHistoryMenuOpen = !isHistoryMenuOpen;
+  renderHistory();
+});
+document.addEventListener("click", (event) => {
+  if (!isHistoryMenuOpen) return;
+  const clickedMenu = event.target.closest(".history-menu-popover");
+  const clickedButton = event.target.closest("#historyMenuButton");
+  if (clickedMenu || clickedButton) return;
+  isHistoryMenuOpen = false;
+  renderHistory();
 });
 elements.dateButton.addEventListener("click", () => {
   openHeaderCalendar();
