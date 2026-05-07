@@ -1,5 +1,4 @@
 const STORAGE_KEY = "studyReviewApp.v1";
-
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const weekdayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"];
@@ -61,8 +60,7 @@ const defaultState = {
   }
 };
 
-let state = loadState();
-applyTheme();
+let state = loadStoredState(STORAGE_KEY, defaultState, migrateState);
 let activeHistorySubject = "all";
 let historyMemoMode = "active";
 let historySortOrder = "desc";
@@ -92,43 +90,56 @@ let lastHeaderDateLabel = "";
 let lastStreakLabel = "";
 const viewOrder = ["homeView", "historyView", "settingsView"];
 
-const elements = {
-  dateButton: document.querySelector("#dateButton"),
-  todayLabel: document.querySelector("#todayLabel"),
-  streakCount: document.querySelector("#streakCount"),
-  completionLabel: document.querySelector("#completionLabel"),
-  homeTitle: document.querySelector("#homeTitle"),
-  dateChevron: document.querySelector("#dateChevron"),
-  lessonList: document.querySelector("#lessonList"),
-  calendarPanel: document.querySelector("#calendarPanel"),
-  addStudyButton: document.querySelector("#addStudyButton"),
-  studyPicker: document.querySelector("#studyPicker"),
-  historyList: document.querySelector("#historyList"),
-  historyControls: document.querySelector("#historyControls"),
-  historyMenuButton: document.querySelector("#historyMenuButton"),
-  subjectFilters: document.querySelector("#subjectFilters"),
-  settingsContent: document.querySelector("#settingsContent")
-};
+let elements = {};
+let isAppInitialized = false;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return clone(defaultState);
+function loadStoredState(storageKey, fallbackState, migrate) {
+  const raw = localStorage.getItem(storageKey);
+  if (!raw) return clone(fallbackState);
 
   try {
     const saved = JSON.parse(raw);
-    const migrated = { ...clone(defaultState), ...saved };
-    if (saved.maxPeriods === undefined && isSameSchedule(saved.schedule, legacyDemoSchedule)) {
-      migrated.schedule = [];
-    }
-    ensureScheduleState(migrated);
-    return migrated;
+    const migrated = { ...clone(fallbackState), ...saved };
+    return typeof migrate === "function" ? migrate(migrated, saved) : migrated;
   } catch {
-    return clone(defaultState);
+    return clone(fallbackState);
   }
+}
+
+function saveStoredState(storageKey, nextState) {
+  localStorage.setItem(storageKey, JSON.stringify(nextState));
+}
+
+function migrateState(migrated, saved) {
+  if (saved.maxPeriods === undefined && isSameSchedule(saved.schedule, legacyDemoSchedule)) {
+    migrated.schedule = [];
+  }
+  ensureScheduleState(migrated);
+  return migrated;
+}
+
+function collectElements() {
+  elements = {
+    dateButton: document.querySelector("#dateButton"),
+    todayLabel: document.querySelector("#todayLabel"),
+    streakCount: document.querySelector("#streakCount"),
+    completionLabel: document.querySelector("#completionLabel"),
+    homeTitle: document.querySelector("#homeTitle"),
+    dateChevron: document.querySelector("#dateChevron"),
+    lessonList: document.querySelector("#lessonList"),
+    calendarPanel: document.querySelector("#calendarPanel"),
+    addStudyButton: document.querySelector("#addStudyButton"),
+    studyPicker: document.querySelector("#studyPicker"),
+    historyList: document.querySelector("#historyList"),
+    historyControls: document.querySelector("#historyControls"),
+    historyMenuButton: document.querySelector("#historyMenuButton"),
+    subjectFilters: document.querySelector("#subjectFilters"),
+    settingsContent: document.querySelector("#settingsContent")
+  };
 }
 
 function ensureScheduleState(targetState) {
@@ -156,7 +167,7 @@ function ensureScheduleState(targetState) {
   targetState.maxPeriods = clamp(Number(targetState.maxPeriods || 6), 1, 12);
 
   if (targetState.scheduleTemplates.length === 0 && targetState.schedule.length > 0) {
-    const templateId = `schedule-${Date.now()}`;
+    const templateId = createId("schedule");
     const year = Number(getToday().slice(0, 4));
     targetState.scheduleTemplates.push({
       id: templateId,
@@ -167,7 +178,7 @@ function ensureScheduleState(targetState) {
       schedule: scheduleArrayToTemplateSchedule(targetState.schedule)
     });
     targetState.scheduleRanges.push({
-      id: `range-${Date.now()}`,
+      id: createId("range"),
       scheduleId: templateId,
       startDate: `${year}-01-01`,
       endDate: `${year}-12-31`
@@ -188,7 +199,7 @@ function isSameSchedule(a, b) {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  saveStoredState(STORAGE_KEY, state);
 }
 
 function applyTheme(theme = state.theme) {
@@ -995,12 +1006,12 @@ function renderHistoryControls() {
         <span>メモをアーカイブ</span>
         <small>アーカイブする期間を選択します</small>
       </button>
-      <button class="small-button danger-button memo-action-menu-button${historyMemoMode === "archive" ? " is-hidden" : ""}" type="button" data-open-memo-action="reset">
+      <button class="small-button danger-button memo-action-menu-button" type="button" data-open-memo-action="reset">
         <span>メモを削除</span>
         <small>削除する期間を選択します</small>
       </button>
     </div>
-    <div class="memo-action-panel${isMemoActionPanelOpen && historyMemoMode !== "archive" ? "" : " is-hidden"}">
+    <div class="memo-action-panel${isMemoActionPanelOpen ? "" : " is-hidden"}">
       <p class="memo-action-title">${selectedMemoAction === "archive" ? "メモをアーカイブ" : "メモを削除"}</p>
       <div class="memo-action-range">
         <label>
@@ -1143,7 +1154,8 @@ function renderHistoryControls() {
 }
 
 function getMemoActionDefaultRange() {
-  const activeDates = state.memos
+  const source = historyMemoMode === "archive" ? state.archivedMemos : state.memos;
+  const activeDates = source
     .filter((memo) => memo.content.trim().length > 0)
     .map((memo) => memo.date)
     .sort();
@@ -1162,7 +1174,8 @@ function handleMemoRangeAction(action) {
     return;
   }
 
-  const targets = state.memos.filter((memo) => memo.date >= startDate && memo.date <= endDate);
+  const source = historyMemoMode === "archive" && action === "reset" ? state.archivedMemos : state.memos;
+  const targets = source.filter((memo) => memo.date >= startDate && memo.date <= endDate);
   if (targets.length === 0) {
     window.alert("指定した期間に対象のメモがありません。");
     return;
@@ -1178,8 +1191,12 @@ function handleMemoRangeAction(action) {
   if (action === "archive") {
     const archivedAt = new Date().toISOString();
     state.archivedMemos.push(...targets.map((memo) => ({ ...memo, archivedAt })));
+    state.memos = state.memos.filter((memo) => memo.date < startDate || memo.date > endDate);
+  } else if (historyMemoMode === "archive") {
+    state.archivedMemos = state.archivedMemos.filter((memo) => memo.date < startDate || memo.date > endDate);
+  } else {
+    state.memos = state.memos.filter((memo) => memo.date < startDate || memo.date > endDate);
   }
-  state.memos = state.memos.filter((memo) => memo.date < startDate || memo.date > endDate);
   isMemoActionPanelOpen = false;
   updateStreak();
   saveState();
@@ -1467,7 +1484,7 @@ function renderSubjectSettings() {
   wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
   wrapper.querySelector("#addSubjectRowButton").addEventListener("click", () => {
     settingsDraft.subjects.push({
-      id: `subject-${Date.now()}`,
+      id: createId("subject"),
       name: "",
       color: "#6aa9ff"
     });
@@ -1571,7 +1588,7 @@ function addSubjectFromSchedule(wrapper) {
   if (!name) return;
 
   settingsDraft.subjects.push({
-    id: `subject-${Date.now()}`,
+    id: createId("subject"),
     name,
     color: colorInput.value
   });
@@ -1581,7 +1598,7 @@ function addSubjectFromSchedule(wrapper) {
 function createScheduleTemplate(name) {
   const now = new Date().toISOString();
   return {
-    id: `schedule-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: createId("schedule"),
     name,
     archived: false,
     createdAt: now,
@@ -1685,7 +1702,7 @@ function renderRangeSettings() {
   wrapper.querySelector("#addRangeButton").addEventListener("click", () => {
     const activeTemplate = getActiveTemplates(settingsDraft.scheduleTemplates)[0];
     settingsDraft.scheduleRanges.push({
-      id: `range-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      id: createId("range"),
       scheduleId: activeTemplate ? activeTemplate.id : "",
       startDate: getToday(),
       endDate: getToday()
@@ -2314,6 +2331,10 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function createId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function renderStudyPicker() {
   elements.studyPicker.innerHTML = "";
   if (state.subjects.length === 0) {
@@ -2421,31 +2442,48 @@ function bindNavigation() {
   });
 }
 
-elements.addStudyButton.addEventListener("click", () => {
-  elements.studyPicker.hidden = !elements.studyPicker.hidden;
-});
-elements.historyMenuButton.addEventListener("click", (event) => {
-  event.stopPropagation();
-  if (historyMemoMode === "archive") return;
-  isHistoryMenuOpen = !isHistoryMenuOpen;
-  syncHistoryMenuState();
-});
-document.addEventListener("click", (event) => {
-  if (!isHistoryMenuOpen) return;
-  const clickedMenu = event.target.closest(".history-menu-popover");
-  const clickedButton = event.target.closest("#historyMenuButton");
-  if (clickedMenu || clickedButton) return;
-  isHistoryMenuOpen = false;
-  syncHistoryMenuState();
-});
-elements.dateButton.addEventListener("click", () => {
-  openHeaderCalendar();
-});
-window.addEventListener("beforeunload", (event) => {
-  if (!hasUnsavedSettingsChanges()) return;
-  event.preventDefault();
-  event.returnValue = "";
-});
-updateStreak();
-bindNavigation();
-render();
+function bindGlobalEvents() {
+  elements.addStudyButton.addEventListener("click", () => {
+    elements.studyPicker.hidden = !elements.studyPicker.hidden;
+  });
+  elements.historyMenuButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    isHistoryMenuOpen = !isHistoryMenuOpen;
+    syncHistoryMenuState();
+  });
+  document.addEventListener("click", (event) => {
+    if (!isHistoryMenuOpen) return;
+    const clickedMenu = event.target.closest(".history-menu-popover");
+    const clickedButton = event.target.closest("#historyMenuButton");
+    if (clickedMenu || clickedButton) return;
+    isHistoryMenuOpen = false;
+    syncHistoryMenuState();
+  });
+  elements.dateButton.addEventListener("click", () => {
+    openHeaderCalendar();
+  });
+  window.addEventListener("beforeunload", (event) => {
+    if (!hasUnsavedSettingsChanges()) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
+}
+
+function initApp() {
+  if (isAppInitialized) return;
+  isAppInitialized = true;
+  collectElements();
+  applyTheme();
+  updateStreak();
+  bindNavigation();
+  bindGlobalEvents();
+  render();
+}
+
+window.choifukuInitApp = initApp;
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
