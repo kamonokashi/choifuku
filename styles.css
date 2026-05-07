@@ -999,11 +999,128 @@ input[type="color"] {
   align-items: center;
 }
 
+.settings-tab-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  padding: 4px;
+  margin-bottom: 12px;
+}
+
+.settings-tab {
+  min-height: 38px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.settings-tab.is-active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.exception-calendar-shell {
+  margin-bottom: 12px;
+}
+
+.settings-calendar {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px;
+}
+
+.settings-calendar-day {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.settings-calendar-day.is-default_holiday,
+.settings-calendar-day.is-holiday {
+  border-color: #8fb3d1;
+  background: #d8e9f5;
+  color: #315a78;
+}
+
+.settings-calendar-day.is-weekday_override {
+  border-color: #f4b740;
+  background: #ffe6ad;
+  color: #7a4b00;
+}
+
+.settings-calendar-day.is-schedule_override {
+  border-color: #7fb0ff;
+  background: #d2e5ff;
+  color: #174ea6;
+}
+
+.settings-calendar-day.is-week_override_once,
+.settings-calendar-day.is-week_override_from {
+  border-color: #c8b9ff;
+  background: #f0ebff;
+  color: #6346bf;
+}
+
+.settings-calendar-day.is-selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+:root[data-theme="dark"] .settings-calendar-day.is-default_holiday,
+:root[data-theme="dark"] .settings-calendar-day.is-holiday {
+  border-color: #5d81a0;
+  background: #2c4155;
+  color: #d6e8f5;
+}
+
+:root[data-theme="dark"] .settings-calendar-day.is-weekday_override {
+  border-color: #b5852d;
+  background: #4a371b;
+  color: #ffd78a;
+}
+
+:root[data-theme="dark"] .settings-calendar-day.is-schedule_override {
+  border-color: #4f83d8;
+  background: #223f68;
+  color: #d8e8ff;
+}
+
+:root[data-theme="dark"] .settings-calendar-day.is-week_override_once,
+:root[data-theme="dark"] .settings-calendar-day.is-week_override_from {
+  border-color: #5b4a9b;
+  background: #30284d;
+  color: #ddd2ff;
+}
+
+.exception-editor-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px;
+}
+
 .exception-type-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin-top: 10px;
+}
+
+.subtle-button {
+  background: var(--surface);
+  color: var(--muted);
 }
 
 .small-button.is-selected {

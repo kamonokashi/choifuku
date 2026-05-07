@@ -72,6 +72,10 @@ let settingsDraftSnapshot = "";
 let pendingSettingsAction = null;
 let exceptionEditorDate = getToday();
 let weekOverrideEditorDate = getToday();
+let exceptionSettingsTab = "day";
+let exceptionCalendarMonthDate = parseDateKey(getToday());
+let weekOverrideCalendarMonthDate = parseDateKey(getToday());
+let weekOverrideScope = "once";
 let selectedDate = getToday();
 let calendarMonthDate = parseDateKey(selectedDate);
 let isCalendarOpen = false;
@@ -1435,16 +1439,50 @@ function renderRangeEditorRows(container) {
 function renderExceptionSettings() {
   const wrapper = document.createElement("div");
   wrapper.className = "settings-detail";
-  const selectedException = settingsDraft.dateExceptions.find((item) => item.date === exceptionEditorDate);
-  const originalDayOfWeek = parseDateKey(exceptionEditorDate).getDay();
   wrapper.innerHTML = `
     <div class="settings-action-bar">
       <button class="back-button" type="button">← 設定に戻る</button>
       <button id="saveExceptionSettingsButton" class="primary-button" type="button">保存する</button>
     </div>
     <div class="settings-block">
+      <div class="settings-tab-row" role="tablist" aria-label="予定設定の種類">
+        <button class="settings-tab${exceptionSettingsTab === "day" ? " is-active" : ""}" type="button" data-exception-tab="day">日ごと</button>
+        <button class="settings-tab${exceptionSettingsTab === "week" ? " is-active" : ""}" type="button" data-exception-tab="week">週ごと</button>
+      </div>
+      <div id="exceptionTabPanel"></div>
+    </div>
+  `;
+  elements.settingsContent.append(wrapper);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
+  wrapper.querySelector("#saveExceptionSettingsButton").addEventListener("click", saveExceptionSettings);
+  wrapper.querySelectorAll("[data-exception-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      exceptionSettingsTab = button.dataset.exceptionTab;
+      renderSettings();
+    });
+  });
+  const panel = wrapper.querySelector("#exceptionTabPanel");
+  if (exceptionSettingsTab === "week") {
+    renderWeekExceptionPanel(panel);
+    return;
+  }
+  renderDayExceptionPanel(panel);
+}
+
+function formatExceptionHeading(dateKey) {
+  const date = parseDateKey(dateKey);
+  return `${date.getMonth() + 1}月${date.getDate()}日（${weekdayLabels[date.getDay()]}）`;
+}
+
+function renderDayExceptionPanel(container) {
+  const selectedException = settingsDraft.dateExceptions.find((item) => item.date === exceptionEditorDate);
+  const originalDayOfWeek = parseDateKey(exceptionEditorDate).getDay();
+  container.innerHTML = `
+    <div class="exception-calendar-shell">
+      <div id="dayExceptionCalendar"></div>
+    </div>
+    <div class="exception-editor-panel">
       <h3>${formatExceptionHeading(exceptionEditorDate)}の設定</h3>
-      <input id="exceptionDateInput" type="date" value="${exceptionEditorDate}">
       <div class="exception-type-grid">
         <button class="small-button${!selectedException ? " is-selected" : ""}" type="button" data-type="normal">通常</button>
         <button class="small-button${selectedException?.type === "holiday" ? " is-selected" : ""}" type="button" data-type="holiday">休日</button>
@@ -1453,42 +1491,31 @@ function renderExceptionSettings() {
       </div>
       <div id="exceptionDetail"></div>
     </div>
-    <div class="settings-block">
-      <h3>今週の時間割を変更</h3>
-      <div class="week-override-form">
-        <input id="weekOverrideDateInput" type="date" value="${weekOverrideEditorDate}">
-        <select id="weekOverrideScheduleSelect"></select>
-        <div class="exception-type-grid">
-          <button class="small-button is-selected" type="button" data-scope="once">今週だけ</button>
-          <button class="small-button" type="button" data-scope="from">今週以降</button>
-        </div>
-        <button id="addWeekOverrideButton" class="wide-button" type="button">週の変更を追加</button>
-      </div>
-      <div id="weekOverrideList" class="editor-list"></div>
-    </div>
-    <div class="settings-block">
-      <h3>登録済みの日ごとの設定</h3>
-      <div id="exceptionList" class="editor-list"></div>
-    </div>
   `;
-  elements.settingsContent.append(wrapper);
-  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
-  wrapper.querySelector("#saveExceptionSettingsButton").addEventListener("click", saveExceptionSettings);
-  wrapper.querySelector("#exceptionDateInput").addEventListener("change", (event) => {
-    exceptionEditorDate = event.target.value || getToday();
-    renderSettings();
+  renderSettingsCalendar(container.querySelector("#dayExceptionCalendar"), {
+    monthDate: exceptionCalendarMonthDate,
+    selectedDate: exceptionEditorDate,
+    statusForDate: getDateExceptionStatus,
+    onMonthChange: (nextMonth) => {
+      exceptionCalendarMonthDate = nextMonth;
+      renderSettings();
+    },
+    onSelect: (dateKey) => {
+      exceptionEditorDate = dateKey;
+      exceptionCalendarMonthDate = parseDateKey(dateKey);
+      renderSettings();
+    }
   });
-  wrapper.querySelectorAll("[data-type]").forEach((button) => {
+  container.querySelectorAll("[data-type]").forEach((button) => {
     button.addEventListener("click", () => setDateExceptionType(button.dataset.type));
   });
-  renderExceptionDetail(wrapper.querySelector("#exceptionDetail"), selectedException, originalDayOfWeek);
-  renderWeekOverrideEditor(wrapper);
-  renderExceptionLists(wrapper);
+  renderExceptionDetail(container.querySelector("#exceptionDetail"), selectedException, originalDayOfWeek);
 }
 
-function formatExceptionHeading(dateKey) {
-  const date = parseDateKey(dateKey);
-  return `${date.getMonth() + 1}月${date.getDate()}日（${weekdayLabels[date.getDay()]}）`;
+function getDateExceptionStatus(dateKey) {
+  const exception = settingsDraft.dateExceptions.find((item) => item.date === dateKey);
+  if (exception) return exception.type;
+  return getHolidayName(dateKey) ? "default_holiday" : "";
 }
 
 function setDateExceptionType(type) {
@@ -1559,77 +1586,141 @@ function renderExceptionDetail(container, selectedException, originalDayOfWeek) 
   container.append(select);
 }
 
-function renderWeekOverrideEditor(wrapper) {
-  let scope = "once";
-  const select = wrapper.querySelector("#weekOverrideScheduleSelect");
-  select.innerHTML = `<option value="">時間割を選択</option>${buildTemplateOptions(settingsDraft.scheduleTemplates)}`;
-  wrapper.querySelector("#weekOverrideDateInput").addEventListener("change", (event) => {
-    weekOverrideEditorDate = event.target.value || getToday();
+function renderWeekExceptionPanel(container) {
+  const weekStartDate = getWeekStartDate(weekOverrideEditorDate);
+  const selectedOverride = settingsDraft.weekOverrides.find(
+    (override) => (override.weekStartDate || override.fromWeekStartDate) === weekStartDate
+  );
+  const selectedScheduleId = selectedOverride?.scheduleId || "";
+  weekOverrideScope = selectedOverride?.type === "week_override_from" ? "from" : weekOverrideScope;
+  container.innerHTML = `
+    <div class="exception-calendar-shell">
+      <div id="weekExceptionCalendar"></div>
+    </div>
+    <div class="exception-editor-panel">
+      <h3>${formatWeekHeading(weekStartDate)}の設定</h3>
+      <select id="weekOverrideScheduleSelect"></select>
+      <div class="exception-type-grid">
+        <button class="small-button${weekOverrideScope === "once" ? " is-selected" : ""}" type="button" data-scope="once">今週だけ</button>
+        <button class="small-button${weekOverrideScope === "from" ? " is-selected" : ""}" type="button" data-scope="from">今週以降</button>
+      </div>
+      <button id="addWeekOverrideButton" class="wide-button" type="button">週の変更を保存</button>
+      <button id="removeWeekOverrideButton" class="wide-button subtle-button" type="button">この週の変更を解除</button>
+    </div>
+  `;
+  renderSettingsCalendar(container.querySelector("#weekExceptionCalendar"), {
+    monthDate: weekOverrideCalendarMonthDate,
+    selectedDate: weekOverrideEditorDate,
+    statusForDate: getWeekOverrideStatusForDate,
+    isSelectedDate: (dateKey) => getWeekStartDate(dateKey) === weekStartDate,
+    onMonthChange: (nextMonth) => {
+      weekOverrideCalendarMonthDate = nextMonth;
+      renderSettings();
+    },
+    onSelect: (dateKey) => {
+      weekOverrideEditorDate = dateKey;
+      weekOverrideCalendarMonthDate = parseDateKey(dateKey);
+      const override = settingsDraft.weekOverrides.find(
+        (item) => (item.weekStartDate || item.fromWeekStartDate) === getWeekStartDate(dateKey)
+      );
+      if (override) weekOverrideScope = override.type === "week_override_from" ? "from" : "once";
+      renderSettings();
+    }
   });
-  wrapper.querySelectorAll("[data-scope]").forEach((button) => {
+  const select = container.querySelector("#weekOverrideScheduleSelect");
+  select.innerHTML = `<option value="">時間割を選択</option>${buildTemplateOptions(settingsDraft.scheduleTemplates)}`;
+  select.value = selectedScheduleId;
+  container.querySelectorAll("[data-scope]").forEach((button) => {
     button.addEventListener("click", () => {
-      scope = button.dataset.scope;
-      wrapper.querySelectorAll("[data-scope]").forEach((candidate) => {
+      weekOverrideScope = button.dataset.scope;
+      container.querySelectorAll("[data-scope]").forEach((candidate) => {
         candidate.classList.toggle("is-selected", candidate === button);
       });
     });
   });
-  wrapper.querySelector("#addWeekOverrideButton").addEventListener("click", () => {
+  container.querySelector("#addWeekOverrideButton").addEventListener("click", () => {
     if (!select.value) return;
-    const weekStartDate = getWeekStartDate(weekOverrideEditorDate);
     settingsDraft.weekOverrides = settingsDraft.weekOverrides.filter((override) => {
-      if (scope === "once") return override.weekStartDate !== weekStartDate;
-      return override.fromWeekStartDate !== weekStartDate;
+      return (override.weekStartDate || override.fromWeekStartDate) !== weekStartDate;
     });
     settingsDraft.weekOverrides.push(
-      scope === "once"
+      weekOverrideScope === "once"
         ? { type: "week_override_once", weekStartDate, scheduleId: select.value }
         : { type: "week_override_from", fromWeekStartDate: weekStartDate, scheduleId: select.value }
     );
     renderSettings();
   });
+  const removeButton = container.querySelector("#removeWeekOverrideButton");
+  removeButton.hidden = !selectedOverride;
+  removeButton.addEventListener("click", () => {
+    settingsDraft.weekOverrides = settingsDraft.weekOverrides.filter((override) => {
+      return (override.weekStartDate || override.fromWeekStartDate) !== weekStartDate;
+    });
+    renderSettings();
+  });
 }
 
-function renderExceptionLists(wrapper) {
-  const exceptionList = wrapper.querySelector("#exceptionList");
-  exceptionList.innerHTML = "";
-  if (settingsDraft.dateExceptions.length === 0) {
-    exceptionList.innerHTML = `<p class="empty-state">日ごとの設定はありません</p>`;
-  } else {
-    [...settingsDraft.dateExceptions]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .forEach((exception) => {
-        const row = document.createElement("div");
-        row.className = "simple-list-row";
-        row.innerHTML = `<span>${exception.date} / ${describeException(exception)}</span><button class="small-button" type="button">削除</button>`;
-        row.querySelector("button").addEventListener("click", () => {
-          settingsDraft.dateExceptions = settingsDraft.dateExceptions.filter((item) => item !== exception);
-          renderSettings();
-        });
-        exceptionList.append(row);
-      });
-  }
+function getWeekOverrideStatusForDate(dateKey) {
+  const weekStartDate = getWeekStartDate(dateKey);
+  const override = settingsDraft.weekOverrides.find(
+    (item) => (item.weekStartDate || item.fromWeekStartDate) === weekStartDate
+  );
+  return override ? override.type : "";
+}
 
-  const weekList = wrapper.querySelector("#weekOverrideList");
-  weekList.innerHTML = "";
-  if (settingsDraft.weekOverrides.length === 0) {
-    weekList.innerHTML = `<p class="empty-state">週単位の変更はありません</p>`;
-    return;
-  }
-  settingsDraft.weekOverrides.forEach((override) => {
-    const schedule = getScheduleTemplate(override.scheduleId, settingsDraft.scheduleTemplates);
-    const dateLabel = override.weekStartDate || override.fromWeekStartDate;
-    const row = document.createElement("div");
-    row.className = "simple-list-row";
-    row.innerHTML = `<span>${dateLabel} / ${override.type === "week_override_once" ? "今週だけ" : "今週以降"} / ${
-      schedule ? schedule.name : "不明な時間割"
-    }</span><button class="small-button" type="button">削除</button>`;
-    row.querySelector("button").addEventListener("click", () => {
-      settingsDraft.weekOverrides = settingsDraft.weekOverrides.filter((item) => item !== override);
-      renderSettings();
+function formatWeekHeading(weekStartDate) {
+  const endDate = addDays(weekStartDate, 6);
+  return `${formatExceptionHeading(weekStartDate)}〜${formatExceptionHeading(endDate)}`;
+}
+
+function renderSettingsCalendar(container, options) {
+  const year = options.monthDate.getFullYear();
+  const month = options.monthDate.getMonth();
+  const firstDate = new Date(year, month, 1);
+  const startOffset = firstDate.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  container.className = "settings-calendar";
+  container.innerHTML = `
+    <div class="calendar-header">
+      <button class="calendar-arrow" type="button" data-month="-1" aria-label="前の月">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 6L9 12L15 18"></path>
+        </svg>
+      </button>
+      <strong>${year}/${month + 1}</strong>
+      <button class="calendar-arrow" type="button" data-month="1" aria-label="次の月">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 6L15 12L9 18"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="calendar-grid calendar-weekdays">
+      ${dayNames.map((day) => `<span>${day}</span>`).join("")}
+    </div>
+    <div class="calendar-grid" id="settingsCalendarDays"></div>
+  `;
+  container.querySelectorAll(".calendar-arrow").forEach((button) => {
+    button.addEventListener("click", () => {
+      options.onMonthChange(new Date(year, month + Number(button.dataset.month), 1));
     });
-    weekList.append(row);
   });
+  const days = container.querySelector("#settingsCalendarDays");
+  for (let i = 0; i < startOffset; i += 1) {
+    days.append(document.createElement("span"));
+  }
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dateKey = formatDateKey(new Date(year, month, day));
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "settings-calendar-day";
+    button.textContent = day;
+    const status = options.statusForDate(dateKey);
+    if (status) button.classList.add(`is-${status}`);
+    const selected = options.isSelectedDate ? options.isSelectedDate(dateKey) : dateKey === options.selectedDate;
+    button.classList.toggle("is-selected", selected);
+    button.addEventListener("click", () => options.onSelect(dateKey));
+    days.append(button);
+  }
 }
 
 function describeException(exception) {
