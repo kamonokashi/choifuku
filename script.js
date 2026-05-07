@@ -65,6 +65,7 @@ let activeHistorySubject = "all";
 let historyMemoMode = "active";
 let historySortOrder = "desc";
 let historyRange = "all";
+let historyFavoritesOnly = false;
 let historyCustomStart = "";
 let historyCustomEnd = "";
 let memoActionStart = "";
@@ -1036,6 +1037,7 @@ function renderHistoryList() {
   const memos = getVisibleHistoryMemos()
     .filter((memo) => memo.content.trim().length > 0)
     .filter((memo) => memo.completed !== false)
+    .filter((memo) => !historyFavoritesOnly || memo.favorite === true)
     .filter((memo) => activeHistorySubject === "all" || memo.subjectId === activeHistorySubject)
     .filter((memo) => isMemoInHistoryRange(memo))
     .sort((a, b) => {
@@ -1061,7 +1063,14 @@ function renderHistoryList() {
     item.innerHTML = `
       <div class="color-bar"></div>
       <div class="history-content">
-        <div class="history-date"></div>
+        <div class="history-card-head">
+          <div class="history-date"></div>
+          <button class="favorite-button${memo.favorite ? " is-active" : ""}" type="button" aria-label="お気に入り">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.8L14.7 9.2L20.7 10.1L16.4 14.3L17.4 20.2L12 17.4L6.6 20.2L7.6 14.3L3.3 10.1L9.3 9.2L12 3.8Z"></path>
+            </svg>
+          </button>
+        </div>
         <p class="history-memo"></p>
       </div>
     `;
@@ -1069,12 +1078,29 @@ function renderHistoryList() {
       markToday: true
     })} ${subject ? subject.name : "未登録科目"}`;
     item.querySelector(".history-memo").textContent = memo.content;
+    item.querySelector(".favorite-button").addEventListener("click", () => {
+      toggleMemoFavorite(memo);
+    });
     elements.historyList.append(item);
   });
 }
 
 function getVisibleHistoryMemos() {
   return historyMemoMode === "archive" ? state.archivedMemos : state.memos;
+}
+
+function getMemoIdentity(memo) {
+  return memo.id || `${memo.date}-${memo.subjectId}-${memo.period}-${memo.type || "lesson"}`;
+}
+
+function toggleMemoFavorite(targetMemo) {
+  const targetId = getMemoIdentity(targetMemo);
+  const source = getVisibleHistoryMemos();
+  const memo = source.find((candidate) => getMemoIdentity(candidate) === targetId);
+  if (!memo) return;
+  memo.favorite = memo.favorite !== true;
+  saveState();
+  renderHistoryList();
 }
 
 function renderHistoryControls() {
@@ -1158,6 +1184,17 @@ function renderHistoryControls() {
             <option value="asc"${historySortOrder === "asc" ? " selected" : ""}>古い順</option>
           </select>
         </label>
+        <div class="history-filter-row favorite-filter-row">
+          <span>
+            <svg class="period-icon favorite-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.8L14.7 9.2L20.7 10.1L16.4 14.3L17.4 20.2L12 17.4L6.6 20.2L7.6 14.3L3.3 10.1L9.3 9.2L12 3.8Z"></path>
+            </svg>
+            お気に入り
+          </span>
+          <button class="favorite-filter-toggle${historyFavoritesOnly ? " is-active" : ""}" type="button" aria-pressed="${historyFavoritesOnly}" id="historyFavoriteToggle">
+            ${historyFavoritesOnly ? "表示中" : "すべて表示"}
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -1195,6 +1232,10 @@ function renderHistoryControls() {
   const sortSelect = elements.historyControls.querySelector("#historySortSelect");
   sortSelect.addEventListener("change", () => {
     historySortOrder = sortSelect.value;
+    renderHistory();
+  });
+  elements.historyControls.querySelector("#historyFavoriteToggle").addEventListener("click", () => {
+    historyFavoritesOnly = !historyFavoritesOnly;
     renderHistory();
   });
 

@@ -987,7 +987,7 @@ input[type="color"] {
 }
 
 .history-filter-body.is-open {
-  max-height: 310px;
+  max-height: 380px;
   opacity: 1;
   padding-top: 10px;
   transform: translateY(0);
@@ -1032,6 +1032,30 @@ input[type="color"] {
   min-height: 38px;
   border-radius: 8px;
   background-color: var(--surface);
+}
+
+.favorite-filter-row {
+  grid-template-columns: minmax(108px, 0.45fr) minmax(0, 1fr);
+}
+
+.favorite-filter-icon {
+  color: #d97706;
+}
+
+.favorite-filter-toggle {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.favorite-filter-toggle.is-active {
+  border-color: color-mix(in srgb, #f59e0b 42%, var(--line));
+  background: color-mix(in srgb, #f59e0b 15%, var(--surface));
+  color: #b45309;
 }
 
 .period-icon {
@@ -1167,6 +1191,42 @@ input[type="color"] {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.history-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 4px;
+}
+
+.history-card-head .history-date {
+  margin-bottom: 0;
+}
+
+.favorite-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: #9aa7b2;
+  justify-self: end;
+}
+
+.favorite-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.favorite-button.is-active {
+  border-color: color-mix(in srgb, #f59e0b 40%, var(--line));
+  background: color-mix(in srgb, #f59e0b 16%, var(--surface));
+  color: #f59e0b;
 }
 
 .history-memo {
