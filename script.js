@@ -87,6 +87,7 @@ let selectedDate = getToday();
 let calendarMonthDate = parseDateKey(selectedDate);
 let isCalendarOpen = false;
 let calendarCloseTimer = null;
+let calendarMode = "date";
 let lastHeaderDateLabel = "";
 let lastStreakLabel = "";
 const viewOrder = ["homeView", "historyView", "settingsView"];
@@ -127,6 +128,7 @@ function collectElements() {
   elements = {
     dateButton: document.querySelector("#dateButton"),
     todayLabel: document.querySelector("#todayLabel"),
+    streakButton: document.querySelector("#streakButton"),
     streakCount: document.querySelector("#streakCount"),
     completionLabel: document.querySelector("#completionLabel"),
     homeTitle: document.querySelector("#homeTitle"),
@@ -819,7 +821,8 @@ function renderHeaderState() {
   const dateChanged = lastHeaderDateLabel && lastHeaderDateLabel !== nextDateLabel;
   const streakChanged = lastStreakLabel && lastStreakLabel !== nextStreakLabel;
   elements.todayLabel.textContent = nextDateLabel;
-  elements.dateChevron.classList.toggle("is-open", isCalendarOpen);
+  elements.dateChevron.classList.toggle("is-open", isCalendarOpen && calendarMode === "date");
+  elements.streakButton.classList.toggle("is-active", isCalendarOpen && calendarMode === "streak");
   elements.homeTitle.textContent = selectedDate === getToday() ? "今日の授業" : "選択日の授業";
   elements.streakCount.textContent = nextStreakLabel;
   elements.completionLabel.textContent =
@@ -858,8 +861,43 @@ function renderCalendar() {
   const startOffset = firstDate.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const todayKey = getToday();
+  const streakSummary =
+    calendarMode === "streak"
+      ? `
+        <div class="streak-calendar-summary">
+          <div class="streak-summary-card">
+            <span class="streak-summary-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3.5C9.5 6.2 8.2 8.4 8.2 10.7C8.2 13 9.9 14.7 12 14.7C14.1 14.7 15.8 13 15.8 10.8C15.8 9.2 15.1 7.8 13.8 6.4"></path>
+                <path d="M7.1 12.6C5.8 13.9 5 15.3 5 17C5 19.6 7.3 21.5 12 21.5C16.7 21.5 19 19.6 19 17C19 15.2 18.1 13.6 16.7 12.3"></path>
+              </svg>
+            </span>
+            <div>
+              <p>継続記録</p>
+              <strong>${state.streak.count}日継続中</strong>
+            </div>
+          </div>
+          <div class="streak-summary-card is-best">
+            <span class="streak-summary-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6.5 20H17.5"></path>
+                <path d="M8 17.5H16"></path>
+                <path d="M7 4.5H17L15.7 13.2C15.5 14.7 14.2 15.8 12.7 15.8H11.3C9.8 15.8 8.5 14.7 8.3 13.2L7 4.5Z"></path>
+                <path d="M7.5 7H4.5C4.8 10.2 6.2 12.2 8.1 12.8"></path>
+                <path d="M16.5 7H19.5C19.2 10.2 17.8 12.2 15.9 12.8"></path>
+              </svg>
+            </span>
+            <div>
+              <p>自己ベスト</p>
+              <strong>${getBestStreak()}日</strong>
+            </div>
+          </div>
+        </div>
+      `
+      : "";
 
   elements.calendarPanel.innerHTML = `
+    ${streakSummary}
     <div class="calendar-header">
       <button class="calendar-arrow" type="button" data-month="-1" aria-label="前の月">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -927,6 +965,36 @@ function getDateStatus(dateKey) {
   if (lessons.length === 0 && completedStudies.length > 0) return "complete";
   if (lessons.length === 0) return "no-lesson";
   return lessons.every((lesson) => isComplete(lesson, dateKey)) ? "complete" : "incomplete";
+}
+
+function getBestStreak() {
+  const today = getToday();
+  const dateSeeds = [
+    today,
+    ...state.completedDates,
+    ...state.memos.map((memo) => memo.date),
+    ...state.archivedMemos.map((memo) => memo.date),
+    ...state.scheduleRanges.map((range) => range.startDate).filter(Boolean)
+  ].sort();
+  const startDate = dateSeeds[0] || today;
+  let cursor = startDate;
+  let current = 0;
+  let best = 0;
+
+  while (cursor <= today) {
+    const lessons = lessonsForDate(cursor);
+    if (lessons.length > 0) {
+      if (state.completedDates.includes(cursor) || lessons.every((lesson) => isComplete(lesson, cursor))) {
+        current += 1;
+        best = Math.max(best, current);
+      } else {
+        current = 0;
+      }
+    }
+    cursor = addDays(cursor, 1);
+  }
+
+  return best;
 }
 
 function renderHistory() {
@@ -2422,9 +2490,10 @@ function resetSettingsDetail() {
   pendingSettingsAction = null;
 }
 
-function openHeaderCalendar() {
+function openHeaderCalendar(mode = "date") {
   calendarMonthDate = parseDateKey(selectedDate);
-  isCalendarOpen = !isCalendarOpen;
+  isCalendarOpen = calendarMode === mode ? !isCalendarOpen : true;
+  calendarMode = mode;
   renderHeaderState();
   renderCalendar();
 }
@@ -2477,7 +2546,10 @@ function bindGlobalEvents() {
     syncHistoryMenuState();
   });
   elements.dateButton.addEventListener("click", () => {
-    openHeaderCalendar();
+    openHeaderCalendar("date");
+  });
+  elements.streakButton.addEventListener("click", () => {
+    openHeaderCalendar("streak");
   });
   window.addEventListener("beforeunload", (event) => {
     if (!hasUnsavedSettingsChanges()) return;
