@@ -73,6 +73,7 @@ let memoActionStart = "";
 let memoActionEnd = "";
 let isMemoActionPanelOpen = false;
 let isHistoryMenuOpen = false;
+let isHistoryFilterOpen = true;
 let selectedMemoAction = "archive";
 let settingsMode = "menu";
 let settingsDraft = null;
@@ -975,28 +976,52 @@ function renderHistoryControls() {
         <button class="small-button" type="button" data-memo-action-cancel>キャンセル</button>
       </div>
     </div>
-    <div class="history-period-bar sort-inline" aria-label="日付順"></div>
-    <div class="history-period-bar" aria-label="期間">
-      <span class="period-control-label">
-        <svg class="period-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="5" width="18" height="16" rx="3"></rect>
-          <path d="M3 9H21"></path>
-          <path d="M8 3V7"></path>
-          <path d="M16 3V7"></path>
+    <div class="history-filter-panel">
+      <button class="history-filter-header" type="button" aria-expanded="${isHistoryFilterOpen}">
+        <span>フィルター</span>
+        <svg class="${isHistoryFilterOpen ? "is-open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 14L12 9L17 14"></path>
         </svg>
-        期間:
-      </span>
-      <button class="period-option${historyRange === "all" ? " is-active" : ""}" type="button" data-range="all">すべて</button>
-      <button class="period-option${historyRange === "7" ? " is-active" : ""}" type="button" data-range="7">7日</button>
-      <button class="period-option${historyRange === "30" ? " is-active" : ""}" type="button" data-range="30">30日</button>
-      <button class="period-option${historyRange === "custom" ? " is-active" : ""}" type="button" data-range="custom">期間指定</button>
-    </div>
-    <div class="custom-range${historyRange === "custom" ? " is-active" : ""}">
-      <input id="historyStartInput" type="date" value="${historyCustomStart}">
-      <input id="historyEndInput" type="date" value="${historyCustomEnd}">
+      </button>
+      <div class="history-filter-body${isHistoryFilterOpen ? " is-open" : ""}">
+        <label class="history-filter-row">
+          <span>
+            <svg class="period-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="3"></rect>
+              <path d="M3 9H21"></path>
+              <path d="M8 3V7"></path>
+              <path d="M16 3V7"></path>
+            </svg>
+            期間
+          </span>
+          <select id="historyRangeSelect">
+            <option value="all"${historyRange === "all" ? " selected" : ""}>すべて</option>
+            <option value="7"${historyRange === "7" ? " selected" : ""}>7日</option>
+            <option value="30"${historyRange === "30" ? " selected" : ""}>30日</option>
+            <option value="custom"${historyRange === "custom" ? " selected" : ""}>期間指定</option>
+          </select>
+        </label>
+        <div class="custom-range${historyRange === "custom" ? " is-active" : ""}">
+          <input id="historyStartInput" type="date" value="${historyCustomStart}">
+          <input id="historyEndInput" type="date" value="${historyCustomEnd}">
+        </div>
+        <label class="history-filter-row">
+          <span aria-label="並び順">
+            <svg class="period-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M7 4V18"></path>
+              <path d="M4 15L7 18L10 15"></path>
+              <path d="M17 20V6"></path>
+              <path d="M14 9L17 6L20 9"></path>
+            </svg>
+          </span>
+          <select id="historySortSelect">
+            <option value="desc"${historySortOrder === "desc" ? " selected" : ""}>新しい順</option>
+            <option value="asc"${historySortOrder === "asc" ? " selected" : ""}>古い順</option>
+          </select>
+        </label>
+      </div>
     </div>
   `;
-  renderInlineHistorySort();
 
   elements.historyControls.querySelectorAll("[data-history-mode]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1008,11 +1033,19 @@ function renderHistoryControls() {
       renderHistory();
     });
   });
-  elements.historyControls.querySelectorAll("[data-range]").forEach((button) => {
-    button.addEventListener("click", () => {
-      historyRange = button.dataset.range;
-      renderHistory();
-    });
+  elements.historyControls.querySelector(".history-filter-header").addEventListener("click", () => {
+    isHistoryFilterOpen = !isHistoryFilterOpen;
+    renderHistory();
+  });
+  const rangeSelect = elements.historyControls.querySelector("#historyRangeSelect");
+  rangeSelect.addEventListener("change", () => {
+    historyRange = rangeSelect.value;
+    renderHistory();
+  });
+  const sortSelect = elements.historyControls.querySelector("#historySortSelect");
+  sortSelect.addEventListener("change", () => {
+    historySortOrder = sortSelect.value;
+    renderHistory();
   });
 
   const startInput = elements.historyControls.querySelector("#historyStartInput");
@@ -1053,21 +1086,6 @@ function renderHistoryControls() {
       renderHistory();
     });
   }
-}
-
-function renderInlineHistorySort() {
-  const sortContainer = elements.historyControls.querySelector(".sort-inline");
-  if (!sortContainer) return;
-  sortContainer.innerHTML = `
-    <button class="period-option${historySortOrder === "desc" ? " is-active" : ""}" type="button" data-sort="desc">新しい順</button>
-    <button class="period-option${historySortOrder === "asc" ? " is-active" : ""}" type="button" data-sort="asc">古い順</button>
-  `;
-  sortContainer.querySelectorAll("[data-sort]").forEach((button) => {
-    button.addEventListener("click", () => {
-      historySortOrder = button.dataset.sort;
-      renderHistory();
-    });
-  });
 }
 
 function getMemoActionDefaultRange() {
