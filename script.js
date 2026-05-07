@@ -383,6 +383,19 @@ function getMemo(date, subjectId, period, type = "lesson") {
   );
 }
 
+function getMemoForItem(date, item) {
+  const periods = item.periods || [item.period];
+  const exact = getMemo(date, item.subjectId, item.period, item.type);
+  if (exact && exact.content.trim().length > 0) return exact;
+  return (
+    periods
+      .map((period) => getMemo(date, item.subjectId, period, item.type))
+      .find((memo) => memo && memo.content.trim().length > 0) ||
+    exact ||
+    null
+  );
+}
+
 function getItemKey(item) {
   return `${item.type}:${item.subjectId}:${item.period}`;
 }
@@ -410,7 +423,31 @@ function setMemo(date, subjectId, period, content, type = "lesson", shouldRender
 }
 
 function lessonsForDate(dateKey) {
-  return getEffectiveDayPlan(dateKey).lessons;
+  return groupConsecutiveLessons(getEffectiveDayPlan(dateKey).lessons);
+}
+
+function groupConsecutiveLessons(lessons) {
+  return lessons.reduce((grouped, lesson) => {
+    const previous = grouped[grouped.length - 1];
+    const isSameConsecutiveLesson =
+      previous &&
+      previous.type === "lesson" &&
+      previous.subjectId === lesson.subjectId &&
+      previous.endPeriod + 1 === lesson.period;
+
+    if (isSameConsecutiveLesson) {
+      previous.endPeriod = lesson.period;
+      previous.periods.push(lesson.period);
+      return grouped;
+    }
+
+    grouped.push({
+      ...lesson,
+      endPeriod: lesson.period,
+      periods: [lesson.period]
+    });
+    return grouped;
+  }, []);
 }
 
 function todayLessons() {
@@ -439,7 +476,7 @@ function homeItemsForDate(dateKey) {
 }
 
 function isComplete(item, date) {
-  const memo = getMemo(date, item.subjectId, item.period, item.type);
+  const memo = getMemoForItem(date, item);
   return Boolean(memo && memo.content.trim().length > 0 && memo.completed !== false);
 }
 
@@ -476,7 +513,7 @@ function createLessonCard(item, date) {
     name: "未登録科目",
     color: "#aab4bd"
   };
-  const memo = getMemo(date, item.subjectId, item.period, item.type);
+  const memo = getMemoForItem(date, item);
   const complete = isComplete(item, date);
   const card = document.createElement("article");
   card.className = `lesson-card${complete ? " is-complete" : ""}`;
@@ -491,7 +528,7 @@ function createLessonCard(item, date) {
 
   const meta = document.createElement("div");
   meta.className = "lesson-meta";
-  const periodLabel = item.type === "study" ? "自習" : `${item.period}限`;
+  const periodLabel = getPeriodLabel(item);
   meta.innerHTML = `<span class="period">${periodLabel}</span><span class="subject-name"></span>`;
   meta.querySelector(".subject-name").textContent = subject.name;
 
@@ -542,6 +579,13 @@ function createLessonCard(item, date) {
   card.append(bar, content);
   requestAnimationFrame(() => autoResize(textarea));
   return card;
+}
+
+function getPeriodLabel(item) {
+  if (item.type === "study") return "自習";
+  return item.endPeriod && item.endPeriod !== item.period
+    ? `${item.period}-${item.endPeriod}限`
+    : `${item.period}限`;
 }
 
 function completeMemoInput(textarea, date, item, options = {}) {
