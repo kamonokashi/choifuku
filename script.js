@@ -1490,7 +1490,7 @@ function renderUnsavedSettingsNotice() {
   notice.className = "unsaved-overlay";
   notice.innerHTML = `
     <div class="unsaved-notice">
-      <p>保存しなくて大丈夫ですか？</p>
+      <p>変更を保存しますか？</p>
       <div class="unsaved-actions">
         <button class="small-button danger-button" type="button" data-action="discard">保存しないで移動する</button>
         <button class="small-button primary-mini-button" type="button" data-action="save">保存して移動する</button>
@@ -2572,6 +2572,10 @@ function bindNavigation() {
           resetSettingsDetail();
           showView(button.dataset.view);
         });
+        return;
+      }
+      if (getActiveViewId() === "settingsView" && settingsMode !== "menu") {
+        closeSettingsDetail();
         return;
       }
       showView(button.dataset.view);
