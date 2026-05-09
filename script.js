@@ -50,6 +50,12 @@ const defaultState = {
     mode: "light",
     accent: "#2f80ed"
   },
+  notification: {
+    enabled: false,
+    message: "復習の時間です！",
+    frequency: "lesson-days",
+    time: "21:00"
+  },
   maxPeriods: 6,
   memos: [],
   archivedMemos: [],
@@ -98,6 +104,15 @@ let isAppInitialized = false;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function loadStoredState(storageKey, fallbackState, migrate) {
@@ -168,6 +183,18 @@ function ensureScheduleState(targetState) {
   if (!["light", "dark"].includes(targetState.theme.mode)) {
     targetState.theme.mode = defaultState.theme.mode;
   }
+  targetState.notification = {
+    ...clone(defaultState.notification),
+    ...(targetState.notification || {})
+  };
+  targetState.notification.enabled = targetState.notification.enabled === true;
+  targetState.notification.message = String(targetState.notification.message || defaultState.notification.message);
+  targetState.notification.frequency = ["lesson-days", "daily"].includes(targetState.notification.frequency)
+    ? targetState.notification.frequency
+    : defaultState.notification.frequency;
+  targetState.notification.time = /^([01]\d|2[0-3]):[0-5]\d$/.test(targetState.notification.time || "")
+    ? targetState.notification.time
+    : defaultState.notification.time;
   targetState.maxPeriods = clamp(Number(targetState.maxPeriods || 6), 1, 12);
 
   if (targetState.scheduleTemplates.length === 0 && targetState.schedule.length > 0) {
@@ -1397,6 +1424,7 @@ function openSettingsDetail(mode) {
     dateExceptions: clone(state.dateExceptions),
     weekOverrides: clone(state.weekOverrides),
     theme: clone(state.theme),
+    notification: clone(state.notification),
     maxPeriods: state.maxPeriods
   };
   settingsDraftSnapshot = serializeSettingsDraft();
@@ -1482,6 +1510,10 @@ function renderSettings() {
     renderArchiveSettings();
     return;
   }
+  if (settingsMode === "notification") {
+    renderNotificationSettings();
+    return;
+  }
   if (settingsMode === "theme") {
     renderThemeSettings();
     return;
@@ -1524,6 +1556,7 @@ function renderSettingsMenu() {
       `${state.dateExceptions.length + state.weekOverrides.length}件`,
       "holiday"
     )}
+    ${createSettingsMenuButton("notification", "通知設定", "復習の時間をお知らせする通知を設定します", getNotificationMenuLabel(), "bell")}
     ${createSettingsMenuButton("theme", "画面の色設定", "ダークモードやアクセントカラーを変更できます", getThemeModeLabel(state.theme.mode), "palette")}
     ${createSettingsMenuButton("archive", "アーカイブされた時間割一覧", "過去に使っていた時間割を確認・復元できます", `${archivedTemplateCount}件`, "archive")}
   `;
@@ -1582,6 +1615,13 @@ function getSettingsMenuIcon(icon) {
         <path d="M12 13.2L13 15.1L15.1 15.4L13.6 16.9L13.9 19L12 18L10.1 19L10.4 16.9L8.9 15.4L11 15.1L12 13.2Z"></path>
       </svg>
     `,
+    bell: `
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M12 3.2C9.3 3.2 7.2 5.3 7.2 8V10.8C7.2 12.1 6.8 13.3 6 14.3L5.2 15.4C4.6 16.2 5.1 17.4 6.1 17.4H17.9C18.9 17.4 19.4 16.2 18.8 15.4L18 14.3C17.2 13.3 16.8 12.1 16.8 10.8V8C16.8 5.3 14.7 3.2 12 3.2Z"></path>
+        <path d="M9.8 18.6C10.1 19.8 10.9 20.5 12 20.5C13.1 20.5 13.9 19.8 14.2 18.6H9.8Z"></path>
+        <path d="M11.1 2.2C11.1 1.7 11.5 1.3 12 1.3C12.5 1.3 12.9 1.7 12.9 2.2V3.6H11.1V2.2Z"></path>
+      </svg>
+    `,
     palette: `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 4C7.6 4 4 7.2 4 11.5C4 15.7 7.4 19 11.5 19H13.2C14.2 19 14.8 17.9 14.3 17.1C13.9 16.4 14.4 15.5 15.2 15.5H16.5C18.4 15.5 20 13.9 20 12C20 7.6 16.4 4 12 4Z"></path>
@@ -1604,6 +1644,11 @@ function getSettingsMenuIcon(icon) {
 
 function getThemeModeLabel(mode) {
   return mode === "dark" ? "ダーク" : "ライト";
+}
+
+function getNotificationMenuLabel() {
+  if (!state.notification?.enabled) return "オフ";
+  return state.notification.frequency === "daily" ? "毎日" : "授業日";
 }
 
 function renderSubjectSettings() {
@@ -2232,6 +2277,101 @@ function renderArchiveSettings() {
   });
 }
 
+function renderNotificationSettings() {
+  const notification = settingsDraft.notification;
+  const enabledClass = notification.enabled ? " is-enabled" : "";
+  const frequencyLabel = notification.frequency === "daily" ? "毎日" : "授業のある日のみ";
+  const message = escapeHtml(notification.message);
+  const time = escapeHtml(notification.time);
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail notification-settings-detail";
+  wrapper.innerHTML = `
+    <div class="settings-action-bar">
+      <button class="back-button" type="button">← 設定に戻る</button>
+      <button id="saveNotificationSettingsButton" class="primary-button" type="button">保存する</button>
+    </div>
+    <div class="notification-hero">
+      <div class="notification-hero-copy">
+        <span class="notification-hero-icon" aria-hidden="true">${getSettingsMenuIcon("bell")}</span>
+        <div>
+          <h3>復習の時間をお知らせします</h3>
+          <p>設定した時間に「<span data-notification-message-preview>${message}</span>」という通知をお送りします。</p>
+        </div>
+      </div>
+      <label class="notification-enable-row">
+        <span>通知を有効にする</span>
+        <input id="notificationEnabledInput" class="switch-input" type="checkbox" ${notification.enabled ? "checked" : ""}>
+        <span class="switch-track" aria-hidden="true"></span>
+      </label>
+    </div>
+    <div class="notification-detail-body${enabledClass}">
+      <section class="notification-section">
+        <h3>通知内容</h3>
+        <div class="notification-list-card">
+          <label class="notification-row">
+            <span class="notification-row-label">メッセージ</span>
+            <input id="notificationMessageInput" type="text" value="${message}" maxlength="40">
+          </label>
+        </div>
+      </section>
+      <section class="notification-section">
+        <h3>通知するタイミング</h3>
+        <div class="notification-list-card">
+          <div class="notification-row">
+            <span class="notification-row-label">頻度</span>
+            <div class="notification-segment" role="group" aria-label="通知頻度">
+              <button class="${notification.frequency === "lesson-days" ? "is-selected" : ""}" type="button" data-notification-frequency="lesson-days">授業日</button>
+              <button class="${notification.frequency === "daily" ? "is-selected" : ""}" type="button" data-notification-frequency="daily">毎日</button>
+            </div>
+          </div>
+          <label class="notification-row">
+            <span class="notification-row-label">時間帯</span>
+            <input id="notificationTimeInput" class="notification-time-input" type="time" value="${time}">
+          </label>
+        </div>
+      </section>
+      <section class="notification-section">
+        <h3>通知のプレビュー</h3>
+        <div class="notification-preview-card">
+          <span class="notification-preview-icon" aria-hidden="true">${getSettingsMenuIcon("book")}</span>
+          <div>
+            <div class="notification-preview-head">
+              <strong>Choihuku</strong>
+              <span data-notification-time-preview>${time}</span>
+            </div>
+            <p data-notification-message-preview>${message}</p>
+            <small>${frequencyLabel}、同じ時間に通知します。</small>
+          </div>
+        </div>
+        <p class="notification-preview-note">※ プレビューはイメージです</p>
+      </section>
+    </div>
+  `;
+  elements.settingsContent.append(wrapper);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
+  wrapper.querySelector("#saveNotificationSettingsButton").addEventListener("click", saveNotificationSettings);
+  wrapper.querySelector("#notificationEnabledInput").addEventListener("change", (event) => {
+    notification.enabled = event.target.checked;
+    renderSettings();
+  });
+  wrapper.querySelector("#notificationMessageInput").addEventListener("input", (event) => {
+    notification.message = event.target.value;
+    wrapper.querySelectorAll("[data-notification-message-preview]").forEach((element) => {
+      element.textContent = notification.message || defaultState.notification.message;
+    });
+  });
+  wrapper.querySelector("#notificationTimeInput").addEventListener("input", (event) => {
+    notification.time = event.target.value;
+    wrapper.querySelector("[data-notification-time-preview]").textContent = notification.time || defaultState.notification.time;
+  });
+  wrapper.querySelectorAll("[data-notification-frequency]").forEach((button) => {
+    button.addEventListener("click", () => {
+      notification.frequency = button.dataset.notificationFrequency;
+      renderSettings();
+    });
+  });
+}
+
 function renderThemeSettings() {
   const wrapper = document.createElement("div");
   wrapper.className = "settings-detail";
@@ -2324,6 +2464,12 @@ function saveArchiveSettings() {
   render();
 }
 
+function saveNotificationSettings() {
+  applyCurrentSettingsDraft();
+  closeSettingsDetail(true);
+  render();
+}
+
 function saveThemeSettings() {
   applyCurrentSettingsDraft();
   closeSettingsDetail(true);
@@ -2350,6 +2496,10 @@ function applyCurrentSettingsDraft() {
   }
   if (settingsMode === "archive") {
     applyArchiveSettingsDraft();
+    return;
+  }
+  if (settingsMode === "notification") {
+    applyNotificationSettingsDraft();
     return;
   }
   if (settingsMode === "theme") {
@@ -2422,6 +2572,17 @@ function applyExceptionSettingsDraft() {
 function applyArchiveSettingsDraft() {
   state.scheduleTemplates = settingsDraft.scheduleTemplates;
   updateStreak();
+  saveState();
+}
+
+function applyNotificationSettingsDraft() {
+  const draft = settingsDraft.notification || {};
+  state.notification = {
+    enabled: draft.enabled === true,
+    message: String(draft.message || defaultState.notification.message).trim() || defaultState.notification.message,
+    frequency: ["lesson-days", "daily"].includes(draft.frequency) ? draft.frequency : defaultState.notification.frequency,
+    time: /^([01]\d|2[0-3]):[0-5]\d$/.test(draft.time || "") ? draft.time : defaultState.notification.time
+  };
   saveState();
 }
 
