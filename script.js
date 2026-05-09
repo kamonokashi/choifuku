@@ -586,17 +586,15 @@ function updateStreak() {
 
   for (let i = 0; i < 365; i += 1) {
     const lessons = lessonsForDate(cursor);
+    const complete = isDateCompleteForStreak(cursor);
     const isToday = cursor === getToday();
 
-    if (lessons.length > 0) {
-      const complete = state.completedDates.includes(cursor) || lessons.every((lesson) => isComplete(lesson, cursor));
-      if (complete) {
-        count += 1;
-        foundCompletedDay = true;
-        state.streak.lastCompletedDate = state.streak.lastCompletedDate || cursor;
-      } else if (foundCompletedDay || !isToday) {
-        break;
-      }
+    if (complete) {
+      count += 1;
+      foundCompletedDay = true;
+      state.streak.lastCompletedDate = state.streak.lastCompletedDate || cursor;
+    } else if (lessons.length > 0 && (foundCompletedDay || !isToday)) {
+      break;
     }
 
     cursor = addDays(cursor, -1);
@@ -970,12 +968,10 @@ function renderCalendar() {
 }
 
 function getDateStatus(dateKey) {
-  if (state.completedDates.includes(dateKey)) return "complete";
   const lessons = lessonsForDate(dateKey);
-  const completedStudies = studiesForDate(dateKey).filter((study) => isComplete(study, dateKey));
-  if (lessons.length === 0 && completedStudies.length > 0) return "complete";
+  if (isDateCompleteForStreak(dateKey)) return "complete";
   if (lessons.length === 0) return "no-lesson";
-  return lessons.every((lesson) => isComplete(lesson, dateKey)) ? "complete" : "incomplete";
+  return "incomplete";
 }
 
 function getBestStreak() {
@@ -994,13 +990,11 @@ function getBestStreak() {
 
   while (cursor <= today) {
     const lessons = lessonsForDate(cursor);
-    if (lessons.length > 0) {
-      if (state.completedDates.includes(cursor) || lessons.every((lesson) => isComplete(lesson, cursor))) {
-        current += 1;
-        best = Math.max(best, current);
-      } else {
-        current = 0;
-      }
+    if (isDateCompleteForStreak(cursor)) {
+      current += 1;
+      best = Math.max(best, current);
+    } else if (lessons.length > 0) {
+      current = 0;
     }
     cursor = addDays(cursor, 1);
   }
@@ -1352,9 +1346,19 @@ function preserveCompletedDatesForRange(startDate, endDate) {
 function isDateCompleteForStreak(dateKey) {
   const lessons = lessonsForDate(dateKey);
   if (lessons.length === 0) {
-    return studiesForDate(dateKey).some((study) => isComplete(study, dateKey));
+    return hasCompletedStudyMemoForDate(dateKey);
   }
-  return lessons.every((lesson) => isComplete(lesson, dateKey));
+  return state.completedDates.includes(dateKey) || lessons.every((lesson) => isComplete(lesson, dateKey));
+}
+
+function hasCompletedStudyMemoForDate(dateKey) {
+  return [...state.memos, ...state.archivedMemos].some(
+    (memo) =>
+      memo.date === dateKey &&
+      memo.type === "study" &&
+      (memo.content || "").trim().length > 0 &&
+      memo.completed !== false
+  );
 }
 
 function isMemoInHistoryRange(memo) {
