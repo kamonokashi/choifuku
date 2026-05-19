@@ -127,11 +127,13 @@ h1 {
     border-color var(--duration-fast) ease-out,
     box-shadow var(--duration-fast) ease-out,
     transform 120ms ease-out;
+  white-space: nowrap;
 }
 
 .date-button span {
   font-size: 1.22rem;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .date-button.is-updating span {
@@ -386,7 +388,7 @@ h3 {
 .calendar-day {
   position: relative;
   display: inline-flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   aspect-ratio: 1;
   min-width: 0;
@@ -396,7 +398,7 @@ h3 {
   color: var(--text);
   font-size: 0.86rem;
   font-weight: 900;
-  padding-top: 11px;
+  padding-top: 0;
   transition:
     background-color 180ms ease-out,
     border-color 180ms ease-out,
@@ -428,8 +430,8 @@ h3 {
 
 .calendar-check-icon {
   position: absolute;
-  right: 50%;
-  bottom: 9px;
+  right: 8px;
+  bottom: 8px;
   display: grid;
   place-items: center;
   width: 18px;
@@ -437,7 +439,7 @@ h3 {
   border-radius: 999px;
   background: #73a9ff;
   color: #ffffff;
-  transform: translateX(50%);
+  transform: none;
 }
 
 .calendar-check-icon svg {
@@ -2340,6 +2342,29 @@ input[type="color"] {
 
   .streak-calendar-summary {
     grid-template-columns: 1fr;
+  }
+
+  .calendar-day.is-complete,
+  .calendar-day.is-complete.is-selected {
+    color: transparent !important;
+  }
+
+  .calendar-day.is-complete .calendar-check-icon,
+  .calendar-day.is-complete.is-selected .calendar-check-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60%;
+    height: 60%;
+    transform: translate(-50%, -50%);
+    right: auto;
+    bottom: auto;
+  }
+
+  .calendar-day.is-complete .calendar-check-icon svg,
+  .calendar-day.is-complete.is-selected .calendar-check-icon svg {
+    width: 70%;
+    height: 70%;
   }
 
   .range-editor-row {
