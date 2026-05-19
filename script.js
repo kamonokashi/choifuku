@@ -2336,7 +2336,7 @@ function renderNotificationSettings() {
           <span class="notification-preview-icon" aria-hidden="true">${getSettingsMenuIcon("book")}</span>
           <div>
             <div class="notification-preview-head">
-              <strong>Choihuku</strong>
+              <strong>Choifuku</strong>
               <span data-notification-time-preview>${time}</span>
             </div>
             <p data-notification-message-preview>${message}</p>
