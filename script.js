@@ -471,7 +471,6 @@ function ensureScheduleState(targetState) {
 
   if (targetState.scheduleTemplates.length === 0 && targetState.schedule.length > 0) {
     const templateId = createId("schedule");
-    const year = Number(getToday().slice(0, 4));
     targetState.scheduleTemplates.push({
       id: templateId,
       name: "移行済み時間割",
@@ -483,9 +482,21 @@ function ensureScheduleState(targetState) {
     targetState.scheduleRanges.push({
       id: createId("range"),
       scheduleId: templateId,
-      startDate: `${year}-01-01`,
-      endDate: `${year}-12-31`
+      startDate: getDefaultSchoolYearStartDate(),
+      endDate: getDefaultMarchEndDate()
     });
+  }
+
+  if (targetState.scheduleRanges.length === 0) {
+    const activeTemplate = getActiveTemplates(targetState.scheduleTemplates)[0];
+    if (activeTemplate) {
+      targetState.scheduleRanges.push({
+        id: createId("range"),
+        scheduleId: activeTemplate.id,
+        startDate: getDefaultSchoolYearStartDate(),
+        endDate: getDefaultMarchEndDate()
+      });
+    }
   }
 }
 
@@ -592,6 +603,14 @@ function getDefaultMarchEndDate(dateKey = getToday()) {
   return `${endYear}-03-31`;
 }
 
+function getDefaultSchoolYearStartDate(dateKey = getToday()) {
+  const date = parseDateKey(dateKey);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const startYear = month <= 3 ? year - 1 : year;
+  return `${startYear}-04-01`;
+}
+
 function ensureDefaultScheduleRange() {
   if (!settingsDraft) return;
   if (settingsDraft.scheduleRanges.length > 0) return;
@@ -600,7 +619,7 @@ function ensureDefaultScheduleRange() {
   settingsDraft.scheduleRanges.push({
     id: createId("range"),
     scheduleId: activeTemplate.id,
-    startDate: getToday(),
+    startDate: getDefaultSchoolYearStartDate(),
     endDate: getDefaultMarchEndDate()
   });
 }
