@@ -12,9 +12,6 @@ const onboardingSlides = [
       <div class="onboarding-icon-shell">
         <svg class="choifuku-app-icon" viewBox="0 0 180 180" aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <filter id="choifukuIconShadow" x="-12%" y="-8%" width="124%" height="124%" color-interpolation-filters="sRGB">
-              <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#b9d6ff" flood-opacity="0.38" />
-            </filter>
             <linearGradient id="choifukuIconPen" x1="115" y1="70" x2="83" y2="166" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stop-color="#dce8ff" />
               <stop offset="100%" stop-color="#68a8f7" />
@@ -24,7 +21,7 @@ const onboardingSlides = [
               <stop offset="100%" stop-color="#9fc4ff" />
             </linearGradient>
           </defs>
-          <rect x="5" y="5" width="170" height="170" rx="30" fill="#ffffff" stroke="#d6e7ff" stroke-width="2" filter="url(#choifukuIconShadow)" />
+          <rect x="5" y="5" width="170" height="170" rx="30" fill="#ffffff" stroke="#d6e7ff" stroke-width="2" />
           <path d="M128 0h32v44l-16-10-16 10V0z" fill="url(#choifukuIconRibbon)" />
           <path d="M38 58h56" stroke="#c7cbff" stroke-width="6" stroke-linecap="round" />
           <path d="M38 84h42" stroke="#c7cbff" stroke-width="6" stroke-linecap="round" />
@@ -106,9 +103,6 @@ const onboardingSlides = [
               <stop offset="0%" stop-color="#ffffff" />
               <stop offset="100%" stop-color="#f8fbff" />
             </linearGradient>
-            <filter id="noteHeroShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-              <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#8bbcff" flood-opacity="0.2" />
-            </filter>
           </defs>
           <ellipse cx="130" cy="108" rx="94" ry="64" fill="url(#noteHeroBg)" />
           <g fill="#9fbeff">
@@ -118,7 +112,7 @@ const onboardingSlides = [
             <path d="M205 108l3 6 6 3-6 3-3 6-3-6-6-3 6-3z" fill="#ffffff" opacity="0.9" />
             <circle cx="58" cy="141" r="3" opacity="0.45" />
           </g>
-          <rect x="83" y="52" width="86" height="100" rx="6" fill="url(#noteHeroPaper)" stroke="#1163ff" stroke-width="2" filter="url(#noteHeroShadow)" />
+          <rect x="83" y="52" width="86" height="100" rx="6" fill="url(#noteHeroPaper)" stroke="#1163ff" stroke-width="2" />
           <g>
             <circle cx="101" cy="76" r="5" fill="#1163ff" />
             <circle cx="101" cy="98" r="5" fill="#1163ff" />
