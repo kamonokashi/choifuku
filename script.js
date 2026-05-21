@@ -1,4 +1,152 @@
 const STORAGE_KEY = "studyReviewApp.v1";
+const ONBOARDING_STORAGE_KEY = "choifuku.onboardingCompleted";
+const onboardingSlides = [
+  {
+    title: "choifukuへようこそ",
+    contentHTML: `
+      <p>授業で学んだことは、<br>時間が経つほど<br>思い出しにくくなります。</p>
+      <p>でも、その日のうちに<br>少しだけ振り返るだけで、<br>記憶に残りやすくなります。</p>
+    `,
+    graphicHTML: `
+      <div class="onboarding-icon-shell">
+        <svg class="choifuku-app-icon" viewBox="0 0 180 180" aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="choifukuIconShadow" x="-12%" y="-8%" width="124%" height="124%" color-interpolation-filters="sRGB">
+              <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#b9d6ff" flood-opacity="0.38" />
+            </filter>
+            <linearGradient id="choifukuIconPen" x1="115" y1="70" x2="83" y2="166" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#dce8ff" />
+              <stop offset="100%" stop-color="#68a8f7" />
+            </linearGradient>
+            <linearGradient id="choifukuIconRibbon" x1="144" y1="0" x2="144" y2="46" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#d6e4ff" />
+              <stop offset="100%" stop-color="#9fc4ff" />
+            </linearGradient>
+          </defs>
+          <rect x="5" y="5" width="170" height="170" rx="30" fill="#ffffff" stroke="#d6e7ff" stroke-width="2" filter="url(#choifukuIconShadow)" />
+          <path d="M128 0h32v44l-16-10-16 10V0z" fill="url(#choifukuIconRibbon)" />
+          <path d="M38 58h56" stroke="#c7cbff" stroke-width="6" stroke-linecap="round" />
+          <path d="M38 84h42" stroke="#c7cbff" stroke-width="6" stroke-linecap="round" />
+          <rect x="94" y="68" width="32" height="104" rx="16" transform="rotate(28 110 120)" fill="url(#choifukuIconPen)" />
+        </svg>
+      </div>
+    `
+  },
+  {
+    title: "こちらは、忘却曲線です",
+    contentHTML: `
+      <p>人は、1日たつと<br>74%も忘れてしまいます。</p>
+    `,
+    afterGraphicHTML: `
+      <p>その日のうちに、少し思い出すだけでも<br>記憶の定着は大きく変わってきます。</p>
+    `,
+    graphicHTML: `
+      <div class="onboarding-graph-shell">
+        <svg class="onboarding-graph-svg" viewBox="0 0 332 292" aria-labelledby="forgettingCurveTitle" role="img">
+          <title id="forgettingCurveTitle">復習した場合と復習していない場合の忘却曲線</title>
+          <text x="10" y="20" fill="#111827" font-size="11" font-weight="700">記憶の残存率（%）</text>
+          <g stroke="#e5eaf3" stroke-width="1">
+            <line x1="46" y1="52" x2="46" y2="248" />
+            <line x1="46" y1="248" x2="310" y2="248" />
+            <line x1="46" y1="102" x2="310" y2="102" />
+            <line x1="46" y1="151" x2="310" y2="151" />
+            <line x1="46" y1="200" x2="310" y2="200" />
+          </g>
+          <g fill="#111827" font-size="13" font-weight="700" font-family="sans-serif">
+            <text x="14" y="57">100</text>
+            <text x="24" y="106">75</text>
+            <text x="24" y="155">50</text>
+            <text x="24" y="204">25</text>
+            <text x="34" y="253">0</text>
+            <text x="30" y="274">0日目</text>
+            <text x="99" y="274">1日後</text>
+            <text x="183" y="274">7日後</text>
+            <text x="277" y="274">30日後</text>
+          </g>
+          <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="46,53 113,200 196,232 302,243" stroke="#8f8f8f" stroke-width="2" />
+            <polyline points="113,53 196,128 302,181" stroke="#1163ff" stroke-width="2" />
+            <line x1="113" y1="186" x2="113" y2="72" stroke="#1163ff" stroke-width="4" />
+          </g>
+          <path d="M113 63l-9 15h18z" fill="#1163ff" />
+          <g>
+            <circle cx="46" cy="53" r="5.5" fill="#8f8f8f" />
+            <circle cx="113" cy="200" r="5.5" fill="#8f8f8f" />
+            <circle cx="196" cy="232" r="5.5" fill="#8f8f8f" />
+            <circle cx="302" cy="243" r="5.5" fill="#8f8f8f" />
+            <circle cx="113" cy="53" r="5.5" fill="#1163ff" />
+            <circle cx="196" cy="128" r="5.5" fill="#1163ff" />
+            <circle cx="302" cy="181" r="5.5" fill="#1163ff" />
+          </g>
+          <g fill="#111827" font-size="11" font-weight="700" font-family="sans-serif">
+            <line x1="206" y1="50" x2="226" y2="50" stroke="#8f8f8f" stroke-width="2" />
+            <circle cx="216" cy="50" r="4" fill="#8f8f8f" />
+            <text x="234" y="54">復習していない場合</text>
+            <line x1="206" y1="76" x2="226" y2="76" stroke="#1163ff" stroke-width="2" />
+            <circle cx="216" cy="76" r="4" fill="#1163ff" />
+            <text x="234" y="74">1日後に</text>
+            <text x="234" y="90">少し思い出した場合</text>
+          </g>
+          <text x="124" y="160" fill="#1163ff" font-size="18" font-weight="900" font-family="sans-serif">復習</text>
+        </svg>
+      </div>
+    `
+  },
+  {
+    title: "一言メモでも大丈夫。",
+    contentHTML: `
+      <p>「何をやったか」を<br>思い出そうとすることが、<br>記憶定着の大きな一歩になります。</p>
+      <p>むしろ、このくらい小さなことのほうが、<br>継続しやすいのです。</p>
+    `,
+    graphicHTML: `
+      <div class="onboarding-note-hero">
+        <svg viewBox="0 0 260 190" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="noteHeroBg" x1="35" y1="22" x2="214" y2="164" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#eff6ff" />
+              <stop offset="100%" stop-color="#eaf2ff" />
+            </linearGradient>
+            <linearGradient id="noteHeroPen" x1="176" y1="74" x2="134" y2="151" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#dbe9ff" />
+              <stop offset="48%" stop-color="#8fc0ff" />
+              <stop offset="100%" stop-color="#1163ff" />
+            </linearGradient>
+            <linearGradient id="noteHeroPaper" x1="86" y1="50" x2="157" y2="145" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#f8fbff" />
+            </linearGradient>
+            <filter id="noteHeroShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+              <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#8bbcff" flood-opacity="0.2" />
+            </filter>
+          </defs>
+          <ellipse cx="130" cy="108" rx="94" ry="64" fill="url(#noteHeroBg)" />
+          <g fill="#9fbeff">
+            <path d="M54 28l5 10 10 5-10 5-5 10-5-10-10-5 10-5z" opacity="0.82" />
+            <path d="M216 42l5 10 10 5-10 5-5 10-5-10-10-5 10-5z" opacity="0.72" />
+            <path d="M38 88l4 8 8 4-8 4-4 8-4-8-8-4 8-4z" opacity="0.72" />
+            <path d="M205 108l3 6 6 3-6 3-3 6-3-6-6-3 6-3z" fill="#ffffff" opacity="0.9" />
+            <circle cx="58" cy="141" r="3" opacity="0.45" />
+          </g>
+          <rect x="83" y="52" width="86" height="100" rx="6" fill="url(#noteHeroPaper)" stroke="#1163ff" stroke-width="2" filter="url(#noteHeroShadow)" />
+          <g>
+            <circle cx="101" cy="76" r="5" fill="#1163ff" />
+            <circle cx="101" cy="98" r="5" fill="#1163ff" />
+            <circle cx="101" cy="120" r="5" fill="#1163ff" />
+            <path d="M116 76h39" stroke="#c8d8f5" stroke-width="3" stroke-linecap="round" />
+            <path d="M116 98h36" stroke="#c8d8f5" stroke-width="3" stroke-linecap="round" />
+            <path d="M116 120h42" stroke="#c8d8f5" stroke-width="3" stroke-linecap="round" />
+          </g>
+          <g transform="rotate(28 164 116)">
+            <rect x="152" y="70" width="15" height="82" rx="7.5" fill="url(#noteHeroPen)" stroke="#1163ff" stroke-width="1.4" />
+            <path d="M152 149h15l-7.5 17z" fill="#ffffff" stroke="#1163ff" stroke-width="1.4" stroke-linejoin="round" />
+            <path d="M155 72h9" stroke="#1163ff" stroke-width="1.6" stroke-linecap="round" />
+          </g>
+        </svg>
+      </div>
+    `
+  }
+];
+let onboardingPage = 1;
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const weekdayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"];
@@ -161,6 +309,130 @@ function collectElements() {
   };
 }
 
+function hasSeenOnboarding() {
+  return localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1";
+}
+
+function markOnboardingCompleted() {
+  localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
+}
+
+function cleanupOnboardingOverlay() {
+  document.body.style.overflow = "";
+  if (elements.onboardingOverlay) {
+    elements.onboardingOverlay.remove();
+  }
+  elements.onboardingOverlay = null;
+  elements.onboardingGraphic = null;
+  elements.onboardingTitle = null;
+  elements.onboardingText = null;
+  elements.onboardingAfterText = null;
+  elements.onboardingPageLabel = null;
+  elements.onboardingPrevButton = null;
+  elements.onboardingNextButton = null;
+  elements.onboardingStartButton = null;
+}
+
+function getOnboardingButtonTextColor(accentColor) {
+  const accent = accentColor.trim() || "#2f80ed";
+  const whiteContrast = getContrastRatio(accent, "#ffffff");
+  const blackContrast = getContrastRatio(accent, "#000000");
+  return whiteContrast >= blackContrast ? "#ffffff" : "#000000";
+}
+
+function applyOnboardingButtonColor() {
+  const root = document.documentElement;
+  const accent = getComputedStyle(root).getPropertyValue("--accent").trim() || "#2f80ed";
+  const textColor = getOnboardingButtonTextColor(accent);
+  root.style.setProperty("--onboarding-button-text", textColor);
+}
+
+function createOnboardingOverlay() {
+  if (hasSeenOnboarding()) return;
+  applyOnboardingButtonColor();
+  const overlay = document.createElement("div");
+  overlay.className = "onboarding-overlay";
+  overlay.innerHTML = `
+    <div class="onboarding-backdrop"></div>
+    <div class="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="onboarding-scroll">
+        <div id="onboardingGraphic" class="onboarding-graphic"></div>
+        <h2 id="onboardingTitle"></h2>
+        <div id="onboardingText" class="onboarding-text"></div>
+        <div id="onboardingAfterText" class="onboarding-text onboarding-after-text"></div>
+      </div>
+      <div class="onboarding-start-row">
+        <button id="onboardingStartButton" class="onboarding-start-button" type="button">
+          <span>チュートリアルを始める</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
+        </button>
+      </div>
+      <div class="onboarding-footer">
+        <button id="onboardingPrevButton" class="onboarding-nav-button onboarding-prev-button" type="button" aria-label="前へ">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+        </button>
+        <span id="onboardingPageLabel" class="onboarding-page-label"></span>
+        <button id="onboardingNextButton" class="onboarding-nav-button onboarding-next-button" type="button" aria-label="次へ">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  elements.onboardingOverlay = overlay;
+  elements.onboardingGraphic = overlay.querySelector("#onboardingGraphic");
+  elements.onboardingTitle = overlay.querySelector("#onboardingTitle");
+  elements.onboardingText = overlay.querySelector("#onboardingText");
+  elements.onboardingAfterText = overlay.querySelector("#onboardingAfterText");
+  elements.onboardingPageLabel = overlay.querySelector("#onboardingPageLabel");
+  elements.onboardingPrevButton = overlay.querySelector("#onboardingPrevButton");
+  elements.onboardingNextButton = overlay.querySelector("#onboardingNextButton");
+  elements.onboardingStartButton = overlay.querySelector("#onboardingStartButton");
+  elements.onboardingPrevButton.addEventListener("click", () => {
+    if (onboardingPage > 1) {
+      onboardingPage -= 1;
+      renderOnboarding();
+    }
+  });
+  elements.onboardingNextButton.addEventListener("click", () => {
+    if (onboardingPage < onboardingSlides.length) {
+      onboardingPage += 1;
+      renderOnboarding();
+    }
+  });
+  elements.onboardingStartButton.addEventListener("click", () => {
+    markOnboardingCompleted();
+    cleanupOnboardingOverlay();
+    render();
+  });
+  onboardingPage = 1;
+  renderOnboarding();
+}
+
+function renderOnboarding() {
+  if (!elements.onboardingOverlay) return;
+  const visible = !hasSeenOnboarding();
+  elements.onboardingOverlay.classList.toggle("is-visible", visible);
+  document.body.style.overflow = visible ? "hidden" : "";
+  if (!visible) {
+    cleanupOnboardingOverlay();
+    return;
+  }
+  const slide = onboardingSlides[onboardingPage - 1];
+  elements.onboardingOverlay.dataset.page = String(onboardingPage);
+  elements.onboardingTitle.textContent = slide.title;
+  elements.onboardingGraphic.innerHTML = slide.graphicHTML;
+  elements.onboardingText.innerHTML = slide.contentHTML;
+  elements.onboardingAfterText.innerHTML = slide.afterGraphicHTML || "";
+  elements.onboardingAfterText.hidden = !slide.afterGraphicHTML;
+  elements.onboardingPageLabel.textContent = `${onboardingPage} / ${onboardingSlides.length}`;
+  elements.onboardingPrevButton.style.visibility = onboardingPage === 1 ? "hidden" : "visible";
+  const isLast = onboardingPage === onboardingSlides.length;
+  elements.onboardingNextButton.style.visibility = isLast ? "hidden" : "visible";
+  elements.onboardingStartButton.hidden = !isLast;
+  elements.onboardingStartButton.style.display = isLast ? "inline-flex" : "none";
+}
+
 function ensureScheduleState(targetState) {
   targetState.subjects = Array.isArray(targetState.subjects) ? targetState.subjects : [];
   targetState.schedule = Array.isArray(targetState.schedule) ? targetState.schedule : [];
@@ -310,6 +582,27 @@ function getToday() {
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const d = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+function getDefaultMarchEndDate(dateKey = getToday()) {
+  const date = parseDateKey(dateKey);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const endYear = month <= 3 ? year : year + 1;
+  return `${endYear}-03-31`;
+}
+
+function ensureDefaultScheduleRange() {
+  if (!settingsDraft) return;
+  if (settingsDraft.scheduleRanges.length > 0) return;
+  const activeTemplate = getActiveTemplates(settingsDraft.scheduleTemplates)[0];
+  if (!activeTemplate) return;
+  settingsDraft.scheduleRanges.push({
+    id: createId("range"),
+    scheduleId: activeTemplate.id,
+    startDate: getToday(),
+    endDate: getDefaultMarchEndDate()
+  });
 }
 
 function getTodayLabel() {
@@ -785,7 +1078,7 @@ function renderHome() {
     `;
     prompt.querySelector("button").addEventListener("click", () => {
       showView("settingsView");
-      openSettingsDetail("ranges");
+      openSettingsDetail("schedule");
     });
     elements.lessonList.append(prompt);
     return;
@@ -2440,6 +2733,7 @@ function saveSubjectSettings() {
 }
 
 function saveScheduleSettings() {
+  if (settingsMode === "schedule") ensureDefaultScheduleRange();
   applyCurrentSettingsDraft();
   closeSettingsDetail(true);
   render();
@@ -2537,9 +2831,10 @@ function applyScheduleSettingsDraft() {
     schedule: sanitizeTemplateSchedule(template.schedule, validSubjectIds, state.maxPeriods),
     updatedAt: template.updatedAt || new Date().toISOString()
   }));
-  state.scheduleRanges = state.scheduleRanges.filter((range) =>
-    state.scheduleTemplates.some((template) => template.id === range.scheduleId)
-  );
+  state.scheduleRanges = (settingsDraft.scheduleRanges || [])
+    .filter((range) => range.scheduleId && range.startDate && range.endDate && range.startDate <= range.endDate)
+    .filter((range) => state.scheduleTemplates.some((template) => template.id === range.scheduleId))
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
   state.dateExceptions = state.dateExceptions.filter(
     (exception) =>
       exception.type !== "schedule_override" ||
@@ -2668,6 +2963,7 @@ function render() {
   renderHistory();
   renderSettings();
   renderStudyPicker();
+  renderOnboarding();
 }
 
 function showView(viewId) {
@@ -2782,6 +3078,7 @@ function initApp() {
   if (isAppInitialized) return;
   isAppInitialized = true;
   collectElements();
+  createOnboardingOverlay();
   applyTheme();
   updateStreak();
   bindNavigation();
