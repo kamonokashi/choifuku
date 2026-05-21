@@ -526,12 +526,20 @@ function setThemeVariables(target, theme) {
   const mode = theme?.mode === "dark" ? "dark" : "light";
   const accent = /^#[0-9a-f]{6}$/i.test(theme?.accent || "") ? theme.accent : defaultState.theme.accent;
   const readableAccent = getReadableAccent(accent, mode);
-  const onAccent = getContrastRatio(accent, "#ffffff") >= getContrastRatio(accent, "#111827")
-    ? "#ffffff"
-    : "#111827";
+  const onAccent = getReadableTextColor(accent);
   target.style.setProperty("--accent", accent);
   target.style.setProperty("--accent-readable", readableAccent);
   target.style.setProperty("--on-accent", onAccent);
+}
+
+function getReadableTextColor(background) {
+  const preferredDark = "#111827";
+  const whiteContrast = getContrastRatio(background, "#ffffff");
+  const darkContrast = getContrastRatio(background, preferredDark);
+  if (whiteContrast >= 4.5 || darkContrast >= 4.5) {
+    return whiteContrast >= darkContrast ? "#ffffff" : preferredDark;
+  }
+  return "#000000";
 }
 
 function getReadableAccent(accent, mode) {
