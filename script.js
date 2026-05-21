@@ -1,5 +1,6 @@
 const STORAGE_KEY = "studyReviewApp.v1";
 const ONBOARDING_STORAGE_KEY = "choifuku.onboardingCompleted";
+const OPERATION_TUTORIAL_STORAGE_KEY = "choifuku.operationTutorialCompleted";
 const onboardingSlides = [
   {
     title: "choifukuへようこそ",
@@ -147,6 +148,72 @@ const onboardingSlides = [
   }
 ];
 let onboardingPage = 1;
+let operationTutorialStep = 0;
+let operationTutorialOverlay = null;
+let operationTutorialTarget = null;
+let operationTutorialTargetHandler = null;
+let operationTutorialCompletionTimer = null;
+let isOperationTutorialFreeEditMode = false;
+const operationTutorialSteps = [
+  {
+    id: "setup-schedule",
+    selector: ".setup-prompt .primary-button",
+    body: "時間割がまだ設定されていません。\nまずは時間割を作ってみましょう。",
+    assist: "「時間割を設定する」をタップ",
+    requiresTargetAction: true
+  },
+  {
+    id: "add-template",
+    selector: "#addTemplateButton",
+    body: "まずは、時間割テンプレートを追加しましょう。",
+    assist: "「＋ 時間割テンプレートを追加」をタップ",
+    requiresTargetAction: true
+  },
+  {
+    id: "edit-schedule",
+    selector: ".settings-detail",
+    body: "この画面で時間割を登録します。\n上部の「科目を追加」から、科目を登録することができます。",
+    assist: "画面をクリック",
+    requiresTargetAction: false
+  },
+  {
+    id: "save-schedule",
+    selector: ".settings-detail",
+    body: "設定できたら、保存するを押してください。",
+    assist: "画面をタップ",
+    requiresTargetAction: false,
+    allowsFreeEdit: true
+  },
+  {
+    id: "exceptions",
+    selector: '[data-settings-mode="exceptions"]',
+    body: "こちらは、設定一覧画面です。\nこちらのボタンから、学校行事による授業変更などを設定できます。",
+    assist: "画面をクリック",
+    requiresTargetAction: false
+  },
+  {
+    id: "back-home",
+    selector: '.nav-button[data-view="homeView"]',
+    body: "ホーム画面に戻りましょう。",
+    assist: "「ホーム」をタップ",
+    requiresTargetAction: true
+  },
+  {
+    id: "lesson-memo",
+    selector: ".memo-input",
+    fallbackSelector: "#lessonList",
+    body: "授業がある日はここにメモ欄が表示されます。\nこのメモ欄に、授業で学んだことを書いてみましょう。",
+    assist: "一言だけでも大丈夫です。",
+    requiresTargetAction: false
+  },
+  {
+    id: "add-study",
+    selector: "#addStudyButton",
+    body: "次週の予習や自習メモも追加できます。",
+    assist: "「＋ 自習を追加」をタップ",
+    requiresTargetAction: false
+  }
+];
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const weekdayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"];
@@ -317,6 +384,14 @@ function markOnboardingCompleted() {
   localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
 }
 
+function hasCompletedOperationTutorial() {
+  return localStorage.getItem(OPERATION_TUTORIAL_STORAGE_KEY) === "1";
+}
+
+function markOperationTutorialCompleted() {
+  localStorage.setItem(OPERATION_TUTORIAL_STORAGE_KEY, "1");
+}
+
 function cleanupOnboardingOverlay() {
   document.body.style.overflow = "";
   if (elements.onboardingOverlay) {
@@ -404,6 +479,7 @@ function createOnboardingOverlay() {
     markOnboardingCompleted();
     cleanupOnboardingOverlay();
     render();
+    startOperationTutorial();
   });
   onboardingPage = 1;
   renderOnboarding();
@@ -431,6 +507,224 @@ function renderOnboarding() {
   elements.onboardingNextButton.style.visibility = isLast ? "hidden" : "visible";
   elements.onboardingStartButton.hidden = !isLast;
   elements.onboardingStartButton.style.display = isLast ? "inline-flex" : "none";
+}
+
+function shouldOfferOperationTutorial() {
+  const hasConfiguredSchedule = state.scheduleTemplates.length > 0 && state.scheduleRanges.length > 0;
+  return hasSeenOnboarding() && !hasCompletedOperationTutorial() && !hasConfiguredSchedule;
+}
+
+function startOperationTutorial() {
+  if (!shouldOfferOperationTutorial()) return;
+  operationTutorialStep = 0;
+  showView("homeView");
+  window.setTimeout(renderOperationTutorial, 40);
+}
+
+function cleanupOperationTutorialTarget() {
+  if (operationTutorialTarget && operationTutorialTargetHandler) {
+    operationTutorialTarget.removeEventListener("click", operationTutorialTargetHandler);
+  }
+  if (operationTutorialTarget) {
+    operationTutorialTarget.classList.remove("operation-tutorial-target");
+  }
+  operationTutorialTarget = null;
+  operationTutorialTargetHandler = null;
+}
+
+function cleanupOperationTutorialOverlay() {
+  cleanupOperationTutorialTarget();
+  window.clearTimeout(operationTutorialCompletionTimer);
+  operationTutorialCompletionTimer = null;
+  if (operationTutorialOverlay) operationTutorialOverlay.remove();
+  operationTutorialOverlay = null;
+  isOperationTutorialFreeEditMode = false;
+  document.body.classList.remove("is-operation-tutorial-active");
+  document.body.classList.remove("is-operation-tutorial-free-edit");
+}
+
+function finishOperationTutorial() {
+  markOperationTutorialCompleted();
+  showOperationTutorialCompletion();
+}
+
+function showOperationTutorialCompletion() {
+  cleanupOperationTutorialTarget();
+  const overlay = ensureOperationTutorialOverlay();
+  document.body.classList.add("is-operation-tutorial-active");
+  overlay.className = "operation-tutorial-overlay is-visible is-complete";
+  overlay.innerHTML = `
+    <div class="operation-tutorial-backdrop"></div>
+    <div class="operation-tutorial-card" role="status" aria-live="polite">
+      <strong>これで、チュートリアルは終わりです。</strong>
+      <p>必要なときに、少しずつ使ってみてください。</p>
+    </div>
+  `;
+  overlay.onclick = cleanupOperationTutorialOverlay;
+}
+
+function advanceOperationTutorial() {
+  if (!operationTutorialOverlay) return;
+  if (operationTutorialStep >= operationTutorialSteps.length - 1) {
+    finishOperationTutorial();
+    return;
+  }
+  operationTutorialStep += 1;
+  window.setTimeout(renderOperationTutorial, 40);
+}
+
+function enterOperationTutorialFreeEditMode() {
+  cleanupOperationTutorialTarget();
+  if (operationTutorialOverlay) operationTutorialOverlay.remove();
+  operationTutorialOverlay = null;
+  isOperationTutorialFreeEditMode = true;
+  document.body.classList.remove("is-operation-tutorial-active");
+  document.body.classList.add("is-operation-tutorial-free-edit");
+}
+
+function resumeOperationTutorialAfterFreeEdit() {
+  if (!isOperationTutorialFreeEditMode) return;
+  if (getActiveViewId() !== "settingsView" || settingsMode !== "menu" || pendingSettingsAction) return;
+  isOperationTutorialFreeEditMode = false;
+  document.body.classList.remove("is-operation-tutorial-free-edit");
+  operationTutorialStep = 4;
+  window.setTimeout(renderOperationTutorial, 40);
+}
+
+function ensureOperationTutorialOverlay() {
+  if (operationTutorialOverlay) return operationTutorialOverlay;
+  operationTutorialOverlay = document.createElement("div");
+  operationTutorialOverlay.className = "operation-tutorial-overlay";
+  document.body.appendChild(operationTutorialOverlay);
+  return operationTutorialOverlay;
+}
+
+function getOperationTutorialTarget(step) {
+  const target = step.selector ? document.querySelector(step.selector) : null;
+  if (isOperationTutorialElementVisible(target)) return target;
+  const fallback = step.fallbackSelector ? document.querySelector(step.fallbackSelector) : null;
+  if (isOperationTutorialElementVisible(fallback)) return fallback;
+  return null;
+}
+
+function isOperationTutorialElementVisible(element) {
+  if (!element || element.hidden) return false;
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+function getOperationTutorialHighlightRect(target) {
+  if (!target) return null;
+  const rect = target.getBoundingClientRect();
+  const borderWidth = 4;
+  const computedStyle = getComputedStyle(target);
+  const radius = parseFloat(computedStyle.borderTopLeftRadius) || 0;
+  return {
+    top: Math.max(4, rect.top - borderWidth),
+    left: Math.max(4, rect.left - borderWidth),
+    width: Math.min(window.innerWidth - 8, rect.width + borderWidth * 2),
+    height: Math.min(window.innerHeight - 8, rect.height + borderWidth * 2),
+    radius: radius + borderWidth
+  };
+}
+
+function positionOperationTutorialCard(card, rect) {
+  const gap = 18;
+  const cardRect = card.getBoundingClientRect();
+  let top = Math.round(window.innerHeight * 0.58);
+  if (rect) {
+    const below = rect.top + rect.height + gap;
+    const above = rect.top - cardRect.height - gap;
+    if (below + cardRect.height <= window.innerHeight - 84) {
+      top = below;
+    } else if (above >= 24) {
+      top = above;
+    }
+  }
+  top = Math.max(24, Math.min(top, window.innerHeight - cardRect.height - 24));
+  card.style.top = `${top}px`;
+}
+
+function attachOperationTutorialTarget(step, target) {
+  cleanupOperationTutorialTarget();
+  if (!step.requiresTargetAction || !target) return;
+  operationTutorialTarget = target;
+  operationTutorialTarget.classList.add("operation-tutorial-target");
+  operationTutorialTargetHandler = () => {
+    window.setTimeout(advanceOperationTutorial, 60);
+  };
+  operationTutorialTarget.addEventListener("click", operationTutorialTargetHandler, { once: true });
+}
+
+function renderOperationTutorial() {
+  if (hasCompletedOperationTutorial()) {
+    cleanupOperationTutorialOverlay();
+    return;
+  }
+  if (!operationTutorialOverlay && !shouldOfferOperationTutorial() && operationTutorialStep === 0) return;
+
+  const step = operationTutorialSteps[operationTutorialStep];
+  if (!step) {
+    finishOperationTutorial();
+    return;
+  }
+
+  const target = getOperationTutorialTarget(step);
+  const rect = getOperationTutorialHighlightRect(target);
+  const overlay = ensureOperationTutorialOverlay();
+  document.body.classList.add("is-operation-tutorial-active");
+  overlay.className = `operation-tutorial-overlay is-visible is-step-${operationTutorialStep + 1} ${
+    step.requiresTargetAction ? "is-action-step" : "is-passive-step"
+  }`;
+  overlay.innerHTML = `
+    <div class="operation-tutorial-backdrop"></div>
+    ${rect ? `<div class="operation-tutorial-highlight" aria-hidden="true"></div>` : ""}
+    <div class="operation-tutorial-card" role="dialog" aria-live="polite" aria-label="操作チュートリアル">
+      <span class="operation-tutorial-count">${operationTutorialStep + 1} / ${operationTutorialSteps.length}</span>
+      <p class="operation-tutorial-body">${escapeHtml(step.body).replace(/\n/g, "<br>")}</p>
+      <p class="operation-tutorial-assist">${escapeHtml(step.assist)}</p>
+    </div>
+  `;
+
+  const highlight = overlay.querySelector(".operation-tutorial-highlight");
+  if (highlight && rect) {
+    highlight.style.top = `${rect.top}px`;
+    highlight.style.left = `${rect.left}px`;
+    highlight.style.width = `${rect.width}px`;
+    highlight.style.height = `${rect.height}px`;
+    highlight.style.borderRadius = `${rect.radius}px`;
+  }
+
+  const card = overlay.querySelector(".operation-tutorial-card");
+  positionOperationTutorialCard(card, rect);
+  attachOperationTutorialTarget(step, target);
+
+  overlay.onclick = (event) => {
+    if (event.target.closest(".operation-tutorial-card")) {
+      if (step.allowsFreeEdit) {
+        enterOperationTutorialFreeEditMode();
+        return;
+      }
+      if (!step.requiresTargetAction) advanceOperationTutorial();
+      return;
+    }
+    if (step.allowsFreeEdit) {
+      enterOperationTutorialFreeEditMode();
+      return;
+    }
+    if (step.requiresTargetAction) {
+      if (target && rect) {
+        const isInsideTarget =
+          event.clientX >= rect.left &&
+          event.clientX <= rect.left + rect.width &&
+          event.clientY >= rect.top &&
+          event.clientY <= rect.top + rect.height;
+        if (isInsideTarget) target.click();
+      }
+      return;
+    }
+    if (!step.requiresTargetAction) advanceOperationTutorial();
+  };
 }
 
 function ensureScheduleState(targetState) {
@@ -1839,6 +2133,7 @@ function renderSettings() {
     return;
   }
   renderSettingsMenu();
+  resumeOperationTutorialAfterFreeEdit();
 }
 
 function renderUnsavedSettingsNotice() {
@@ -2991,6 +3286,9 @@ function render() {
   renderSettings();
   renderStudyPicker();
   renderOnboarding();
+  if (operationTutorialOverlay) {
+    window.setTimeout(renderOperationTutorial, 0);
+  }
 }
 
 function showView(viewId) {
@@ -3099,6 +3397,9 @@ function bindGlobalEvents() {
     event.preventDefault();
     event.returnValue = "";
   });
+  window.addEventListener("resize", () => {
+    if (operationTutorialOverlay) renderOperationTutorial();
+  });
 }
 
 function initApp() {
@@ -3111,6 +3412,7 @@ function initApp() {
   bindNavigation();
   bindGlobalEvents();
   render();
+  if (!elements.onboardingOverlay) startOperationTutorial();
 }
 
 window.choifukuInitApp = initApp;
