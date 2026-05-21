@@ -2278,8 +2278,7 @@ body.is-operation-tutorial-free-edit .top-bar {
   font-weight: 900;
 }
 
-.notification-row input[type="text"],
-.notification-time-input {
+.notification-row input[type="text"] {
   width: 100%;
   border: 0;
   background: transparent;
@@ -2289,9 +2288,38 @@ body.is-operation-tutorial-free-edit .top-bar {
   text-align: right;
 }
 
-.notification-row input[type="text"]:focus,
-.notification-time-input:focus {
+.notification-row input[type="text"]:focus {
   outline: none;
+}
+
+.notification-time-selects {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.notification-time-select-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent-readable);
+  font-weight: 900;
+}
+
+.notification-time-select {
+  min-width: 66px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--accent-readable);
+  font: inherit;
+  font-weight: 900;
+  padding: 7px 8px;
+}
+
+.notification-time-select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: 2px;
 }
 
 .notification-segment {
@@ -2918,9 +2946,12 @@ body.is-operation-tutorial-free-edit .top-bar {
     gap: 8px;
   }
 
-  .notification-row input[type="text"],
-  .notification-time-input {
+  .notification-row input[type="text"] {
     text-align: left;
+  }
+
+  .notification-time-selects {
+    justify-content: flex-start;
   }
 
   .exception-type-grid {

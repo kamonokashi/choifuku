@@ -1,6 +1,10 @@
 const STORAGE_KEY = "studyReviewApp.v1";
 const ONBOARDING_STORAGE_KEY = "choifuku.onboardingCompleted";
 const OPERATION_TUTORIAL_STORAGE_KEY = "choifuku.operationTutorialCompleted";
+const REVIEW_NOTIFICATION_DAILY_ID_START = 220000;
+const REVIEW_NOTIFICATION_LESSON_ID_START = 221000;
+const REVIEW_NOTIFICATION_LOOKAHEAD_DAYS = 60;
+const REVIEW_NOTIFICATION_CHANNEL_ID = "choifuku-review-reminders";
 const onboardingSlides = [
   {
     title: "choifukuへようこそ",
@@ -791,6 +795,307 @@ function isSameSchedule(a, b) {
 
 function saveState() {
   saveStoredState(STORAGE_KEY, state);
+}
+
+function logReviewNotificationDebug(label, detail = "") {
+  const formattedDetail =
+    detail && typeof detail === "object"
+      ? JSON.stringify(detail, (key, value) => (value instanceof Date ? value.toISOString() : value))
+      : detail;
+  console.log(`[choifuku notifications] ${label}`, formattedDetail);
+}
+
+function getLocalNotificationsPlugin() {
+  const capacitor = window.Capacitor;
+  if (!capacitor) {
+    logReviewNotificationDebug("Capacitor is not available. Notification scheduling is skipped.");
+    return null;
+  }
+  const isNative =
+    typeof capacitor.isNativePlatform === "function"
+      ? capacitor.isNativePlatform()
+      : typeof capacitor.getPlatform === "function" && capacitor.getPlatform() !== "web";
+  const platform = typeof capacitor.getPlatform === "function" ? capacitor.getPlatform() : "unknown";
+  const plugin =
+    capacitor.Plugins?.LocalNotifications ||
+    (typeof capacitor.registerPlugin === "function" ? capacitor.registerPlugin("LocalNotifications") : null);
+  if (!plugin || !isNative) {
+    logReviewNotificationDebug("plugin unavailable", { platform, isNative, hasPlugin: Boolean(plugin) });
+  }
+  if (!isNative) return null;
+  return plugin;
+}
+
+async function requestReviewNotificationPermission(plugin) {
+  if (!plugin) {
+    logReviewNotificationDebug("permission check skipped because plugin is not available");
+    return true;
+  }
+  try {
+    const current = await plugin.checkPermissions();
+    if (current.display === "granted") return true;
+    const requested = await plugin.requestPermissions();
+    return requested.display === "granted";
+  } catch (error) {
+    console.warn("通知権限の確認に失敗しました", error);
+    return false;
+  }
+}
+
+async function ensureReviewNotificationChannel(plugin) {
+  if (!plugin?.createChannel) return;
+  try {
+    const channel = {
+      id: REVIEW_NOTIFICATION_CHANNEL_ID,
+      name: "復習リマインダー",
+      description: "設定した時間に復習をお知らせします。",
+      importance: 4,
+      visibility: 1,
+      lights: true,
+      vibration: true
+    };
+    await plugin.createChannel(channel);
+  } catch (error) {
+    console.warn("通知チャンネルの作成に失敗しました", error);
+  }
+}
+
+async function cancelReviewNotifications(plugin = getLocalNotificationsPlugin()) {
+  if (!plugin) return;
+  try {
+    const pending = await plugin.getPending();
+    const notifications = pending.notifications
+      .filter((notification) => {
+        const id = Number(notification.id);
+        return (
+          (id >= REVIEW_NOTIFICATION_DAILY_ID_START &&
+            id < REVIEW_NOTIFICATION_DAILY_ID_START + REVIEW_NOTIFICATION_LOOKAHEAD_DAYS) ||
+          (id >= REVIEW_NOTIFICATION_LESSON_ID_START &&
+            id < REVIEW_NOTIFICATION_LESSON_ID_START + REVIEW_NOTIFICATION_LOOKAHEAD_DAYS)
+        );
+      })
+      .map((notification) => ({ id: notification.id }));
+    if (notifications.length > 0) {
+      await plugin.cancel({ notifications });
+      logReviewNotificationDebug("cancelled review notifications", { count: notifications.length });
+    }
+  } catch (error) {
+    console.warn("通知予約のキャンセルに失敗しました", error);
+    const notifications = [];
+    for (let index = 0; index < REVIEW_NOTIFICATION_LOOKAHEAD_DAYS; index += 1) {
+      notifications.push({ id: REVIEW_NOTIFICATION_DAILY_ID_START + index });
+      notifications.push({ id: REVIEW_NOTIFICATION_LESSON_ID_START + index });
+    }
+    try {
+      await plugin.cancel({ notifications });
+    } catch (cancelError) {
+      console.warn("固定IDによる通知予約のキャンセルに失敗しました", cancelError);
+    }
+  }
+}
+
+function getNotificationTimeParts(time) {
+  const validTime = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time || "");
+  if (!validTime) return { hour: 21, minute: 0, isValid: false, rawValue: time || "" };
+  return {
+    hour: Number(validTime[1]),
+    minute: Number(validTime[2]),
+    isValid: true,
+    rawValue: time
+  };
+}
+
+function formatNotificationTime(hour, minute) {
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function buildNotificationMinuteOptions(selectedMinute) {
+  const minutes = new Set();
+  for (let minute = 0; minute < 60; minute += 5) {
+    minutes.add(minute);
+  }
+  minutes.add(selectedMinute);
+  return [...minutes].sort((a, b) => a - b);
+}
+
+function buildNotificationTimeSelectOptions(time) {
+  const { hour, minute } = getNotificationTimeParts(time);
+  const hourOptions = Array.from({ length: 24 }, (_, value) => {
+    const label = String(value).padStart(2, "0");
+    return `<option value="${label}"${value === hour ? " selected" : ""}>${label}</option>`;
+  }).join("");
+  const minuteOptions = buildNotificationMinuteOptions(minute)
+    .map((value) => {
+      const label = String(value).padStart(2, "0");
+      return `<option value="${label}"${value === minute ? " selected" : ""}>${label}</option>`;
+    })
+    .join("");
+  return { hourOptions, minuteOptions };
+}
+
+function createNotificationDate(dateKey, time) {
+  const { hour, minute } = getNotificationTimeParts(time);
+  const date = parseDateKey(dateKey);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+}
+
+function createDailyReviewNotifications(notification) {
+  const notifications = [];
+  const now = new Date();
+  let dateKey = getToday();
+
+  while (notifications.length < REVIEW_NOTIFICATION_LOOKAHEAD_DAYS) {
+    const deliveryDate = createNotificationDate(dateKey, notification.time);
+    if (deliveryDate > now) {
+      notifications.push({
+        id: REVIEW_NOTIFICATION_DAILY_ID_START + notifications.length,
+        title: "Choifuku",
+        body: notification.message,
+        schedule: {
+          at: deliveryDate,
+          allowWhileIdle: true
+        },
+        channelId: REVIEW_NOTIFICATION_CHANNEL_ID,
+        autoCancel: true,
+        extra: {
+          source: "choifuku-review",
+          frequency: "daily",
+          date: dateKey
+        }
+      });
+    }
+    dateKey = addDays(dateKey, 1);
+  }
+
+  logReviewNotificationDebug("daily notification summary", {
+    count: notifications.length,
+    configuredTime: notification.time,
+    deviceNow: now.toString(),
+    firstFire: notifications[0]?.schedule?.at?.toString() || null,
+    lastFire: notifications[notifications.length - 1]?.schedule?.at?.toString() || null
+  });
+  return notifications;
+}
+
+function createLessonDayReviewNotifications(notification) {
+  const notifications = [];
+  const now = new Date();
+  let dateKey = getToday();
+  for (let index = 0; index < REVIEW_NOTIFICATION_LOOKAHEAD_DAYS; index += 1) {
+    const deliveryDate = createNotificationDate(dateKey, notification.time);
+    const lessons = getEffectiveDayPlan(dateKey).lessons;
+    if (lessons.length > 0 && deliveryDate > now) {
+      notifications.push({
+        id: REVIEW_NOTIFICATION_LESSON_ID_START + index,
+        title: "Choifuku",
+        body: notification.message,
+        schedule: {
+          at: deliveryDate,
+          allowWhileIdle: true
+        },
+        channelId: REVIEW_NOTIFICATION_CHANNEL_ID,
+        autoCancel: true,
+        extra: {
+          source: "choifuku-review",
+          frequency: "lesson-days",
+          date: dateKey
+        }
+      });
+    }
+    dateKey = addDays(dateKey, 1);
+  }
+  logReviewNotificationDebug("lesson-day notification count", {
+    count: notifications.length,
+    configuredTime: notification.time,
+    deviceNow: now.toString(),
+    firstFire: notifications[0]?.schedule?.at?.toString() || null,
+    lastFire: notifications[notifications.length - 1]?.schedule?.at?.toString() || null
+  });
+  return notifications;
+}
+
+async function syncReviewNotifications() {
+  const plugin = getLocalNotificationsPlugin();
+  if (!plugin) return true;
+  await cancelReviewNotifications(plugin);
+  if (!state.notification.enabled) {
+    logReviewNotificationDebug("notification setting is OFF. Scheduling skipped.");
+    return true;
+  }
+
+  const hasPermission = await requestReviewNotificationPermission(plugin);
+  logReviewNotificationDebug("permission state before schedule", { granted: hasPermission });
+  if (!hasPermission) {
+    state.notification.enabled = false;
+    saveState();
+    window.alert("通知の権限が許可されていないため、通知を有効にできませんでした。Androidの設定から通知を許可してください。");
+    return false;
+  }
+
+  await ensureReviewNotificationChannel(plugin);
+  const notification = {
+    ...state.notification,
+    message: String(state.notification.message || defaultState.notification.message).trim() || defaultState.notification.message
+  };
+  const notifications =
+    notification.frequency === "daily"
+      ? createDailyReviewNotifications(notification)
+      : createLessonDayReviewNotifications(notification);
+
+  logReviewNotificationDebug("notifications to schedule", {
+    count: notifications.length,
+    frequency: notification.frequency,
+    first: notifications[0]
+      ? {
+          id: notifications[0].id,
+          at: notifications[0].schedule.at.toString(),
+          date: notifications[0].extra.date
+        }
+      : null,
+    last: notifications[notifications.length - 1]
+      ? {
+          id: notifications[notifications.length - 1].id,
+          at: notifications[notifications.length - 1].schedule.at.toString(),
+          date: notifications[notifications.length - 1].extra.date
+        }
+      : null
+  });
+
+  if (notifications.length === 0) {
+    logReviewNotificationDebug("no notifications were created");
+    return true;
+  }
+
+  try {
+    const result = await plugin.schedule({ notifications });
+    logReviewNotificationDebug("schedule() result", { count: result.notifications?.length || 0 });
+    const pending = await plugin.getPending();
+    const reviewPending = pending.notifications.filter((notification) => {
+      const id = Number(notification.id);
+      return (
+        (id >= REVIEW_NOTIFICATION_DAILY_ID_START &&
+          id < REVIEW_NOTIFICATION_DAILY_ID_START + REVIEW_NOTIFICATION_LOOKAHEAD_DAYS) ||
+        (id >= REVIEW_NOTIFICATION_LESSON_ID_START &&
+          id < REVIEW_NOTIFICATION_LESSON_ID_START + REVIEW_NOTIFICATION_LOOKAHEAD_DAYS)
+      );
+    });
+    logReviewNotificationDebug("pending after schedule", {
+      count: reviewPending.length,
+      first: reviewPending[0] || null,
+      last: reviewPending[reviewPending.length - 1] || null
+    });
+    return true;
+  } catch (error) {
+    console.warn("通知予約に失敗しました", error);
+    window.alert("通知の予約に失敗しました。もう一度保存するか、Androidの通知設定を確認してください。");
+    return false;
+  }
+}
+
+function rescheduleReviewNotificationsIfEnabled() {
+  if (!state.notification.enabled) return;
+  void syncReviewNotifications();
 }
 
 function applyTheme(theme = state.theme) {
@@ -2881,6 +3186,7 @@ function renderNotificationSettings() {
   const frequencyLabel = notification.frequency === "daily" ? "毎日" : "授業のある日のみ";
   const message = escapeHtml(notification.message);
   const time = escapeHtml(notification.time);
+  const { hourOptions, minuteOptions } = buildNotificationTimeSelectOptions(notification.time);
   const wrapper = document.createElement("div");
   wrapper.className = "settings-detail notification-settings-detail";
   wrapper.innerHTML = `
@@ -2924,7 +3230,20 @@ function renderNotificationSettings() {
           </div>
           <label class="notification-row">
             <span class="notification-row-label">時間帯</span>
-            <input id="notificationTimeInput" class="notification-time-input" type="time" value="${time}">
+            <span class="notification-time-selects">
+              <span class="notification-time-select-wrap">
+                <select id="notificationHourSelect" class="notification-time-select" aria-label="通知する時">
+                  ${hourOptions}
+                </select>
+                <span>時</span>
+              </span>
+              <span class="notification-time-select-wrap">
+                <select id="notificationMinuteSelect" class="notification-time-select" aria-label="通知する分">
+                  ${minuteOptions}
+                </select>
+                <span>分</span>
+              </span>
+            </span>
           </label>
         </div>
       </section>
@@ -2948,8 +3267,19 @@ function renderNotificationSettings() {
   elements.settingsContent.append(wrapper);
   wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
   wrapper.querySelector("#saveNotificationSettingsButton").addEventListener("click", saveNotificationSettings);
-  wrapper.querySelector("#notificationEnabledInput").addEventListener("change", (event) => {
-    notification.enabled = event.target.checked;
+  wrapper.querySelector("#notificationEnabledInput").addEventListener("change", async (event) => {
+    const enabled = event.target.checked;
+    if (enabled) {
+      const plugin = getLocalNotificationsPlugin();
+      const hasPermission = await requestReviewNotificationPermission(plugin);
+      if (!hasPermission) {
+        notification.enabled = false;
+        window.alert("通知の権限が許可されていないため、通知を有効にできませんでした。Androidの設定から通知を許可してください。");
+        renderSettings();
+        return;
+      }
+    }
+    notification.enabled = enabled;
     renderSettings();
   });
   wrapper.querySelector("#notificationMessageInput").addEventListener("input", (event) => {
@@ -2958,10 +3288,15 @@ function renderNotificationSettings() {
       element.textContent = notification.message || defaultState.notification.message;
     });
   });
-  wrapper.querySelector("#notificationTimeInput").addEventListener("input", (event) => {
-    notification.time = event.target.value;
+  const hourSelect = wrapper.querySelector("#notificationHourSelect");
+  const minuteSelect = wrapper.querySelector("#notificationMinuteSelect");
+  const updateNotificationTime = () => {
+    const nextTime = formatNotificationTime(Number(hourSelect.value), Number(minuteSelect.value));
+    notification.time = nextTime;
     wrapper.querySelector("[data-notification-time-preview]").textContent = notification.time || defaultState.notification.time;
-  });
+  };
+  hourSelect.addEventListener("change", updateNotificationTime);
+  minuteSelect.addEventListener("change", updateNotificationTime);
   wrapper.querySelectorAll("[data-notification-frequency]").forEach((button) => {
     button.addEventListener("click", () => {
       notification.frequency = button.dataset.notificationFrequency;
@@ -3040,6 +3375,7 @@ function saveSubjectSettings() {
 function saveScheduleSettings() {
   if (settingsMode === "schedule") ensureDefaultScheduleRange();
   applyCurrentSettingsDraft();
+  rescheduleReviewNotificationsIfEnabled();
   closeSettingsDetail(true);
   render();
 }
@@ -3047,24 +3383,28 @@ function saveScheduleSettings() {
 function saveRangeSettings() {
   if (!validateScheduleRanges(settingsDraft.scheduleRanges)) return;
   applyCurrentSettingsDraft();
+  rescheduleReviewNotificationsIfEnabled();
   closeSettingsDetail(true);
   render();
 }
 
 function saveExceptionSettings() {
   applyCurrentSettingsDraft();
+  rescheduleReviewNotificationsIfEnabled();
   closeSettingsDetail(true);
   render();
 }
 
 function saveArchiveSettings() {
   applyCurrentSettingsDraft();
+  rescheduleReviewNotificationsIfEnabled();
   closeSettingsDetail(true);
   render();
 }
 
-function saveNotificationSettings() {
+async function saveNotificationSettings() {
   applyCurrentSettingsDraft();
+  await syncReviewNotifications();
   closeSettingsDetail(true);
   render();
 }
@@ -3395,6 +3735,7 @@ function initApp() {
   bindNavigation();
   bindGlobalEvents();
   render();
+  rescheduleReviewNotificationsIfEnabled();
   if (!elements.onboardingOverlay) startOperationTutorial();
 }
 
