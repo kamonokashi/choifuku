@@ -79,16 +79,6 @@ const onboardingSlides = [
             <circle cx="196" cy="128" r="5.5" fill="#1163ff" />
             <circle cx="302" cy="181" r="5.5" fill="#1163ff" />
           </g>
-          <g fill="#111827" font-size="11" font-weight="700" font-family="sans-serif">
-            <line x1="206" y1="50" x2="226" y2="50" stroke="#8f8f8f" stroke-width="2" />
-            <circle cx="216" cy="50" r="4" fill="#8f8f8f" />
-            <text x="234" y="54">復習していない場合</text>
-            <line x1="206" y1="76" x2="226" y2="76" stroke="#1163ff" stroke-width="2" />
-            <circle cx="216" cy="76" r="4" fill="#1163ff" />
-            <text x="234" y="74">1日後に</text>
-            <text x="234" y="90">少し思い出した場合</text>
-          </g>
-          <text x="124" y="160" fill="#1163ff" font-size="18" font-weight="900" font-family="sans-serif">復習</text>
         </svg>
       </div>
     `
@@ -140,7 +130,6 @@ const onboardingSlides = [
           <g transform="rotate(28 164 116)">
             <rect x="152" y="70" width="15" height="82" rx="7.5" fill="url(#noteHeroPen)" stroke="#1163ff" stroke-width="1.4" />
             <path d="M152 149h15l-7.5 17z" fill="#ffffff" stroke="#1163ff" stroke-width="1.4" stroke-linejoin="round" />
-            <path d="M155 72h9" stroke="#1163ff" stroke-width="1.6" stroke-linecap="round" />
           </g>
         </svg>
       </div>

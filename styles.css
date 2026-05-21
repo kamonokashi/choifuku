@@ -1098,7 +1098,11 @@ input[type="color"] {
 }
 
 .onboarding-overlay[data-page="3"] .onboarding-scroll {
-  gap: 22px;
+  gap: 16px;
+}
+
+.onboarding-overlay[data-page="3"] .onboarding-text {
+  gap: 16px;
 }
 
 .onboarding-graphic svg,
@@ -1489,8 +1493,9 @@ input[type="color"] {
 }
 
 .operation-tutorial-overlay.is-complete .operation-tutorial-card {
+  left: 50%;
   top: 50% !important;
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
 }
 
 .operation-tutorial-overlay.is-complete strong {
