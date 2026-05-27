@@ -139,8 +139,13 @@ let operationTutorialStep = 0;
 let operationTutorialOverlay = null;
 let operationTutorialTarget = null;
 let operationTutorialTargetHandler = null;
+let operationTutorialTargetListenerElement = null;
+let operationTutorialTargetEventName = "click";
 let operationTutorialCompletionTimer = null;
 let isOperationTutorialFreeEditMode = false;
+let isOperationTutorialTemplateHomeActive = false;
+let isOperationTutorialTemplateMemoComplete = false;
+let operationTutorialTemplateMemos = [];
 const operationTutorialSteps = [
   {
     id: "setup-schedule",
@@ -187,18 +192,15 @@ const operationTutorialSteps = [
   },
   {
     id: "lesson-memo",
-    selector: ".memo-input",
-    fallbackSelector: "#lessonList",
-    body: "授業がある日はここにメモ欄が表示されます。\nこのメモ欄に、授業で学んだことを書いてみましょう。",
-    assist: "一言だけでも大丈夫です。",
-    requiresTargetAction: false
-  },
-  {
-    id: "add-study",
-    selector: "#addStudyButton",
-    body: "次週の予習や自習メモも追加できます。",
-    assist: "「＋ 自習を追加」をタップ",
-    requiresTargetAction: false
+    selector: ".tutorial-template-home .memo-input:not([data-complete='true'])",
+    fallbackSelector: ".tutorial-template-home",
+    body: "メモを書いたらEnterを押してみましょう。\n入力済みのメモは下へ移動し、次の未入力メモへ進めます。",
+    assist: "上のメモに一言入力してEnter",
+    completedBody: "次のメモへ移動できました。\nこのように、Enterで続けてメモを書けます。",
+    completedAssist: "タップしてチュートリアルを完了",
+    requiresTargetAction: true,
+    actionEvent: "operationTutorialTemplateMemoComplete",
+    usesTemplateHome: true
   }
 ];
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -511,18 +513,21 @@ function startOperationTutorial() {
 }
 
 function cleanupOperationTutorialTarget() {
-  if (operationTutorialTarget && operationTutorialTargetHandler) {
-    operationTutorialTarget.removeEventListener("click", operationTutorialTargetHandler);
+  if (operationTutorialTargetListenerElement && operationTutorialTargetHandler) {
+    operationTutorialTargetListenerElement.removeEventListener(operationTutorialTargetEventName, operationTutorialTargetHandler);
   }
   if (operationTutorialTarget) {
     operationTutorialTarget.classList.remove("operation-tutorial-target");
   }
   operationTutorialTarget = null;
   operationTutorialTargetHandler = null;
+  operationTutorialTargetListenerElement = null;
+  operationTutorialTargetEventName = "click";
 }
 
 function cleanupOperationTutorialOverlay() {
   cleanupOperationTutorialTarget();
+  deactivateOperationTutorialTemplateHome();
   window.clearTimeout(operationTutorialCompletionTimer);
   operationTutorialCompletionTimer = null;
   if (operationTutorialOverlay) operationTutorialOverlay.remove();
@@ -539,6 +544,7 @@ function finishOperationTutorial() {
 
 function showOperationTutorialCompletion() {
   cleanupOperationTutorialTarget();
+  deactivateOperationTutorialTemplateHome();
   const overlay = ensureOperationTutorialOverlay();
   document.body.classList.add("is-operation-tutorial-active");
   overlay.className = "operation-tutorial-overlay is-visible is-complete";
@@ -642,7 +648,136 @@ function attachOperationTutorialTarget(step, target) {
   operationTutorialTargetHandler = () => {
     window.setTimeout(advanceOperationTutorial, 60);
   };
-  operationTutorialTarget.addEventListener("click", operationTutorialTargetHandler, { once: true });
+  operationTutorialTargetEventName = step.actionEvent || "click";
+  operationTutorialTargetListenerElement = step.actionEvent ? document : operationTutorialTarget;
+  operationTutorialTargetListenerElement.addEventListener(operationTutorialTargetEventName, operationTutorialTargetHandler, { once: true });
+}
+
+function createOperationTutorialTemplateMemos() {
+  return [
+    {
+      id: "tutorial-math",
+      period: "1限",
+      subject: "数学",
+      color: "#1163ff",
+      placeholder: "例：比例のグラフ",
+      content: "",
+      complete: false
+    },
+    {
+      id: "tutorial-english",
+      period: "2限",
+      subject: "英語",
+      color: "#16a34a",
+      placeholder: "今日覚えたことを1つだけ",
+      content: "",
+      complete: false
+    }
+  ];
+}
+
+function activateOperationTutorialTemplateHome() {
+  if (isOperationTutorialTemplateHomeActive) return;
+  isOperationTutorialTemplateHomeActive = true;
+  isOperationTutorialTemplateMemoComplete = false;
+  operationTutorialTemplateMemos = createOperationTutorialTemplateMemos();
+  showView("homeView", { recordHistory: false });
+}
+
+function deactivateOperationTutorialTemplateHome() {
+  if (!isOperationTutorialTemplateHomeActive) return;
+  isOperationTutorialTemplateHomeActive = false;
+  isOperationTutorialTemplateMemoComplete = false;
+  operationTutorialTemplateMemos = [];
+  elements.lessonList.classList.remove("tutorial-template-home");
+  if (getActiveViewId() === "homeView") renderHome();
+}
+
+function renderOperationTutorialTemplateHome(previousPositions = new Map()) {
+  elements.addStudyButton.hidden = true;
+  elements.studyPicker.hidden = true;
+  elements.lessonList.classList.add("tutorial-template-home");
+  elements.lessonList.innerHTML = "";
+
+  const sortedMemos = [...operationTutorialTemplateMemos].sort((a, b) => Number(a.complete) - Number(b.complete));
+  sortedMemos.forEach((memo) => elements.lessonList.append(createOperationTutorialTemplateCard(memo)));
+  elements.homeTitle.textContent = "今日の授業";
+  elements.completionLabel.textContent = `${operationTutorialTemplateMemos.filter((memo) => memo.complete).length} / ${operationTutorialTemplateMemos.length}`;
+  animateLessonCards(previousPositions);
+}
+
+function createOperationTutorialTemplateCard(memo) {
+  const card = document.createElement("article");
+  card.className = `lesson-card${memo.complete ? " is-complete" : ""}`;
+  card.dataset.key = memo.id;
+  card.style.setProperty("--subject-color", memo.color);
+
+  const bar = document.createElement("div");
+  bar.className = "color-bar";
+
+  const content = document.createElement("div");
+  content.className = "lesson-content";
+
+  const meta = document.createElement("div");
+  meta.className = "lesson-meta";
+  meta.innerHTML = `<span class="period"></span><span class="subject-name"></span>`;
+  meta.querySelector(".period").textContent = memo.period;
+  meta.querySelector(".subject-name").textContent = memo.subject;
+
+  const textarea = document.createElement("textarea");
+  textarea.className = "memo-input";
+  textarea.dataset.key = memo.id;
+  textarea.dataset.complete = String(memo.complete);
+  textarea.rows = 1;
+  textarea.placeholder = memo.placeholder;
+  textarea.value = memo.content;
+
+  const doneButton = document.createElement("button");
+  doneButton.type = "button";
+  doneButton.className = "done-button";
+  doneButton.setAttribute("aria-label", "入力完了");
+  doneButton.disabled = memo.content.trim().length === 0;
+  doneButton.innerHTML = `
+    <svg class="done-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6.5 12.4L10.2 16L17.8 8"></path>
+    </svg>
+  `;
+
+  textarea.addEventListener("input", () => {
+    memo.content = textarea.value;
+    doneButton.disabled = memo.content.trim().length === 0;
+    autoResize(textarea);
+  });
+  textarea.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      completeOperationTutorialTemplateMemo(memo.id);
+    }
+  });
+  doneButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    completeOperationTutorialTemplateMemo(memo.id);
+  });
+
+  const memoRow = document.createElement("div");
+  memoRow.className = "memo-row";
+  memoRow.append(textarea, doneButton);
+  content.append(meta, memoRow);
+  card.append(bar, content);
+  requestAnimationFrame(() => autoResize(textarea));
+  return card;
+}
+
+function completeOperationTutorialTemplateMemo(memoId) {
+  const memo = operationTutorialTemplateMemos.find((item) => item.id === memoId);
+  if (!memo || memo.content.trim().length === 0) return;
+  memo.complete = true;
+  const nextMemo = operationTutorialTemplateMemos.find((item) => !item.complete);
+  const previousPositions = captureLessonPositions();
+  renderOperationTutorialTemplateHome(previousPositions);
+  if (nextMemo) focusMemoInput(nextMemo.id);
+  isOperationTutorialTemplateMemoComplete = true;
+  renderOperationTutorial();
 }
 
 function renderOperationTutorial() {
@@ -658,20 +793,26 @@ function renderOperationTutorial() {
     return;
   }
 
+  if (step.usesTemplateHome) {
+    activateOperationTutorialTemplateHome();
+  } else {
+    deactivateOperationTutorialTemplateHome();
+  }
+
   const target = getOperationTutorialTarget(step);
   const rect = getOperationTutorialHighlightRect(target);
   const overlay = ensureOperationTutorialOverlay();
   document.body.classList.add("is-operation-tutorial-active");
   overlay.className = `operation-tutorial-overlay is-visible is-step-${operationTutorialStep + 1} ${
     step.requiresTargetAction ? "is-action-step" : "is-passive-step"
-  }`;
+  } ${step.usesTemplateHome ? "is-template-home" : ""}`;
   overlay.innerHTML = `
     <div class="operation-tutorial-backdrop"></div>
     ${rect ? `<div class="operation-tutorial-highlight" aria-hidden="true"></div>` : ""}
     <div class="operation-tutorial-card" role="dialog" aria-live="polite" aria-label="操作チュートリアル">
       <span class="operation-tutorial-count">${operationTutorialStep + 1} / ${operationTutorialSteps.length}</span>
-      <p class="operation-tutorial-body">${escapeHtml(step.body).replace(/\n/g, "<br>")}</p>
-      <p class="operation-tutorial-assist">${escapeHtml(step.assist)}</p>
+      <p class="operation-tutorial-body">${escapeHtml(isOperationTutorialTemplateMemoComplete && step.completedBody ? step.completedBody : step.body).replace(/\n/g, "<br>")}</p>
+      <p class="operation-tutorial-assist">${escapeHtml(isOperationTutorialTemplateMemoComplete && step.completedAssist ? step.completedAssist : step.assist)}</p>
     </div>
   `;
 
@@ -690,6 +831,10 @@ function renderOperationTutorial() {
 
   overlay.onclick = (event) => {
     if (event.target.closest(".operation-tutorial-card")) {
+      if (step.usesTemplateHome && isOperationTutorialTemplateMemoComplete) {
+        document.dispatchEvent(new CustomEvent("operationTutorialTemplateMemoComplete"));
+        return;
+      }
       if (step.allowsFreeEdit) {
         enterOperationTutorialFreeEditMode();
         return;
@@ -1689,6 +1834,11 @@ function renderHome() {
   renderCalendar();
   const previousPositions = captureLessonPositions();
   elements.lessonList.innerHTML = "";
+  if (isOperationTutorialTemplateHomeActive) {
+    renderOperationTutorialTemplateHome(previousPositions);
+    return;
+  }
+  elements.lessonList.classList.remove("tutorial-template-home");
   const plan = getEffectiveDayPlan(selectedDate);
   const hasConfiguredSchedule = state.scheduleTemplates.length > 0 && state.scheduleRanges.length > 0;
   elements.addStudyButton.hidden = !hasConfiguredSchedule && plan.kind === "unset";

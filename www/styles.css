@@ -1417,6 +1417,10 @@ input[type="color"] {
   pointer-events: auto;
 }
 
+.operation-tutorial-overlay.is-template-home {
+  pointer-events: none;
+}
+
 .operation-tutorial-backdrop {
   position: absolute;
   inset: 0;
