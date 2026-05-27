@@ -299,6 +299,8 @@ let calendarCloseTimer = null;
 let calendarMode = "date";
 let lastHeaderDateLabel = "";
 let lastStreakLabel = "";
+let pendingMemoFocusKey = null;
+let viewHistoryStack = [];
 const viewOrder = ["homeView", "historyView", "settingsView"];
 
 let elements = {};
@@ -1616,6 +1618,7 @@ function getPeriodLabel(item) {
 function completeMemoInput(textarea, date, item, options = {}) {
   if (textarea.dataset.completing === "true") return;
   textarea.dataset.completing = "true";
+  const currentKey = getItemKey(item);
   const card = textarea.closest(".lesson-card");
   const doneButton = card?.querySelector(".done-button");
   if (doneButton && !doneButton.disabled) {
@@ -1624,15 +1627,26 @@ function completeMemoInput(textarea, date, item, options = {}) {
   }
   const content = textarea.value;
   setMemo(date, item.subjectId, item.period, textarea.value, item.type, false);
+  const clickedFocusKey = pendingMemoFocusKey && pendingMemoFocusKey !== currentKey ? pendingMemoFocusKey : null;
   const focusKey =
-    options.focusNext && content.trim().length > 0 ? getNextIncompleteKey(date, getItemKey(item)) : null;
+    options.focusNext && content.trim().length > 0 ? getNextIncompleteKey(date, currentKey) : clickedFocusKey;
   const memo = getMemo(date, item.subjectId, item.period, item.type);
   if (memo) memo.completed = content.trim().length > 0;
   updateStreak();
   saveState();
+  if (clickedFocusKey && !options.focusNext) {
+    textarea.dataset.completing = "false";
+    renderHeaderState();
+    focusMemoInput(clickedFocusKey);
+    window.setTimeout(() => {
+      if (!document.activeElement?.classList.contains("memo-input")) render();
+    }, 450);
+    return;
+  }
   window.setTimeout(() => {
     render();
     if (focusKey) focusMemoInput(focusKey);
+    if (!focusKey || pendingMemoFocusKey === focusKey) pendingMemoFocusKey = null;
   }, 70);
 }
 
@@ -1648,13 +1662,20 @@ function getNextIncompleteKey(date, currentKey) {
 }
 
 function focusMemoInput(key) {
-  requestAnimationFrame(() => {
+  const focusInput = () => {
     const input = [...elements.lessonList.querySelectorAll(".memo-input")].find(
       (candidate) => candidate.dataset.key === key
     );
-    if (!input) return;
-    input.focus();
+    if (!input) return false;
+    input.focus({ preventScroll: true });
     input.setSelectionRange(input.value.length, input.value.length);
+    return document.activeElement === input;
+  };
+
+  requestAnimationFrame(() => {
+    if (focusInput()) return;
+    window.setTimeout(focusInput, 80);
+    window.setTimeout(focusInput, 180);
   });
 }
 
@@ -2318,6 +2339,7 @@ function createFilterButton(id, label, color = null) {
 }
 
 function openSettingsDetail(mode) {
+  closeCalendar();
   settingsMode = mode;
   settingsDraft = {
     subjects: clone(state.subjects),
@@ -2335,6 +2357,7 @@ function openSettingsDetail(mode) {
 
 function closeSettingsDetail(force = false) {
   if (!force && !requestSettingsExit(() => closeSettingsDetail(true))) return;
+  closeCalendar();
   settingsMode = "menu";
   settingsDraft = null;
   settingsDraftSnapshot = "";
@@ -3614,8 +3637,13 @@ function render() {
   }
 }
 
-function showView(viewId) {
+function showView(viewId, options = {}) {
+  if (!viewOrder.includes(viewId)) return;
   const previousViewId = getActiveViewId();
+  if (previousViewId !== viewId) {
+    closeCalendar(false);
+    if (options.recordHistory !== false) viewHistoryStack.push(previousViewId);
+  }
   const previousIndex = viewOrder.indexOf(previousViewId);
   const nextIndex = viewOrder.indexOf(viewId);
   const enterClass =
@@ -3658,6 +3686,15 @@ function openHeaderCalendar(mode = "date") {
   renderCalendar();
 }
 
+function closeCalendar(shouldRender = true) {
+  if (!isCalendarOpen) return;
+  console.info("[choifuku] closeCalendar");
+  isCalendarOpen = false;
+  if (!shouldRender) return;
+  renderHeaderState();
+  renderCalendar();
+}
+
 function selectCalendarDate(dateKey) {
   const moveHome = () => {
     selectedDate = dateKey;
@@ -3676,6 +3713,7 @@ function selectCalendarDate(dateKey) {
 function bindNavigation() {
   document.querySelectorAll(".nav-button").forEach((button) => {
     button.addEventListener("click", () => {
+      closeCalendar();
       if (button.dataset.view !== "settingsView") {
         requestSettingsExit(() => {
           resetSettingsDetail();
@@ -3692,7 +3730,16 @@ function bindNavigation() {
   });
 }
 
+function rememberPendingMemoFocus(event) {
+  const memoInput = event.target.closest(".memo-input");
+  pendingMemoFocusKey = memoInput ? memoInput.dataset.key : null;
+}
+
 function bindGlobalEvents() {
+  document.addEventListener("pointerdown", rememberPendingMemoFocus, true);
+  document.addEventListener("touchstart", rememberPendingMemoFocus, true);
+  document.addEventListener("click", rememberPendingMemoFocus, true);
+  document.addEventListener("focusin", rememberPendingMemoFocus, true);
   elements.addStudyButton.addEventListener("click", () => {
     elements.studyPicker.hidden = !elements.studyPicker.hidden;
   });
@@ -3725,6 +3772,49 @@ function bindGlobalEvents() {
   });
 }
 
+function bindAndroidBackButton() {
+  const App =
+    window.Capacitor?.Plugins?.App ||
+    window.Capacitor?.App ||
+    (typeof window.Capacitor?.registerPlugin === "function" ? window.Capacitor.registerPlugin("App") : null);
+  if (!App || typeof App.addListener !== "function") {
+    console.info("[choifuku] Capacitor App plugin is unavailable");
+    return;
+  }
+  App.addListener("backButton", () => {
+    console.info("[choifuku] Android backButton");
+    handleBackNavigation();
+  });
+  console.info("[choifuku] Android backButton listener registered");
+}
+
+function handleBackNavigation() {
+  if (getActiveViewId() === "settingsView" && settingsMode !== "menu") {
+    closeSettingsDetail();
+    return;
+  }
+
+  while (viewHistoryStack.length > 0 && viewHistoryStack[viewHistoryStack.length - 1] === getActiveViewId()) {
+    viewHistoryStack.pop();
+  }
+
+  if (viewHistoryStack.length === 0) return;
+
+  const previousViewId = viewHistoryStack[viewHistoryStack.length - 1];
+  const moveBack = () => {
+    viewHistoryStack.pop();
+    resetSettingsDetail();
+    showView(previousViewId, { recordHistory: false });
+  };
+
+  if (getActiveViewId() === "settingsView") {
+    requestSettingsExit(moveBack);
+    return;
+  }
+
+  moveBack();
+}
+
 function initApp() {
   if (isAppInitialized) return;
   isAppInitialized = true;
@@ -3734,6 +3824,7 @@ function initApp() {
   updateStreak();
   bindNavigation();
   bindGlobalEvents();
+  bindAndroidBackButton();
   render();
   rescheduleReviewNotificationsIfEnabled();
   if (!elements.onboardingOverlay) startOperationTutorial();
