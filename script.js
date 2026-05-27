@@ -5,6 +5,8 @@ const REVIEW_NOTIFICATION_DAILY_ID_START = 220000;
 const REVIEW_NOTIFICATION_LESSON_ID_START = 221000;
 const REVIEW_NOTIFICATION_LOOKAHEAD_DAYS = 60;
 const REVIEW_NOTIFICATION_CHANNEL_ID = "choifuku-review-reminders";
+const DEFAULT_UNSET_COLOR = "#ff0000";
+const DEFAULT_ACCENT_COLOR = "#1163ff";
 const onboardingSlides = [
   {
     title: "choifukuへようこそ",
@@ -252,7 +254,7 @@ const defaultState = {
   weekOverrides: [],
   theme: {
     mode: "light",
-    accent: "#2f80ed"
+    accent: DEFAULT_ACCENT_COLOR
   },
   notification: {
     enabled: false,
@@ -1322,6 +1324,187 @@ function rgbToHex(rgb) {
   return `#${[rgb.r, rgb.g, rgb.b]
     .map((channel) => channel.toString(16).padStart(2, "0"))
     .join("")}`;
+}
+
+function hexToHsv(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  let hue = 0;
+
+  if (delta !== 0) {
+    if (max === red) hue = 60 * (((green - blue) / delta) % 6);
+    if (max === green) hue = 60 * ((blue - red) / delta + 2);
+    if (max === blue) hue = 60 * ((red - green) / delta + 4);
+  }
+  if (hue < 0) hue += 360;
+
+  return {
+    h: Math.round(hue),
+    s: max === 0 ? 0 : Math.round((delta / max) * 100),
+    v: Math.round(max * 100)
+  };
+}
+
+function hsvToHex(hsv) {
+  const hue = Number(hsv.h) === 360 ? 0 : Number(hsv.h);
+  const saturation = Number(hsv.s) / 100;
+  const value = Number(hsv.v) / 100;
+  const chroma = value * saturation;
+  const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const match = value - chroma;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+
+  if (hue < 60) [red, green, blue] = [chroma, x, 0];
+  else if (hue < 120) [red, green, blue] = [x, chroma, 0];
+  else if (hue < 180) [red, green, blue] = [0, chroma, x];
+  else if (hue < 240) [red, green, blue] = [0, x, chroma];
+  else if (hue < 300) [red, green, blue] = [x, 0, chroma];
+  else [red, green, blue] = [chroma, 0, x];
+
+  return rgbToHex({
+    r: Math.round((red + match) * 255),
+    g: Math.round((green + match) * 255),
+    b: Math.round((blue + match) * 255)
+  });
+}
+
+function getColorSliderState(hex) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex || "")) return { h: 360, s: 100, v: 100 };
+  const hsv = hexToHsv(hex);
+  if (hex.toLowerCase() === DEFAULT_UNSET_COLOR) hsv.h = 360;
+  return hsv;
+}
+
+function renderColorSliderEditor(container, initialColor, onChange) {
+  const state = getColorSliderState(initialColor);
+  let selectedColor = /^#[0-9a-f]{6}$/i.test(initialColor || "") ? initialColor : DEFAULT_UNSET_COLOR;
+  container.className = "color-slider-editor";
+  container.innerHTML = `
+    <button class="color-picker-trigger" type="button" aria-label="色を設定">
+      <span class="color-slider-preview" aria-hidden="true"></span>
+    </button>
+    <div class="color-slider-panel" hidden>
+      <div class="color-slider-row">
+        <label>色相</label>
+        <input class="color-slider is-hue" type="range" min="0" max="360" value="${state.h}">
+      </div>
+      <div class="color-slider-row">
+        <label>彩度</label>
+        <input class="color-slider is-saturation" type="range" min="0" max="100" value="${state.s}">
+      </div>
+      <div class="color-slider-row">
+        <label>値</label>
+        <input class="color-slider is-value" type="range" min="0" max="100" value="${state.v}">
+      </div>
+      <div class="color-slider-actions">
+        <button class="color-slider-cancel" type="button">キャンセル</button>
+        <button class="color-slider-apply" type="button">設定</button>
+      </div>
+    </div>
+  `;
+
+  const trigger = container.querySelector(".color-picker-trigger");
+  const panel = container.querySelector(".color-slider-panel");
+  const hueInput = container.querySelector(".is-hue");
+  const saturationInput = container.querySelector(".is-saturation");
+  const valueInput = container.querySelector(".is-value");
+  const preview = container.querySelector(".color-slider-preview");
+  const cancelButton = container.querySelector(".color-slider-cancel");
+  const applyButton = container.querySelector(".color-slider-apply");
+
+  const closePanel = () => {
+    container.classList.remove("is-open");
+    container.classList.remove("is-panel-below");
+    panel.style.left = "";
+    panel.style.top = "";
+    panel.hidden = true;
+  };
+
+  const placePanel = () => {
+    panel.hidden = false;
+    container.classList.remove("is-panel-below");
+    panel.style.left = "8px";
+    panel.style.top = "8px";
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const panelRect = panel.getBoundingClientRect();
+    const fixedRootRect = (panel.offsetParent || document.documentElement).getBoundingClientRect();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const margin = 16;
+    const gap = 6;
+    const maxLeft = Math.max(margin, viewportWidth - panelRect.width - margin);
+    let left = (viewportWidth - panelRect.width) / 2;
+    left = Math.min(Math.max(left, margin), maxLeft);
+
+    let top = triggerRect.bottom + gap;
+    if (top + panelRect.height > viewportHeight - margin) {
+      top = triggerRect.top - panelRect.height - gap;
+      container.classList.add("is-panel-below");
+    }
+    if (top < margin) {
+      top = Math.max(margin, viewportHeight - panelRect.height - margin);
+    }
+
+    panel.style.left = `${left - fixedRootRect.left}px`;
+    panel.style.top = `${top - fixedRootRect.top}px`;
+  };
+
+  trigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    document.querySelectorAll(".color-slider-editor.is-open").forEach((editor) => {
+      if (editor === container) return;
+      editor.classList.remove("is-open");
+      editor.querySelector(".color-slider-panel").hidden = true;
+    });
+    const nextOpen = !container.classList.contains("is-open");
+    container.classList.toggle("is-open", nextOpen);
+    if (nextOpen) {
+      placePanel();
+    } else {
+      panel.hidden = true;
+      container.classList.remove("is-panel-below");
+      panel.style.left = "";
+      panel.style.top = "";
+    }
+  });
+
+  const update = () => {
+    state.h = Number(hueInput.value);
+    state.s = Number(saturationInput.value);
+    state.v = Number(valueInput.value);
+    const color = hsvToHex(state);
+    const hueColor = hsvToHex({ h: state.h, s: 100, v: 100 });
+    const saturationStart = hsvToHex({ h: state.h, s: 0, v: state.v });
+    const valueEnd = hsvToHex({ h: state.h, s: state.s, v: 100 });
+    saturationInput.style.background = `linear-gradient(to right, ${saturationStart}, ${hueColor})`;
+    valueInput.style.background = `linear-gradient(to right, #000000, ${valueEnd})`;
+    preview.style.background = color;
+    container.dataset.color = color;
+    return color;
+  };
+
+  [hueInput, saturationInput, valueInput].forEach((input) => {
+    input.addEventListener("input", update);
+  });
+  cancelButton.addEventListener("click", closePanel);
+  applyButton.addEventListener("click", () => {
+    selectedColor = update();
+    preview.style.background = selectedColor;
+    container.dataset.color = selectedColor;
+    onChange(selectedColor);
+    closePanel();
+  });
+  preview.style.background = selectedColor;
+  container.dataset.color = selectedColor;
+  update();
 }
 
 function getToday() {
@@ -2747,7 +2930,7 @@ function renderSubjectSettings() {
     settingsDraft.subjects.push({
       id: createId("subject"),
       name: "",
-      color: "#6aa9ff"
+      color: DEFAULT_UNSET_COLOR
     });
     renderSettings();
   });
@@ -2770,18 +2953,18 @@ function renderSubjectEditorRows(container) {
     row.className = "subject-editor-row";
     row.innerHTML = `
       <input class="subject-name-editor" type="text" placeholder="科目名">
-      <input class="subject-color-editor" type="color">
       <button class="small-button" type="button">削除</button>
+      <div class="subject-color-editor"></div>
     `;
     const nameInput = row.querySelector(".subject-name-editor");
     const colorInput = row.querySelector(".subject-color-editor");
+    if (!/^#[0-9a-f]{6}$/i.test(subject.color || "")) settingsDraft.subjects[index].color = DEFAULT_UNSET_COLOR;
     nameInput.value = subject.name;
-    colorInput.value = subject.color;
+    renderColorSliderEditor(colorInput, settingsDraft.subjects[index].color, (color) => {
+      settingsDraft.subjects[index].color = color;
+    });
     nameInput.addEventListener("input", () => {
       settingsDraft.subjects[index].name = nameInput.value;
-    });
-    colorInput.addEventListener("input", () => {
-      settingsDraft.subjects[index].color = colorInput.value;
     });
     row.querySelector("button").addEventListener("click", () => {
       const removedId = settingsDraft.subjects[index].id;
@@ -2811,8 +2994,8 @@ function renderScheduleSettings() {
       <h3>科目を追加</h3>
       <div class="inline-subject-form">
         <input id="scheduleSubjectNameInput" type="text" placeholder="例：物理">
-        <input id="scheduleSubjectColorInput" type="color" value="#6aa9ff">
         <button id="addScheduleSubjectButton" class="small-button" type="button">追加</button>
+        <div id="scheduleSubjectColorInput"></div>
       </div>
     </div>
     <div class="settings-block">
@@ -2826,6 +3009,7 @@ function renderScheduleSettings() {
     </div>
   `;
   elements.settingsContent.append(wrapper);
+  renderColorSliderEditor(wrapper.querySelector("#scheduleSubjectColorInput"), DEFAULT_UNSET_COLOR, () => {});
   wrapper.querySelector("#addScheduleSubjectButton").addEventListener("click", () => addSubjectFromSchedule(wrapper));
   const maxPeriodsInput = wrapper.querySelector("#maxPeriodsInput");
   maxPeriodsInput.value = settingsDraft.maxPeriods;
@@ -2851,7 +3035,7 @@ function addSubjectFromSchedule(wrapper) {
   settingsDraft.subjects.push({
     id: createId("subject"),
     name,
-    color: colorInput.value
+    color: colorInput.dataset.color || DEFAULT_UNSET_COLOR
   });
   renderSettings();
 }
@@ -3498,18 +3682,7 @@ function renderThemeSettings() {
           <span>ダーク</span>
         </button>
       </div>
-      <label class="theme-color-label">
-        <span>アクセントカラー</span>
-        <input id="themeAccentInput" type="color" value="${settingsDraft.theme.accent}">
-      </label>
-      <div class="accent-preset-row" aria-label="おすすめカラー">
-        ${["#2f80ed", "#35b978", "#f59e0b", "#e24d76", "#7c3aed", "#14b8a6"]
-          .map(
-            (color) =>
-              `<button class="accent-preset${settingsDraft.theme.accent.toLowerCase() === color ? " is-selected" : ""}" style="--preset-color: ${color}" type="button" data-color="${color}" aria-label="${color}"></button>`
-          )
-          .join("")}
-      </div>
+      <div id="themeAccentInput" class="theme-color-label"></div>
       <div class="theme-preview">
         <span class="theme-preview-pill">Today 5/3 Sun</span>
         <span class="theme-preview-button">保存する</span>
@@ -3526,16 +3699,9 @@ function renderThemeSettings() {
       renderSettings();
     });
   });
-  const accentInput = wrapper.querySelector("#themeAccentInput");
-  accentInput.addEventListener("input", () => {
-    settingsDraft.theme.accent = accentInput.value;
+  renderColorSliderEditor(wrapper.querySelector("#themeAccentInput"), settingsDraft.theme.accent, (color) => {
+    settingsDraft.theme.accent = color;
     setThemeVariables(wrapper, settingsDraft.theme);
-  });
-  wrapper.querySelectorAll("[data-color]").forEach((button) => {
-    button.addEventListener("click", () => {
-      settingsDraft.theme.accent = button.dataset.color;
-      renderSettings();
-    });
   });
 }
 
