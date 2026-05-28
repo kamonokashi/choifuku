@@ -7,6 +7,59 @@ const REVIEW_NOTIFICATION_LOOKAHEAD_DAYS = 60;
 const REVIEW_NOTIFICATION_CHANNEL_ID = "choifuku-review-reminders";
 const DEFAULT_UNSET_COLOR = "#ff0000";
 const DEFAULT_ACCENT_COLOR = "#1163ff";
+
+function getChoifukuAppIconSvg() {
+  return `
+    <svg class="choifuku-app-icon" width="112" height="117" viewBox="0 0 112 117" aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="choifukuIconPaper" x1="4" y1="6" x2="109" y2="111" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#ffffff" />
+          <stop offset="100%" stop-color="#f6faff" />
+        </linearGradient>
+        <linearGradient id="choifukuIconBorder" x1="4" y1="6" x2="109" y2="111" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#9bc0ff" />
+          <stop offset="100%" stop-color="#3f82ff" />
+        </linearGradient>
+        <linearGradient id="choifukuIconRibbon" x1="82" y1="2" x2="104" y2="27" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#76a7ff" />
+          <stop offset="100%" stop-color="#4b83ff" />
+        </linearGradient>
+        <linearGradient id="choifukuIconLine" x1="22" y1="35" x2="70" y2="65" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#90b8ff" />
+          <stop offset="100%" stop-color="#6f9fff" />
+        </linearGradient>
+        <linearGradient id="choifukuIconPen" x1="73" y1="34" x2="91" y2="106" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#2f79ff" />
+          <stop offset="100%" stop-color="#4ca7ff" />
+        </linearGradient>
+      </defs>
+
+      <rect x="4" y="6" width="105" height="105" rx="18" ry="18" fill="url(#choifukuIconPaper)" stroke="url(#choifukuIconBorder)" stroke-width="2" />
+
+      <path d="
+        M82 5
+        Q82 2 85 2
+        L101 2
+        Q104 2 104 5
+        L104 24
+        Q104 27 101.5 25.5
+        L93 20
+        L84.5 25.5
+        Q82 27 82 24
+        Z
+      " fill="url(#choifukuIconRibbon)" />
+
+      <line x1="22" y1="35" x2="70" y2="35" stroke="url(#choifukuIconLine)" stroke-width="4" stroke-linecap="round" />
+      <line x1="22" y1="50" x2="59" y2="50" stroke="url(#choifukuIconLine)" stroke-width="4" stroke-linecap="round" />
+      <line x1="22" y1="65" x2="54" y2="65" stroke="url(#choifukuIconLine)" stroke-width="4" stroke-linecap="round" />
+
+      <g transform="rotate(22 79 79)">
+        <rect x="73" y="34" width="18" height="72" rx="5.4" ry="5.4" fill="url(#choifukuIconPen)" />
+      </g>
+    </svg>
+  `;
+}
+
 const onboardingSlides = [
   {
     title: "choifukuへようこそ",
@@ -16,23 +69,7 @@ const onboardingSlides = [
     `,
     graphicHTML: `
       <div class="onboarding-icon-shell">
-        <svg class="choifuku-app-icon" viewBox="0 0 180 180" aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="choifukuIconPen" x1="115" y1="70" x2="83" y2="166" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#dce8ff" />
-              <stop offset="100%" stop-color="#68a8f7" />
-            </linearGradient>
-            <linearGradient id="choifukuIconRibbon" x1="144" y1="0" x2="144" y2="46" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#d6e4ff" />
-              <stop offset="100%" stop-color="#9fc4ff" />
-            </linearGradient>
-          </defs>
-          <rect x="5" y="5" width="170" height="170" rx="30" fill="#ffffff" stroke="#d6e7ff" stroke-width="2" />
-          <path d="M128 0h32v44l-16-10-16 10V0z" fill="url(#choifukuIconRibbon)" />
-          <path d="M38 58h56" stroke="#c7cbff" stroke-width="6" stroke-linecap="round" />
-          <path d="M38 84h42" stroke="#c7cbff" stroke-width="6" stroke-linecap="round" />
-          <rect x="94" y="68" width="32" height="104" rx="16" transform="rotate(28 110 120)" fill="url(#choifukuIconPen)" />
-        </svg>
+        ${getChoifukuAppIconSvg()}
       </div>
     `
   },
@@ -3607,7 +3644,7 @@ function renderNotificationSettings() {
       <section class="notification-section">
         <h3>通知のプレビュー</h3>
         <div class="notification-preview-card">
-          <span class="notification-preview-icon" aria-hidden="true">${getSettingsMenuIcon("book")}</span>
+          <span class="notification-preview-icon notification-preview-app-icon" aria-hidden="true">${getChoifukuAppIconSvg()}</span>
           <div>
             <div class="notification-preview-head">
               <strong>Choifuku</strong>
