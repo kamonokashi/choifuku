@@ -650,16 +650,29 @@ function isOperationTutorialElementVisible(element) {
 function getOperationTutorialHighlightRect(target) {
   if (!target) return null;
   const rect = target.getBoundingClientRect();
-  const borderWidth = 4;
   const computedStyle = getComputedStyle(target);
   const radius = parseFloat(computedStyle.borderTopLeftRadius) || 0;
+  const lineHeight = parseFloat(computedStyle.lineHeight) || rect.height;
+  const textCenterOffset =
+    target.matches(".tutorial-template-home .memo-input") ? Math.max(0, (rect.height - lineHeight) / 2) : 0;
   return {
-    top: Math.max(4, rect.top - borderWidth),
-    left: Math.max(4, rect.left - borderWidth),
-    width: Math.min(window.innerWidth - 8, rect.width + borderWidth * 2),
-    height: Math.min(window.innerHeight - 8, rect.height + borderWidth * 2),
-    radius: radius + borderWidth
+    top: Math.max(4, rect.top - textCenterOffset),
+    left: Math.max(4, rect.left),
+    width: Math.min(window.innerWidth - 8, rect.width),
+    height: Math.min(window.innerHeight - 8, rect.height),
+    radius
   };
+}
+
+function positionOperationTutorialHighlight(highlight, target) {
+  const rect = getOperationTutorialHighlightRect(target);
+  if (!highlight || !rect) return null;
+  highlight.style.top = `${rect.top}px`;
+  highlight.style.left = `${rect.left}px`;
+  highlight.style.width = `${rect.width}px`;
+  highlight.style.height = `${rect.height}px`;
+  highlight.style.borderRadius = `${rect.radius}px`;
+  return rect;
 }
 
 function positionOperationTutorialCard(card, rect) {
@@ -856,16 +869,14 @@ function renderOperationTutorial() {
   `;
 
   const highlight = overlay.querySelector(".operation-tutorial-highlight");
-  if (highlight && rect) {
-    highlight.style.top = `${rect.top}px`;
-    highlight.style.left = `${rect.left}px`;
-    highlight.style.width = `${rect.width}px`;
-    highlight.style.height = `${rect.height}px`;
-    highlight.style.borderRadius = `${rect.radius}px`;
+  const currentRect = positionOperationTutorialHighlight(highlight, target) || rect;
+  if (highlight && step.id === "lesson-memo") {
+    requestAnimationFrame(() => positionOperationTutorialHighlight(highlight, getOperationTutorialTarget(step)));
+    window.setTimeout(() => positionOperationTutorialHighlight(highlight, getOperationTutorialTarget(step)), 80);
   }
 
   const card = overlay.querySelector(".operation-tutorial-card");
-  positionOperationTutorialCard(card, rect);
+  positionOperationTutorialCard(card, currentRect);
   attachOperationTutorialTarget(step, target);
 
   overlay.onclick = (event) => {
