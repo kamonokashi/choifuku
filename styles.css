@@ -1706,7 +1706,7 @@ body.is-operation-tutorial-free-edit .top-bar {
 }
 
 .history-filter-body.is-open {
-  max-height: 450px;
+  max-height: 510px;
   opacity: 1;
   padding-top: 10px;
   transform: translateY(0);
@@ -1780,6 +1780,17 @@ body.is-operation-tutorial-free-edit .top-bar {
   border-color: color-mix(in srgb, #f59e0b 42%, var(--line));
   background: color-mix(in srgb, #f59e0b 15%, var(--surface));
   color: #b45309;
+}
+
+.history-filter-reset-button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  padding: 8px 12px;
+  font-size: 0.84rem;
+  font-weight: 900;
 }
 
 .period-icon {

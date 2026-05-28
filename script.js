@@ -2540,6 +2540,7 @@ function renderHistoryControls() {
             ${historyFavoritesOnly ? "表示中" : "すべて表示"}
           </button>
         </div>
+        <button id="historyFilterResetButton" class="history-filter-reset-button" type="button">フィルターをリセット</button>
       </div>
     </div>
   `;
@@ -2588,6 +2589,7 @@ function renderHistoryControls() {
     historyFavoritesOnly = !historyFavoritesOnly;
     renderHistory();
   });
+  elements.historyControls.querySelector("#historyFilterResetButton").addEventListener("click", resetHistoryFilters);
 
   const startInput = elements.historyControls.querySelector("#historyStartInput");
   const endInput = elements.historyControls.querySelector("#historyEndInput");
@@ -2726,6 +2728,17 @@ function isMemoMatchingHistorySearch(memo) {
   const subject = getSubject(memo.subjectId);
   const searchableText = `${memo.content || ""} ${subject?.name || ""}`.toLocaleLowerCase();
   return searchableText.includes(query);
+}
+
+function resetHistoryFilters() {
+  activeHistorySubject = "all";
+  historySortOrder = "desc";
+  historyRange = "all";
+  historyFavoritesOnly = false;
+  historySearchQuery = "";
+  historyCustomStart = "";
+  historyCustomEnd = "";
+  renderHistory();
 }
 
 function createFilterButton(id, label, color = null) {
