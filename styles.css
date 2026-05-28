@@ -1706,7 +1706,7 @@ body.is-operation-tutorial-free-edit .top-bar {
 }
 
 .history-filter-body.is-open {
-  max-height: 380px;
+  max-height: 450px;
   opacity: 1;
   padding-top: 10px;
   transform: translateY(0);
@@ -1751,6 +1751,11 @@ body.is-operation-tutorial-free-edit .top-bar {
   min-height: 38px;
   border-radius: 8px;
   background-color: var(--surface);
+}
+
+.history-search-row input {
+  min-height: 38px;
+  padding-right: 10px;
 }
 
 .favorite-filter-row {

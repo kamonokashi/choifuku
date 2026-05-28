@@ -315,6 +315,7 @@ let historyMemoMode = "active";
 let historySortOrder = "desc";
 let historyRange = "all";
 let historyFavoritesOnly = false;
+let historySearchQuery = "";
 let historyCustomStart = "";
 let historyCustomEnd = "";
 let memoActionStart = "";
@@ -2375,6 +2376,7 @@ function renderHistoryList() {
     .filter((memo) => !historyFavoritesOnly || memo.favorite === true)
     .filter((memo) => activeHistorySubject === "all" || memo.subjectId === activeHistorySubject)
     .filter((memo) => isMemoInHistoryRange(memo))
+    .filter((memo) => isMemoMatchingHistorySearch(memo))
     .sort((a, b) => {
       const dateSort =
         historySortOrder === "asc" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
@@ -2385,7 +2387,11 @@ function renderHistoryList() {
   if (memos.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = historyMemoMode === "archive" ? "アーカイブメモはありません" : "まだ履歴がありません";
+    empty.textContent = historySearchQuery.trim()
+      ? "該当するメモがありません"
+      : historyMemoMode === "archive"
+        ? "アーカイブメモはありません"
+        : "まだ履歴がありません";
     elements.historyList.append(empty);
     return;
   }
@@ -2484,6 +2490,10 @@ function renderHistoryControls() {
         </svg>
       </button>
       <div class="history-filter-body${isHistoryFilterOpen ? " is-open" : ""}">
+        <label class="history-filter-row history-search-row">
+          <span>検索</span>
+          <input id="historySearchInput" type="search" placeholder="メモを検索" value="${escapeHtml(historySearchQuery)}">
+        </label>
         <label class="history-filter-row">
           <span>
             <svg class="period-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2568,6 +2578,11 @@ function renderHistoryControls() {
   sortSelect.addEventListener("change", () => {
     historySortOrder = sortSelect.value;
     renderHistory();
+  });
+  const searchInput = elements.historyControls.querySelector("#historySearchInput");
+  searchInput.addEventListener("input", () => {
+    historySearchQuery = searchInput.value;
+    renderHistoryList();
   });
   elements.historyControls.querySelector("#historyFavoriteToggle").addEventListener("click", () => {
     historyFavoritesOnly = !historyFavoritesOnly;
@@ -2703,6 +2718,14 @@ function isMemoInHistoryRange(memo) {
   const days = Number(historyRange);
   const startDate = addDays(getToday(), -(days - 1));
   return memo.date >= startDate && memo.date <= getToday();
+}
+
+function isMemoMatchingHistorySearch(memo) {
+  const query = historySearchQuery.trim().toLocaleLowerCase();
+  if (!query) return true;
+  const subject = getSubject(memo.subjectId);
+  const searchableText = `${memo.content || ""} ${subject?.name || ""}`.toLocaleLowerCase();
+  return searchableText.includes(query);
 }
 
 function createFilterButton(id, label, color = null) {
