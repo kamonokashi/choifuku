@@ -1310,6 +1310,65 @@ function setThemeVariables(target, theme) {
   target.style.setProperty("--accent", accent);
   target.style.setProperty("--accent-readable", readableAccent);
   target.style.setProperty("--on-accent", onAccent);
+  setScheduleTypeThemeVariables(target, accent, mode);
+}
+
+function setScheduleTypeThemeVariables(target, accent, mode) {
+  const palette = createScheduleTypePalette(accent, mode);
+
+  Object.entries(palette).forEach(([type, colors]) => {
+    target.style.setProperty(`--schedule-type-${type}`, colors.activeBg);
+    target.style.setProperty(`--schedule-type-${type}-bg`, colors.bg);
+    target.style.setProperty(`--schedule-type-${type}-text`, colors.text);
+    target.style.setProperty(`--schedule-type-${type}-active`, colors.activeBg);
+    target.style.setProperty(`--on-schedule-type-${type}`, colors.activeText);
+    target.style.setProperty(`--on-schedule-type-${type}-active`, colors.activeText);
+  });
+}
+
+function createScheduleTypePalette(accent, mode) {
+  const base = hexToHsv(accent);
+  const surface = mode === "dark" ? "#1f2937" : "#ffffff";
+  const textBase = mode === "dark" ? "#ffffff" : "#111827";
+  const definitions = {
+    holiday:
+      mode === "dark"
+        ? { hue: -26, saturation: 10, value: 4, bgMix: 0.66, textMix: 0.28 }
+        : { hue: -18, saturation: 4, value: 3, bgMix: 0.82, textMix: 0.26 },
+    weekday:
+      mode === "dark"
+        ? { hue: 6, saturation: -12, value: -8, bgMix: 0.76, textMix: 0.38 }
+        : { hue: 4, saturation: -8, value: -6, bgMix: 0.88, textMix: 0.32 },
+    timetable:
+      mode === "dark"
+        ? { hue: 34, saturation: 16, value: 1, bgMix: 0.62, textMix: 0.24 }
+        : { hue: 24, saturation: 10, value: 0, bgMix: 0.8, textMix: 0.24 }
+  };
+
+  return Object.fromEntries(
+    Object.entries(definitions).map(([type, shift]) => {
+      const activeBg = hsvToHex({
+        h: shiftHue(base.h, shift.hue),
+        s: Math.min(66, Math.max(42, Math.round(base.s * 0.2 + 46 + shift.saturation))),
+        v: mode === "dark" ? Math.min(76, Math.max(64, 72 + shift.value)) : Math.min(82, Math.max(60, Math.round(base.v * 0.16 + 58 + shift.value)))
+      });
+      const bg = mixHex(activeBg, surface, shift.bgMix);
+      const text = mixHex(activeBg, textBase, shift.textMix);
+      return [
+        type,
+        {
+          bg,
+          text,
+          activeBg,
+          activeText: getReadableTextColor(activeBg)
+        }
+      ];
+    })
+  );
+}
+
+function shiftHue(hue, amount) {
+  return Math.round((hue + amount + 360) % 360);
 }
 
 function getReadableTextColor(background) {
@@ -3409,11 +3468,11 @@ function setDateExceptionType(type) {
 function renderExceptionDetail(container, selectedException, originalDayOfWeek) {
   container.innerHTML = "";
   if (!selectedException) {
-    container.innerHTML = `<p class="empty-state">この日は通常どおり扱います。</p>`;
+    container.innerHTML = `<p class="empty-state exception-normal-state">この日は通常どおり扱います。</p>`;
     return;
   }
   if (selectedException.type === "holiday") {
-    container.innerHTML = `<p class="empty-state">この日は休日として扱います。</p>`;
+    container.innerHTML = `<p class="empty-state exception-normal-state">この日は休日として扱います。</p>`;
     return;
   }
   if (selectedException.type === "weekday_override") {

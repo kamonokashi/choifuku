@@ -10,6 +10,24 @@
   --accent: #2f80ed;
   --accent-readable: #2f80ed;
   --on-accent: #ffffff;
+  --schedule-type-holiday: #bf6258;
+  --schedule-type-holiday-bg: #f8eceb;
+  --schedule-type-holiday-text: #80504c;
+  --schedule-type-holiday-active: #bf6258;
+  --on-schedule-type-holiday: #ffffff;
+  --on-schedule-type-holiday-active: #ffffff;
+  --schedule-type-weekday: #6868bf;
+  --schedule-type-weekday-bg: #eeeeF8;
+  --schedule-type-weekday-text: #505080;
+  --schedule-type-weekday-active: #6868bf;
+  --on-schedule-type-weekday: #ffffff;
+  --on-schedule-type-weekday-active: #ffffff;
+  --schedule-type-timetable: #4c9b89;
+  --schedule-type-timetable-bg: #eaf5f2;
+  --schedule-type-timetable-text: #416b62;
+  --schedule-type-timetable-active: #4c9b89;
+  --on-schedule-type-timetable: #ffffff;
+  --on-schedule-type-timetable-active: #ffffff;
   --calendar-no-lesson: #eef2f5;
   --calendar-complete: #dbeafe;
   --calendar-complete-text: #1d4ed8;
@@ -2702,21 +2720,24 @@ body.is-operation-tutorial-free-edit .top-bar {
 
 .settings-calendar-day.is-default_holiday,
 .settings-calendar-day.is-holiday {
-  border-color: #8fb3d1;
-  background: #d8e9f5;
-  color: #315a78;
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--schedule-type-holiday-active) 48%, var(--line));
+  background: var(--schedule-type-holiday-bg);
+  color: var(--schedule-type-holiday-text);
 }
 
 .settings-calendar-day.is-weekday_override {
-  border-color: #f4b740;
-  background: #ffe6ad;
-  color: #7a4b00;
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--schedule-type-weekday-active) 48%, var(--line));
+  background: var(--schedule-type-weekday-bg);
+  color: var(--schedule-type-weekday-text);
 }
 
 .settings-calendar-day.is-schedule_override {
-  border-color: #7fb0ff;
-  background: #d2e5ff;
-  color: #174ea6;
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--schedule-type-timetable-active) 48%, var(--line));
+  background: var(--schedule-type-timetable-bg);
+  color: var(--schedule-type-timetable-text);
 }
 
 .settings-calendar-day.is-week_override_once,
@@ -2733,21 +2754,21 @@ body.is-operation-tutorial-free-edit .top-bar {
 
 :root[data-theme="dark"] .settings-calendar-day.is-default_holiday,
 :root[data-theme="dark"] .settings-calendar-day.is-holiday {
-  border-color: #5d81a0;
-  background: #2c4155;
-  color: #d6e8f5;
+  border-color: color-mix(in srgb, var(--schedule-type-holiday-active) 58%, var(--line));
+  background: var(--schedule-type-holiday-bg);
+  color: var(--schedule-type-holiday-text);
 }
 
 :root[data-theme="dark"] .settings-calendar-day.is-weekday_override {
-  border-color: #b5852d;
-  background: #4a371b;
-  color: #ffd78a;
+  border-color: color-mix(in srgb, var(--schedule-type-weekday-active) 58%, var(--line));
+  background: var(--schedule-type-weekday-bg);
+  color: var(--schedule-type-weekday-text);
 }
 
 :root[data-theme="dark"] .settings-calendar-day.is-schedule_override {
-  border-color: #4f83d8;
-  background: #223f68;
-  color: #d8e8ff;
+  border-color: color-mix(in srgb, var(--schedule-type-timetable-active) 58%, var(--line));
+  background: var(--schedule-type-timetable-bg);
+  color: var(--schedule-type-timetable-text);
 }
 
 :root[data-theme="dark"] .settings-calendar-day.is-week_override_once,
@@ -2771,6 +2792,10 @@ body.is-operation-tutorial-free-edit .top-bar {
   margin-top: 10px;
 }
 
+.exception-normal-state {
+  margin-top: 14px;
+}
+
 .subtle-button {
   background: var(--surface);
   color: var(--muted);
@@ -2781,6 +2806,45 @@ body.is-operation-tutorial-free-edit .top-bar {
   background: var(--surface-muted);
   color: var(--text);
   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.14);
+}
+
+.exception-type-grid [data-type="holiday"] {
+  border-color: color-mix(in srgb, var(--schedule-type-holiday-active) 32%, var(--line));
+  background: var(--schedule-type-holiday-bg);
+  color: var(--schedule-type-holiday-text);
+}
+
+.exception-type-grid [data-type="weekday_override"] {
+  border-color: color-mix(in srgb, var(--schedule-type-weekday-active) 32%, var(--line));
+  background: var(--schedule-type-weekday-bg);
+  color: var(--schedule-type-weekday-text);
+}
+
+.exception-type-grid [data-type="schedule_override"] {
+  border-color: color-mix(in srgb, var(--schedule-type-timetable-active) 32%, var(--line));
+  background: var(--schedule-type-timetable-bg);
+  color: var(--schedule-type-timetable-text);
+}
+
+.exception-type-grid [data-type="holiday"].is-selected {
+  border-color: var(--schedule-type-holiday-active);
+  background: var(--schedule-type-holiday-active);
+  color: var(--on-schedule-type-holiday-active);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--schedule-type-holiday-active) 20%, transparent);
+}
+
+.exception-type-grid [data-type="weekday_override"].is-selected {
+  border-color: var(--schedule-type-weekday-active);
+  background: var(--schedule-type-weekday-active);
+  color: var(--on-schedule-type-weekday-active);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--schedule-type-weekday-active) 20%, transparent);
+}
+
+.exception-type-grid [data-type="schedule_override"].is-selected {
+  border-color: var(--schedule-type-timetable-active);
+  background: var(--schedule-type-timetable-active);
+  color: var(--on-schedule-type-timetable-active);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--schedule-type-timetable-active) 20%, transparent);
 }
 
 .weekday-override-panel {
