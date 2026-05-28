@@ -204,7 +204,7 @@ const operationTutorialSteps = [
     id: "edit-schedule",
     selector: ".settings-detail",
     body: "この画面で時間割を登録します。\n上部の「科目を追加」から、科目を登録することができます。",
-    assist: "画面をクリック",
+    assist: "画面をタップ",
     requiresTargetAction: false
   },
   {
@@ -219,7 +219,7 @@ const operationTutorialSteps = [
     id: "exceptions",
     selector: '[data-settings-mode="exceptions"]',
     body: "こちらは、設定一覧画面です。\nこちらのボタンから、学校行事による授業変更などを設定できます。",
-    assist: "画面をクリック",
+    assist: "画面をタップ",
     requiresTargetAction: false
   },
   {
