@@ -2593,12 +2593,19 @@ function renderHistoryControls() {
 
   const startInput = elements.historyControls.querySelector("#historyStartInput");
   const endInput = elements.historyControls.querySelector("#historyEndInput");
+  syncHistoryDateConstraints(startInput, endInput);
   startInput.addEventListener("change", () => {
     historyCustomStart = startInput.value;
+    if (historyCustomStart && historyCustomEnd && historyCustomStart > historyCustomEnd) {
+      historyCustomEnd = historyCustomStart;
+    }
     renderHistory();
   });
   endInput.addEventListener("change", () => {
     historyCustomEnd = endInput.value;
+    if (historyCustomStart && historyCustomEnd && historyCustomEnd < historyCustomStart) {
+      historyCustomStart = historyCustomEnd;
+    }
     renderHistory();
   });
   const actionStartInput = elements.historyControls.querySelector("#memoActionStartInput");
@@ -2720,6 +2727,12 @@ function isMemoInHistoryRange(memo) {
   const days = Number(historyRange);
   const startDate = addDays(getToday(), -(days - 1));
   return memo.date >= startDate && memo.date <= getToday();
+}
+
+function syncHistoryDateConstraints(startInput, endInput) {
+  if (!startInput || !endInput) return;
+  startInput.max = historyCustomEnd || "";
+  endInput.min = historyCustomStart || "";
 }
 
 function isMemoMatchingHistorySearch(memo) {
