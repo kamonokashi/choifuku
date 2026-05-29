@@ -246,6 +246,7 @@ const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const weekdayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"];
 const weekdayFullLabels = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+const ROTATION_SCHEDULE_ID = "__rotation__";
 const holidaysByYear = {
   2026: {
     "2026-01-01": "元日",
@@ -287,6 +288,10 @@ const defaultState = {
   schedule: [],
   scheduleTemplates: [],
   scheduleRanges: [],
+  scheduleRotation: {
+    startDate: "",
+    templateIds: []
+  },
   dateExceptions: [],
   weekOverrides: [],
   theme: {
@@ -919,6 +924,7 @@ function ensureScheduleState(targetState) {
     ? targetState.scheduleTemplates
     : [];
   targetState.scheduleRanges = Array.isArray(targetState.scheduleRanges) ? targetState.scheduleRanges : [];
+  targetState.scheduleRotation = normalizeScheduleRotation(targetState.scheduleRotation, targetState.scheduleTemplates);
   targetState.dateExceptions = Array.isArray(targetState.dateExceptions) ? targetState.dateExceptions : [];
   targetState.weekOverrides = Array.isArray(targetState.weekOverrides) ? targetState.weekOverrides : [];
   targetState.memos = Array.isArray(targetState.memos) ? targetState.memos : [];
@@ -1687,6 +1693,16 @@ function getWeekStartDate(dateKey) {
   return formatDateKey(date);
 }
 
+function isValidDateKey(dateKey) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateKey || "");
+}
+
+function getDaysBetween(startDateKey, endDateKey) {
+  const start = parseDateKey(startDateKey);
+  const end = parseDateKey(endDateKey);
+  return Math.floor((end - start) / 86400000);
+}
+
 function getHolidayName(dateKey) {
   const year = Number(dateKey.slice(0, 4));
   return holidaysByYear[year] ? holidaysByYear[year][dateKey] : null;
@@ -1716,6 +1732,34 @@ function buildTemplateOptions(source, currentId = "", includeArchivedCurrent = f
       return `<option value="${template.id}">${template.name || "名称未入力"}${archivedLabel}</option>`;
     })
     .join("");
+}
+
+function isRotationScheduleId(scheduleId) {
+  return scheduleId === ROTATION_SCHEDULE_ID;
+}
+
+function isValidRangeScheduleId(scheduleId, templates = state.scheduleTemplates) {
+  return isRotationScheduleId(scheduleId) || templates.some((template) => template.id === scheduleId);
+}
+
+function normalizeScheduleRotation(rotation, templates = state.scheduleTemplates) {
+  const activeTemplateIds = new Set(getActiveTemplates(templates).map((template) => template.id));
+  const templateIds = Array.isArray(rotation?.templateIds)
+    ? rotation.templateIds.filter((id) => activeTemplateIds.has(id))
+    : [];
+  return {
+    startDate: isValidDateKey(rotation?.startDate) ? rotation.startDate : "",
+    templateIds
+  };
+}
+
+function getRotatedScheduleTemplateForDate(dateKey, range) {
+  if (!range || !isRotationScheduleId(range.scheduleId)) return null;
+  const rotation = normalizeScheduleRotation(state.scheduleRotation, state.scheduleTemplates);
+  if (!rotation.startDate || rotation.templateIds.length < 2 || dateKey < rotation.startDate) return null;
+  const elapsedWeeks = Math.floor(getDaysBetween(rotation.startDate, dateKey) / 7);
+  const rotationIndex = elapsedWeeks % rotation.templateIds.length;
+  return getScheduleTemplate(rotation.templateIds[rotationIndex]);
 }
 
 function scheduleArrayToTemplateSchedule(scheduleArray) {
@@ -1758,7 +1802,9 @@ function getBaseScheduleTemplateForDate(dateKey) {
   const weekOverride = getWeekOverrideForDate(dateKey);
   if (weekOverride) return getScheduleTemplate(weekOverride.scheduleId);
   const range = getRangeForDate(dateKey);
-  return range ? getScheduleTemplate(range.scheduleId) : null;
+  if (!range) return null;
+  if (isRotationScheduleId(range.scheduleId)) return getRotatedScheduleTemplateForDate(dateKey, range);
+  return getScheduleTemplate(range.scheduleId);
 }
 
 function getLessonsFromTemplate(template, dateKey, dayOfWeek = parseDateKey(dateKey).getDay()) {
@@ -2834,6 +2880,7 @@ function openSettingsDetail(mode) {
     subjects: clone(state.subjects),
     scheduleTemplates: clone(state.scheduleTemplates),
     scheduleRanges: clone(state.scheduleRanges),
+    scheduleRotation: clone(state.scheduleRotation),
     dateExceptions: clone(state.dateExceptions),
     weekOverrides: clone(state.weekOverrides),
     theme: clone(state.theme),
@@ -3313,6 +3360,89 @@ function renderRangeSettings() {
   renderRangeEditorRows(wrapper.querySelector("#rangeEditorList"));
 }
 
+function getSettingsDraftRotation() {
+  settingsDraft.scheduleRotation = normalizeScheduleRotation(
+    settingsDraft.scheduleRotation,
+    settingsDraft.scheduleTemplates
+  );
+  return settingsDraft.scheduleRotation;
+}
+
+function setRotationCount(count) {
+  const rotation = getSettingsDraftRotation();
+  const rawCount = Number(count || 0);
+  const nextCount = rawCount > 0 ? clamp(rawCount, 2, 8) : 0;
+  const activeTemplates = getActiveTemplates(settingsDraft.scheduleTemplates);
+  const fallbackTemplateId = activeTemplates[0]?.id || "";
+  if (nextCount === 0) {
+    rotation.templateIds = [];
+    return;
+  }
+  if (!rotation.startDate) rotation.startDate = getToday();
+  rotation.templateIds = rotation.templateIds.slice(0, nextCount);
+  while (rotation.templateIds.length < nextCount) {
+    rotation.templateIds.push(fallbackTemplateId);
+  }
+}
+
+function renderRotationSettings(container) {
+  const rotation = getSettingsDraftRotation();
+  container.innerHTML = `
+    <div class="rotation-settings-panel">
+      <label class="rotation-field">
+        <span>ローテーション数</span>
+        <input class="rotation-count-input" type="number" min="0" max="8" step="1">
+      </label>
+      <label class="rotation-field">
+        <span>ローテーション開始日</span>
+        <input class="rotation-start-input" type="date">
+      </label>
+      <div class="rotation-template-list"></div>
+    </div>
+  `;
+  const countInput = container.querySelector(".rotation-count-input");
+  const startInput = container.querySelector(".rotation-start-input");
+  const list = container.querySelector(".rotation-template-list");
+  countInput.value = rotation.templateIds.length > 0 ? rotation.templateIds.length : "";
+  startInput.value = rotation.startDate;
+  startInput.disabled = rotation.templateIds.length === 0;
+
+  countInput.addEventListener("change", () => {
+    setRotationCount(countInput.value);
+    renderSettings();
+  });
+  startInput.addEventListener("change", () => {
+    getSettingsDraftRotation().startDate = startInput.value;
+  });
+
+  list.innerHTML = "";
+  if (rotation.templateIds.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state rotation-empty-state";
+    empty.textContent = "ローテーションを使わない場合は空欄のままにします。";
+    list.append(empty);
+    return;
+  }
+
+  rotation.templateIds.forEach((templateId, index) => {
+    const row = document.createElement("label");
+    row.className = "rotation-template-row";
+    row.innerHTML = `
+      <span>${index + 1}週目の時間割</span>
+      <select data-rotation-index="${index}">
+        <option value="">時間割を選択</option>
+        ${buildTemplateOptions(settingsDraft.scheduleTemplates, templateId, true)}
+      </select>
+    `;
+    const select = row.querySelector("select");
+    select.value = templateId;
+    select.addEventListener("change", () => {
+      getSettingsDraftRotation().templateIds[index] = select.value;
+    });
+    list.append(row);
+  });
+}
+
 function renderRangeEditorRows(container) {
   container.innerHTML = "";
   if (settingsDraft.scheduleRanges.length === 0) {
@@ -3333,9 +3463,10 @@ function renderRangeEditorRows(container) {
         <input class="range-start-input" type="date">
         <input class="range-end-input" type="date">
         <button class="small-button" type="button">削除</button>
+        <div class="range-rotation-detail"></div>
       `;
       const select = row.querySelector(".range-template-select");
-      select.innerHTML = `<option value="">時間割を選択</option>${buildTemplateOptions(
+      select.innerHTML = `<option value="">時間割を選択</option><option value="${ROTATION_SCHEDULE_ID}">ローテーション</option>${buildTemplateOptions(
         settingsDraft.scheduleTemplates,
         range.scheduleId,
         true
@@ -3343,7 +3474,14 @@ function renderRangeEditorRows(container) {
       select.value = range.scheduleId;
       select.addEventListener("change", () => {
         range.scheduleId = select.value;
+        if (isRotationScheduleId(range.scheduleId) && getSettingsDraftRotation().templateIds.length === 0) {
+          setRotationCount(2);
+        }
+        renderSettings();
       });
+      if (isRotationScheduleId(range.scheduleId)) {
+        renderRotationSettings(row.querySelector(".range-rotation-detail"));
+      }
       const startInput = row.querySelector(".range-start-input");
       const endInput = row.querySelector(".range-end-input");
       startInput.value = range.startDate;
@@ -3973,8 +4111,9 @@ function applyScheduleSettingsDraft() {
   }));
   state.scheduleRanges = (settingsDraft.scheduleRanges || [])
     .filter((range) => range.scheduleId && range.startDate && range.endDate && range.startDate <= range.endDate)
-    .filter((range) => state.scheduleTemplates.some((template) => template.id === range.scheduleId))
+    .filter((range) => isValidRangeScheduleId(range.scheduleId, state.scheduleTemplates))
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  state.scheduleRotation = normalizeScheduleRotation(settingsDraft.scheduleRotation, state.scheduleTemplates);
   state.dateExceptions = state.dateExceptions.filter(
     (exception) =>
       exception.type !== "schedule_override" ||
@@ -3990,7 +4129,9 @@ function applyScheduleSettingsDraft() {
 function applyRangeSettingsDraft() {
   state.scheduleRanges = settingsDraft.scheduleRanges
     .filter((range) => range.scheduleId && range.startDate && range.endDate && range.startDate <= range.endDate)
+    .filter((range) => isValidRangeScheduleId(range.scheduleId, state.scheduleTemplates))
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  state.scheduleRotation = normalizeScheduleRotation(settingsDraft.scheduleRotation, state.scheduleTemplates);
   updateStreak();
   saveState();
 }
@@ -4006,6 +4147,7 @@ function applyExceptionSettingsDraft() {
 
 function applyArchiveSettingsDraft() {
   state.scheduleTemplates = settingsDraft.scheduleTemplates;
+  state.scheduleRotation = normalizeScheduleRotation(state.scheduleRotation, state.scheduleTemplates);
   updateStreak();
   saveState();
 }

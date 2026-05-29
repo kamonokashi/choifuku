@@ -2670,6 +2670,47 @@ body.is-operation-tutorial-free-edit .top-bar {
   align-items: center;
 }
 
+.range-rotation-detail {
+  grid-column: 1 / -1;
+}
+
+.range-rotation-detail:empty {
+  display: none;
+}
+
+.rotation-settings-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  padding: 12px;
+}
+
+.rotation-field,
+.rotation-template-row {
+  display: grid;
+  grid-template-columns: minmax(126px, auto) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.rotation-field span,
+.rotation-template-row span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.rotation-template-list {
+  display: grid;
+  gap: 8px;
+}
+
+.rotation-empty-state {
+  margin: 0;
+}
+
 .settings-tab-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3126,6 +3167,11 @@ body.is-operation-tutorial-free-edit .top-bar {
   }
 
   .range-editor-row {
+    grid-template-columns: 1fr;
+  }
+
+  .rotation-field,
+  .rotation-template-row {
     grid-template-columns: 1fr;
   }
 
