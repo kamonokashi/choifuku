@@ -3109,8 +3109,8 @@ function renderSubjectEditorRows(container) {
     row.className = "subject-editor-row";
     row.innerHTML = `
       <input class="subject-name-editor" type="text" placeholder="科目名">
-      <button class="small-button" type="button">削除</button>
       <div class="subject-color-editor"></div>
+      <button class="small-button subject-delete-button" type="button">削除</button>
     `;
     const nameInput = row.querySelector(".subject-name-editor");
     const colorInput = row.querySelector(".subject-color-editor");
@@ -3122,7 +3122,7 @@ function renderSubjectEditorRows(container) {
     nameInput.addEventListener("input", () => {
       settingsDraft.subjects[index].name = nameInput.value;
     });
-    row.querySelector("button").addEventListener("click", () => {
+    row.querySelector(".subject-delete-button").addEventListener("click", () => {
       const removedId = settingsDraft.subjects[index].id;
       settingsDraft.subjects.splice(index, 1);
       settingsDraft.scheduleTemplates.forEach((template) => {
@@ -3150,8 +3150,8 @@ function renderScheduleSettings() {
       <h3>科目を追加</h3>
       <div class="inline-subject-form">
         <input id="scheduleSubjectNameInput" type="text" placeholder="例：物理">
-        <button id="addScheduleSubjectButton" class="small-button" type="button">追加</button>
         <div id="scheduleSubjectColorInput"></div>
+        <button id="addScheduleSubjectButton" class="small-button" type="button">追加</button>
       </div>
     </div>
     <div class="settings-block">

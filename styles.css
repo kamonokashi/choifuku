@@ -2917,8 +2917,8 @@ body.is-operation-tutorial-free-edit .top-bar {
   background: linear-gradient(135deg, #111827 0 50%, #293544 50% 100%);
 }
 
-.theme-color-label {
-  margin-bottom: 12px;
+#themeAccentInput {
+  margin-bottom: 18px;
 }
 
 .theme-preview {
