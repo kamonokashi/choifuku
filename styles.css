@@ -566,6 +566,7 @@ h3 {
 }
 
 .lesson-card {
+  position: relative;
   display: grid;
   grid-template-columns: 14px 1fr;
   overflow: visible;
@@ -600,6 +601,57 @@ h3 {
 
 .lesson-content {
   padding: 13px 14px 12px 10px;
+}
+
+.study-memo-menu-button {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.study-memo-menu-button:active {
+  transform: scale(0.94);
+}
+
+.study-memo-popover {
+  position: absolute;
+  top: 36px;
+  right: 8px;
+  z-index: 10;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 6px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+}
+
+.study-memo-delete-button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #a23c3c;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.study-memo-delete-button:active {
+  background: color-mix(in srgb, #a23c3c 10%, var(--surface-muted));
 }
 
 .lesson-meta {

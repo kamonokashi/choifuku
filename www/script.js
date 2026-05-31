@@ -2035,6 +2035,19 @@ function createLessonCard(item, date) {
   const content = document.createElement("div");
   content.className = "lesson-content";
 
+  if (item.type === "study") {
+    const menuButton = document.createElement("button");
+    menuButton.type = "button";
+    menuButton.className = "study-memo-menu-button";
+    menuButton.setAttribute("aria-label", "自習メニュー");
+    menuButton.textContent = "⋯";
+    menuButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleStudyMemoMenu(card, date, item);
+    });
+    card.append(menuButton);
+  }
+
   const meta = document.createElement("div");
   meta.className = "lesson-meta";
   const periodLabel = getPeriodLabel(item);
@@ -2088,6 +2101,42 @@ function createLessonCard(item, date) {
   card.append(bar, content);
   requestAnimationFrame(() => autoResize(textarea));
   return card;
+}
+
+function closeStudyMemoMenus() {
+  document.querySelectorAll(".study-memo-popover").forEach((popover) => popover.remove());
+}
+
+function toggleStudyMemoMenu(card, date, item) {
+  const existing = card.querySelector(".study-memo-popover");
+  closeStudyMemoMenus();
+  if (existing) return;
+
+  const popover = document.createElement("div");
+  popover.className = "study-memo-popover";
+  popover.innerHTML = `<button class="study-memo-delete-button" type="button">メモを消す</button>`;
+  popover.querySelector(".study-memo-delete-button").addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeStudyMemoMenus();
+    deleteStudyMemo(date, item);
+  });
+  card.append(popover);
+}
+
+function deleteStudyMemo(date, item) {
+  if (!window.confirm("本当に消しますか？")) return;
+  state.memos = state.memos.filter(
+    (memo) =>
+      !(
+        memo.date === date &&
+        memo.subjectId === item.subjectId &&
+        memo.period === item.period &&
+        memo.type === "study"
+      )
+  );
+  updateStreak();
+  saveState();
+  render();
 }
 
 function getPeriodLabel(item) {
@@ -4363,6 +4412,9 @@ function bindGlobalEvents() {
     syncHistoryMenuState();
   });
   document.addEventListener("click", (event) => {
+    if (!event.target.closest(".study-memo-popover") && !event.target.closest(".study-memo-menu-button")) {
+      closeStudyMemoMenus();
+    }
     if (!isHistoryMenuOpen) return;
     const clickedMenu = event.target.closest(".history-menu-popover");
     const clickedButton = event.target.closest("#historyMenuButton");
