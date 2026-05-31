@@ -7,6 +7,8 @@ const REVIEW_NOTIFICATION_LOOKAHEAD_DAYS = 60;
 const REVIEW_NOTIFICATION_CHANNEL_ID = "choifuku-review-reminders";
 const DEFAULT_UNSET_COLOR = "#ff0000";
 const DEFAULT_ACCENT_COLOR = "#1163ff";
+const PRIVACY_POLICY_URL = "https://kamonokashi.github.io/choifuku/privacy.html";
+const APP_VERSION = "1.0.0";
 
 function getChoifukuAppIconSvg() {
   return `
@@ -3070,10 +3072,13 @@ function renderSettingsMenu() {
     ${createSettingsMenuButton("notification", "通知設定", "復習の時間をお知らせする通知を設定します", getNotificationMenuLabel(), "bell")}
     ${createSettingsMenuButton("theme", "画面の色設定", "ダークモードやアクセントカラーを変更できます", getThemeModeLabel(state.theme.mode), "palette")}
     ${createSettingsMenuButton("archive", "アーカイブされた時間割一覧", "過去に使っていた時間割を確認・復元できます", `${archivedTemplateCount}件`, "archive")}
+    ${createSettingsExternalButton("プライバシーポリシー", "データの取り扱いについて確認できます", "privacy")}
+    ${createSettingsInfoRow("アプリバージョン", "現在インストールされているバージョン", `Version ${APP_VERSION}`, "info")}
   `;
   menu.querySelectorAll("[data-settings-mode]").forEach((button) => {
     button.addEventListener("click", () => openSettingsDetail(button.dataset.settingsMode));
   });
+  menu.querySelector("[data-open-privacy-policy]").addEventListener("click", openPrivacyPolicy);
   elements.settingsContent.append(menu);
 }
 
@@ -3093,6 +3098,52 @@ function createSettingsMenuButton(mode, title, description, count, icon) {
       </span>
     </button>
   `;
+}
+
+function createSettingsExternalButton(title, description, icon) {
+  return `
+    <button class="settings-menu-button settings-icon-${icon}" type="button" data-open-privacy-policy>
+      <span class="settings-menu-icon" aria-hidden="true">${getSettingsMenuIcon(icon)}</span>
+      <span class="settings-menu-copy">
+        <span class="settings-menu-title">${title}</span>
+        <span class="settings-menu-description">${description}</span>
+      </span>
+      <span class="settings-menu-meta">
+        <svg class="settings-menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 6L15 12L9 18"></path>
+        </svg>
+      </span>
+    </button>
+  `;
+}
+
+function createSettingsInfoRow(title, description, value, icon) {
+  return `
+    <div class="settings-menu-button settings-menu-info-row settings-icon-${icon}">
+      <span class="settings-menu-icon" aria-hidden="true">${getSettingsMenuIcon(icon)}</span>
+      <span class="settings-menu-copy">
+        <span class="settings-menu-title">${title}</span>
+        <span class="settings-menu-description">${description}</span>
+      </span>
+      <span class="settings-menu-meta">
+        <small>${value}</small>
+      </span>
+    </div>
+  `;
+}
+
+function openPrivacyPolicy() {
+  if (navigator.onLine === false) {
+    window.alert("オフラインのため、プライバシーポリシーを開けません。通信環境を確認してから、もう一度お試しください。");
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = PRIVACY_POLICY_URL;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer external";
+  document.body.append(link);
+  link.click();
+  link.remove();
 }
 
 function getSettingsMenuIcon(icon) {
@@ -3147,6 +3198,19 @@ function getSettingsMenuIcon(icon) {
         <rect x="4" y="4.5" width="16" height="4" rx="1.5"></rect>
         <path d="M6 8.5V19.5H18V8.5"></path>
         <path d="M9.5 13H14.5"></path>
+      </svg>
+    `,
+    privacy: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3.5L19 6.3V11.2C19 15.7 16.2 19 12 20.6C7.8 19 5 15.7 5 11.2V6.3L12 3.5Z"></path>
+        <path d="M9.5 11.8L11.2 13.5L14.8 9.8"></path>
+      </svg>
+    `,
+    info: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8.5"></circle>
+        <path d="M12 10.8V16"></path>
+        <path d="M12 7.6H12.01"></path>
       </svg>
     `
   };

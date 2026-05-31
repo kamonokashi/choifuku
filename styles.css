@@ -2200,6 +2200,14 @@ body.is-operation-tutorial-free-edit .top-bar {
   transform: scale(0.985);
 }
 
+.settings-menu-info-row {
+  cursor: default;
+}
+
+.settings-menu-info-row:active {
+  transform: none;
+}
+
 .settings-menu-icon {
   display: grid;
   place-items: center;
@@ -2243,6 +2251,16 @@ body.is-operation-tutorial-free-edit .top-bar {
 .settings-icon-archive .settings-menu-icon {
   background: #edf5ff;
   color: #2f7de8;
+}
+
+.settings-icon-privacy .settings-menu-icon {
+  background: #eaf7ff;
+  color: #1787c9;
+}
+
+.settings-icon-info .settings-menu-icon {
+  background: #eef2f7;
+  color: #64748b;
 }
 
 .settings-menu-copy {
@@ -2324,6 +2342,16 @@ body.is-operation-tutorial-free-edit .top-bar {
 :root[data-theme="dark"] .settings-icon-archive .settings-menu-icon {
   background: linear-gradient(135deg, #21334b 0%, #1a293d 100%);
   color: #5f9cff;
+}
+
+:root[data-theme="dark"] .settings-icon-privacy .settings-menu-icon {
+  background: linear-gradient(135deg, #173746 0%, #142d3a 100%);
+  color: #6ac9f5;
+}
+
+:root[data-theme="dark"] .settings-icon-info .settings-menu-icon {
+  background: linear-gradient(135deg, #293646 0%, #202d3b 100%);
+  color: #a8b6c6;
 }
 
 :root[data-theme="dark"] .settings-menu-title {
