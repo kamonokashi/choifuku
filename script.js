@@ -8,7 +8,7 @@ const REVIEW_NOTIFICATION_CHANNEL_ID = "choifuku-review-reminders";
 const DEFAULT_UNSET_COLOR = "#ff0000";
 const DEFAULT_ACCENT_COLOR = "#1163ff";
 const PRIVACY_POLICY_URL = "https://kamonokashi.github.io/choifuku/privacy.html";
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.0.2";
 
 function getChoifukuAppIconSvg() {
   return `
@@ -237,10 +237,21 @@ const operationTutorialSteps = [
     fallbackSelector: ".tutorial-template-home",
     body: "メモを書いたらEnterを押してみましょう。\n入力済みのメモは下へ移動し、次の未入力メモへ進めます。",
     assist: "上のメモに一言入力してEnter",
-    completedBody: "次のメモへ移動できました。\nこのように、Enterで続けてメモを書けます。",
-    completedAssist: "タップしてチュートリアルを完了",
     requiresTargetAction: true,
     actionEvent: "operationTutorialTemplateMemoComplete",
+    usesTemplateHome: true
+  },
+  {
+    id: "lesson-memo-states",
+    selector: ".tutorial-template-home",
+    highlightSelectors: [
+      ".tutorial-template-home .lesson-card.is-complete",
+      ".tutorial-template-home .lesson-card:not(.is-complete)"
+    ],
+    combineHighlightRects: true,
+    body: "入力が終わったメモは、右側にチェックマークが付き、完了済みとして下へ移動します。\n\n未入力のメモと分かれて表示されるため、その日まだ振り返っていない授業がひと目で分かります。",
+    assist: "画面をタップ",
+    requiresTargetAction: false,
     usesTemplateHome: true
   }
 ];
@@ -672,6 +683,38 @@ function getOperationTutorialHighlightRect(target) {
   };
 }
 
+function getOperationTutorialHighlightRects(step, target) {
+  if (!step.highlightSelectors) {
+    const rect = getOperationTutorialHighlightRect(target);
+    return rect ? [rect] : [];
+  }
+  const rects = step.highlightSelectors
+    .flatMap((selector) => [...document.querySelectorAll(selector)])
+    .filter(isOperationTutorialElementVisible)
+    .map(getOperationTutorialHighlightRect)
+    .filter(Boolean);
+  if (step.combineHighlightRects) {
+    const unionRect = getUnionRect(rects);
+    return unionRect ? [unionRect] : [];
+  }
+  return rects;
+}
+
+function getUnionRect(rects) {
+  if (rects.length === 0) return null;
+  const left = Math.min(...rects.map((rect) => rect.left));
+  const top = Math.min(...rects.map((rect) => rect.top));
+  const right = Math.max(...rects.map((rect) => rect.left + rect.width));
+  const bottom = Math.max(...rects.map((rect) => rect.top + rect.height));
+  return {
+    top,
+    left,
+    width: right - left,
+    height: bottom - top,
+    radius: Math.max(...rects.map((rect) => rect.radius || 0))
+  };
+}
+
 function positionOperationTutorialHighlight(highlight, target) {
   const rect = getOperationTutorialHighlightRect(target);
   if (!highlight || !rect) return null;
@@ -681,6 +724,20 @@ function positionOperationTutorialHighlight(highlight, target) {
   highlight.style.height = `${rect.height}px`;
   highlight.style.borderRadius = `${rect.radius}px`;
   return rect;
+}
+
+function positionOperationTutorialHighlights(highlights, step, target) {
+  const rects = getOperationTutorialHighlightRects(step, target);
+  highlights.forEach((highlight, index) => {
+    const rect = rects[index];
+    if (!rect) return;
+    highlight.style.top = `${rect.top}px`;
+    highlight.style.left = `${rect.left}px`;
+    highlight.style.width = `${rect.width}px`;
+    highlight.style.height = `${rect.height}px`;
+    highlight.style.borderRadius = `${rect.radius}px`;
+  });
+  return rects;
 }
 
 function positionOperationTutorialCard(card, rect) {
@@ -828,20 +885,30 @@ function createOperationTutorialTemplateCard(memo) {
   return card;
 }
 
+function dismissOperationTutorialKeyboard() {
+  const activeElement = document.activeElement;
+  if (activeElement?.matches?.(".tutorial-template-home .memo-input")) {
+    activeElement.blur();
+  }
+  const keyboard = window.Capacitor?.Plugins?.Keyboard || window.Capacitor?.Keyboard;
+  const hideResult = keyboard?.hide?.();
+  if (hideResult?.catch) hideResult.catch(() => {});
+}
+
 function completeOperationTutorialTemplateMemo(memoId) {
   const memo = operationTutorialTemplateMemos.find((item) => item.id === memoId);
   if (!memo || memo.content.trim().length === 0) return;
   memo.complete = true;
-  const nextMemo = operationTutorialTemplateMemos.find((item) => !item.complete);
+  dismissOperationTutorialKeyboard();
   const previousPositions = captureLessonPositions();
   renderOperationTutorialTemplateHome(previousPositions);
-  if (nextMemo) focusMemoInput(nextMemo.id);
   isOperationTutorialTemplateMemoComplete = true;
-  renderOperationTutorial();
+  document.dispatchEvent(new CustomEvent("operationTutorialTemplateMemoComplete"));
 }
 
 function renderOperationTutorial() {
   if (hasCompletedOperationTutorial()) {
+    if (operationTutorialOverlay?.classList.contains("is-complete")) return;
     cleanupOperationTutorialOverlay();
     return;
   }
@@ -860,27 +927,34 @@ function renderOperationTutorial() {
   }
 
   const target = getOperationTutorialTarget(step);
-  const rect = getOperationTutorialHighlightRect(target);
+  const rects = getOperationTutorialHighlightRects(step, target);
+  const rect = getUnionRect(rects);
   const overlay = ensureOperationTutorialOverlay();
   document.body.classList.add("is-operation-tutorial-active");
   overlay.className = `operation-tutorial-overlay is-visible is-step-${operationTutorialStep + 1} ${
     step.requiresTargetAction ? "is-action-step" : "is-passive-step"
-  } ${step.usesTemplateHome ? "is-template-home" : ""}`;
+  } ${step.usesTemplateHome && step.requiresTargetAction ? "is-template-home" : ""}`;
   overlay.innerHTML = `
     <div class="operation-tutorial-backdrop"></div>
-    ${rect ? `<div class="operation-tutorial-highlight" aria-hidden="true"></div>` : ""}
+    ${rects.map(() => `<div class="operation-tutorial-highlight" aria-hidden="true"></div>`).join("")}
     <div class="operation-tutorial-card" role="dialog" aria-live="polite" aria-label="操作チュートリアル">
       <span class="operation-tutorial-count">${operationTutorialStep + 1} / ${operationTutorialSteps.length}</span>
-      <p class="operation-tutorial-body">${escapeHtml(isOperationTutorialTemplateMemoComplete && step.completedBody ? step.completedBody : step.body).replace(/\n/g, "<br>")}</p>
-      <p class="operation-tutorial-assist">${escapeHtml(isOperationTutorialTemplateMemoComplete && step.completedAssist ? step.completedAssist : step.assist)}</p>
+      <p class="operation-tutorial-body">${escapeHtml(step.body).replace(/\n/g, "<br>")}</p>
+      <p class="operation-tutorial-assist">${escapeHtml(step.assist)}</p>
     </div>
   `;
 
-  const highlight = overlay.querySelector(".operation-tutorial-highlight");
-  const currentRect = positionOperationTutorialHighlight(highlight, target) || rect;
-  if (highlight && step.id === "lesson-memo") {
-    requestAnimationFrame(() => positionOperationTutorialHighlight(highlight, getOperationTutorialTarget(step)));
-    window.setTimeout(() => positionOperationTutorialHighlight(highlight, getOperationTutorialTarget(step)), 80);
+  const highlights = [...overlay.querySelectorAll(".operation-tutorial-highlight")];
+  const currentRects = positionOperationTutorialHighlights(highlights, step, target);
+  let currentRect = getUnionRect(currentRects) || rect;
+  if (highlights.length > 0 && step.usesTemplateHome) {
+    const reposition = () => {
+      const nextRects = positionOperationTutorialHighlights(highlights, step, getOperationTutorialTarget(step));
+      currentRect = getUnionRect(nextRects) || currentRect;
+      positionOperationTutorialCard(card, currentRect);
+    };
+    requestAnimationFrame(reposition);
+    window.setTimeout(reposition, 80);
   }
 
   const card = overlay.querySelector(".operation-tutorial-card");
@@ -889,10 +963,6 @@ function renderOperationTutorial() {
 
   overlay.onclick = (event) => {
     if (event.target.closest(".operation-tutorial-card")) {
-      if (step.usesTemplateHome && isOperationTutorialTemplateMemoComplete) {
-        document.dispatchEvent(new CustomEvent("operationTutorialTemplateMemoComplete"));
-        return;
-      }
       if (step.allowsFreeEdit) {
         enterOperationTutorialFreeEditMode();
         return;
@@ -4350,7 +4420,16 @@ function addStudy(subjectId) {
   const date = selectedDate;
   const studyCount = state.memos.filter((memo) => memo.date === date && memo.type === "study").length;
   elements.studyPicker.hidden = true;
+  syncStudyPickerToggleState();
   setMemo(date, subjectId, 100 + studyCount + 1, "", "study");
+}
+
+function syncStudyPickerToggleState() {
+  const isOpen = !elements.studyPicker.hidden;
+  elements.addStudyButton.classList.toggle("is-open", isOpen);
+  elements.addStudyButton.setAttribute("aria-expanded", String(isOpen));
+  const icon = elements.addStudyButton.querySelector(".button-toggle-icon");
+  if (icon) icon.textContent = isOpen ? "－" : "＋";
 }
 
 function render() {
@@ -4358,6 +4437,7 @@ function render() {
   renderHistory();
   renderSettings();
   renderStudyPicker();
+  syncStudyPickerToggleState();
   renderOnboarding();
   if (operationTutorialOverlay) {
     window.setTimeout(renderOperationTutorial, 0);
@@ -4469,6 +4549,7 @@ function bindGlobalEvents() {
   document.addEventListener("focusin", rememberPendingMemoFocus, true);
   elements.addStudyButton.addEventListener("click", () => {
     elements.studyPicker.hidden = !elements.studyPicker.hidden;
+    syncStudyPickerToggleState();
   });
   elements.historyMenuButton.addEventListener("click", (event) => {
     event.stopPropagation();
