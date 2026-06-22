@@ -8,7 +8,7 @@ const REVIEW_NOTIFICATION_CHANNEL_ID = "choifuku-review-reminders";
 const DEFAULT_UNSET_COLOR = "#ff0000";
 const DEFAULT_ACCENT_COLOR = "#1163ff";
 const PRIVACY_POLICY_URL = "https://kamonokashi.github.io/choifuku/privacy.html";
-const APP_VERSION = "1.0.2";
+const APP_VERSION = "1.0.5";
 
 function getChoifukuAppIconSvg() {
   return `
@@ -212,7 +212,7 @@ const operationTutorialSteps = [
   {
     id: "save-schedule",
     selector: ".settings-detail",
-    body: "設定できたら、保存するを押してください。",
+    body: "設定できたら、「保存して戻る」を押してください。\n設定一覧画面に遷移し、チュートリアルが再開します。",
     assist: "画面をタップ",
     requiresTargetAction: false,
     allowsFreeEdit: true
@@ -927,6 +927,7 @@ function renderOperationTutorial() {
   }
 
   const target = getOperationTutorialTarget(step);
+  attachOperationTutorialTarget(step, target);
   const rects = getOperationTutorialHighlightRects(step, target);
   const rect = getUnionRect(rects);
   const overlay = ensureOperationTutorialOverlay();
@@ -947,7 +948,8 @@ function renderOperationTutorial() {
   const highlights = [...overlay.querySelectorAll(".operation-tutorial-highlight")];
   const currentRects = positionOperationTutorialHighlights(highlights, step, target);
   let currentRect = getUnionRect(currentRects) || rect;
-  if (highlights.length > 0 && step.usesTemplateHome) {
+  const card = overlay.querySelector(".operation-tutorial-card");
+  if (highlights.length > 0) {
     const reposition = () => {
       const nextRects = positionOperationTutorialHighlights(highlights, step, getOperationTutorialTarget(step));
       currentRect = getUnionRect(nextRects) || currentRect;
@@ -957,9 +959,7 @@ function renderOperationTutorial() {
     window.setTimeout(reposition, 80);
   }
 
-  const card = overlay.querySelector(".operation-tutorial-card");
   positionOperationTutorialCard(card, currentRect);
-  attachOperationTutorialTarget(step, target);
 
   overlay.onclick = (event) => {
     if (event.target.closest(".operation-tutorial-card")) {
@@ -3302,7 +3302,7 @@ function renderSubjectSettings() {
   wrapper.innerHTML = `
     <div class="settings-action-bar">
       <button class="back-button" type="button">← 設定に戻る</button>
-      <button id="saveSubjectSettingsButton" class="primary-button" type="button">保存する</button>
+      <button id="saveSubjectSettingsButton" class="primary-button" type="button">保存して戻る</button>
     </div>
     <div class="settings-block">
       <h3>科目登録・編集</h3>
@@ -3374,7 +3374,7 @@ function renderScheduleSettings() {
   wrapper.innerHTML = `
     <div class="settings-action-bar">
       <button class="back-button" type="button">← 設定に戻る</button>
-      <button id="saveScheduleSettingsButton" class="primary-button" type="button">保存する</button>
+      <button id="saveScheduleSettingsButton" class="primary-button" type="button">保存して戻る</button>
     </div>
     <div class="settings-block">
       <h3>科目を追加</h3>
@@ -3519,7 +3519,7 @@ function renderRangeSettings() {
   wrapper.innerHTML = `
     <div class="settings-action-bar">
       <button class="back-button" type="button">← 設定に戻る</button>
-      <button id="saveRangeSettingsButton" class="primary-button" type="button">保存する</button>
+      <button id="saveRangeSettingsButton" class="primary-button" type="button">保存して戻る</button>
     </div>
     <div class="settings-block">
       <h3>時間割の期間設定</h3>
@@ -3689,7 +3689,7 @@ function renderExceptionSettings() {
   wrapper.innerHTML = `
     <div class="settings-action-bar">
       <button class="back-button" type="button">← 設定に戻る</button>
-      <button id="saveExceptionSettingsButton" class="primary-button" type="button">保存する</button>
+      <button id="saveExceptionSettingsButton" class="primary-button" type="button">保存して戻る</button>
     </div>
     <div class="settings-block">
       <div class="settings-tab-row" role="tablist" aria-label="予定設定の種類">
@@ -3985,7 +3985,7 @@ function renderArchiveSettings() {
   wrapper.innerHTML = `
     <div class="settings-action-bar">
       <button class="back-button" type="button">← 設定に戻る</button>
-      <button id="saveArchiveSettingsButton" class="primary-button" type="button">保存する</button>
+      <button id="saveArchiveSettingsButton" class="primary-button" type="button">保存して戻る</button>
     </div>
     <div class="settings-block">
       <h3>アーカイブされた時間割一覧</h3>
@@ -4026,7 +4026,7 @@ function renderNotificationSettings() {
   wrapper.innerHTML = `
     <div class="settings-action-bar">
       <button class="back-button" type="button">← 設定に戻る</button>
-      <button id="saveNotificationSettingsButton" class="primary-button" type="button">保存する</button>
+      <button id="saveNotificationSettingsButton" class="primary-button" type="button">保存して戻る</button>
     </div>
     <div class="notification-hero">
       <div class="notification-hero-copy">
@@ -4145,7 +4145,7 @@ function renderThemeSettings() {
   wrapper.innerHTML = `
     <div class="settings-action-bar">
       <button class="back-button" type="button">← 設定に戻る</button>
-      <button id="saveThemeSettingsButton" class="primary-button" type="button">保存する</button>
+      <button id="saveThemeSettingsButton" class="primary-button" type="button">保存して戻る</button>
     </div>
     <div class="settings-block">
       <h3>画面の色設定</h3>
