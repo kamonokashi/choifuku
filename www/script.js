@@ -8,7 +8,7 @@ const REVIEW_NOTIFICATION_CHANNEL_ID = "choifuku-review-reminders";
 const DEFAULT_UNSET_COLOR = "#ff0000";
 const DEFAULT_ACCENT_COLOR = "#1163ff";
 const PRIVACY_POLICY_URL = "https://kamonokashi.github.io/choifuku/privacy.html";
-const APP_VERSION = "1.0.5";
+const APP_VERSION = "1.0.6";
 
 function getChoifukuAppIconSvg() {
   return `
@@ -1571,6 +1571,7 @@ function getColorSliderState(hex) {
 function renderColorSliderEditor(container, initialColor, onChange) {
   const state = getColorSliderState(initialColor);
   let selectedColor = /^#[0-9a-f]{6}$/i.test(initialColor || "") ? initialColor : DEFAULT_UNSET_COLOR;
+  let panelOpenColor = selectedColor;
   container.className = "color-slider-editor";
   container.innerHTML = `
     <button class="color-picker-trigger" type="button" aria-label="色を設定">
@@ -1613,6 +1614,13 @@ function renderColorSliderEditor(container, initialColor, onChange) {
     panel.hidden = true;
   };
 
+  const applyColor = (color) => {
+    selectedColor = color;
+    preview.style.background = selectedColor;
+    container.dataset.color = selectedColor;
+    onChange(selectedColor);
+  };
+
   const placePanel = () => {
     panel.hidden = false;
     container.classList.remove("is-panel-below");
@@ -1653,6 +1661,7 @@ function renderColorSliderEditor(container, initialColor, onChange) {
     const nextOpen = !container.classList.contains("is-open");
     container.classList.toggle("is-open", nextOpen);
     if (nextOpen) {
+      panelOpenColor = selectedColor;
       placePanel();
     } else {
       panel.hidden = true;
@@ -1678,19 +1687,40 @@ function renderColorSliderEditor(container, initialColor, onChange) {
   };
 
   [hueInput, saturationInput, valueInput].forEach((input) => {
-    input.addEventListener("input", update);
+    input.addEventListener("input", () => {
+      applyColor(update());
+    });
   });
-  cancelButton.addEventListener("click", closePanel);
+  cancelButton.addEventListener("click", () => {
+    const restoredState = getColorSliderState(panelOpenColor);
+    state.h = restoredState.h;
+    state.s = restoredState.s;
+    state.v = restoredState.v;
+    hueInput.value = state.h;
+    saturationInput.value = state.s;
+    valueInput.value = state.v;
+    applyColor(update());
+    closePanel();
+  });
   applyButton.addEventListener("click", () => {
-    selectedColor = update();
-    preview.style.background = selectedColor;
-    container.dataset.color = selectedColor;
-    onChange(selectedColor);
+    applyColor(update());
     closePanel();
   });
   preview.style.background = selectedColor;
   container.dataset.color = selectedColor;
   update();
+}
+
+function closeOpenColorSliderEditors() {
+  document.querySelectorAll(".color-slider-editor.is-open").forEach((editor) => {
+    editor.classList.remove("is-open", "is-panel-below");
+    const panel = editor.querySelector(".color-slider-panel");
+    if (panel) {
+      panel.hidden = true;
+      panel.style.left = "";
+      panel.style.top = "";
+    }
+  });
 }
 
 function getToday() {
@@ -3015,6 +3045,7 @@ function openSettingsDetail(mode) {
 function closeSettingsDetail(force = false) {
   if (!force && !requestSettingsExit(() => closeSettingsDetail(true))) return;
   closeCalendar();
+  applyTheme();
   settingsMode = "menu";
   settingsDraft = null;
   settingsDraftSnapshot = "";
@@ -3046,6 +3077,7 @@ function discardSettingsAndContinue() {
   pendingSettingsAction = null;
   settingsDraft = null;
   settingsDraftSnapshot = "";
+  applyTheme();
   if (action) action();
 }
 
@@ -3337,24 +3369,36 @@ function renderSubjectEditorRows(container) {
   settingsDraft.subjects.forEach((subject, index) => {
     const row = document.createElement("div");
     row.className = "subject-editor-row";
+    row.dataset.subjectId = subject.id;
     row.innerHTML = `
+      <button class="subject-drag-handle" type="button" aria-label="科目の並び順を変更">≡</button>
       <input class="subject-name-editor" type="text" placeholder="科目名">
       <div class="subject-color-editor"></div>
-      <button class="small-button subject-delete-button" type="button">削除</button>
+      <button class="small-button subject-delete-button" type="button" aria-label="科目を削除">
+        <span class="subject-delete-label">削除</span>
+        <span class="subject-delete-icon" aria-hidden="true">×</span>
+      </button>
     `;
+    const dragHandle = row.querySelector(".subject-drag-handle");
     const nameInput = row.querySelector(".subject-name-editor");
     const colorInput = row.querySelector(".subject-color-editor");
     if (!/^#[0-9a-f]{6}$/i.test(subject.color || "")) settingsDraft.subjects[index].color = DEFAULT_UNSET_COLOR;
     nameInput.value = subject.name;
     renderColorSliderEditor(colorInput, settingsDraft.subjects[index].color, (color) => {
-      settingsDraft.subjects[index].color = color;
+      subject.color = color;
     });
     nameInput.addEventListener("input", () => {
-      settingsDraft.subjects[index].name = nameInput.value;
+      subject.name = nameInput.value;
     });
     row.querySelector(".subject-delete-button").addEventListener("click", () => {
-      const removedId = settingsDraft.subjects[index].id;
-      settingsDraft.subjects.splice(index, 1);
+      const subjectName = subject.name.trim() || "この科目";
+      if (!window.confirm(`${subjectName}を削除します。時間割に設定されているこの科目も外れます。よろしいですか？`)) {
+        return;
+      }
+      const removedId = subject.id;
+      const currentIndex = settingsDraft.subjects.findIndex((item) => item.id === removedId);
+      if (currentIndex === -1) return;
+      settingsDraft.subjects.splice(currentIndex, 1);
       settingsDraft.scheduleTemplates.forEach((template) => {
         weekdayKeys.forEach((dayKey) => {
           Object.keys(template.schedule?.[dayKey] || {}).forEach((period) => {
@@ -3364,8 +3408,107 @@ function renderSubjectEditorRows(container) {
       });
       renderSettings();
     });
+    setupSubjectRowDrag(container, row, dragHandle, subject);
     container.append(row);
   });
+}
+
+function setupSubjectRowDrag(container, row, handle, subject) {
+  let startY = 0;
+  let currentY = 0;
+  let dropIndex = -1;
+  let isDragging = false;
+
+  const clearDropMarkers = () => {
+    container.querySelectorAll(".subject-editor-row").forEach((item) => {
+      item.classList.remove("is-drop-before", "is-drop-after");
+    });
+  };
+
+  const getDropIndex = (clientY) => {
+    const rows = [...container.querySelectorAll(".subject-editor-row:not(.is-reordering)")];
+    for (const target of rows) {
+      const rect = target.getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) {
+        target.classList.add("is-drop-before");
+        return [...container.querySelectorAll(".subject-editor-row")].indexOf(target);
+      }
+    }
+    rows[rows.length - 1]?.classList.add("is-drop-after");
+    return settingsDraft.subjects.length;
+  };
+
+  const updateDropMarker = (clientY) => {
+    clearDropMarkers();
+    dropIndex = getDropIndex(clientY);
+  };
+
+  const animateSubjectRows = (previousRects) => {
+    const rows = [...container.querySelectorAll(".subject-editor-row")];
+    rows.forEach((item) => {
+      const previousRect = previousRects.get(item);
+      if (!previousRect) return;
+      const nextRect = item.getBoundingClientRect();
+      const deltaX = previousRect.left - nextRect.left;
+      const deltaY = previousRect.top - nextRect.top;
+      if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
+
+      item.style.transition = "none";
+      item.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+      item.getBoundingClientRect();
+      requestAnimationFrame(() => {
+        item.style.transition = "";
+        item.style.transform = "";
+      });
+    });
+  };
+
+  const finishDrag = (event) => {
+    if (!isDragging) return;
+    isDragging = false;
+    handle.releasePointerCapture?.(event.pointerId);
+    const previousRects = new Map(
+      [...container.querySelectorAll(".subject-editor-row")].map((item) => [item, item.getBoundingClientRect()])
+    );
+    row.classList.remove("is-reordering");
+    row.style.transform = "";
+    clearDropMarkers();
+
+    const currentIndex = settingsDraft.subjects.findIndex((item) => item.id === subject.id);
+    if (currentIndex === -1) return;
+    let nextIndex = clamp(dropIndex, 0, settingsDraft.subjects.length);
+    if (nextIndex === currentIndex) return;
+
+    const [movedSubject] = settingsDraft.subjects.splice(currentIndex, 1);
+    if (nextIndex > currentIndex) nextIndex -= 1;
+    settingsDraft.subjects.splice(nextIndex, 0, movedSubject);
+
+    const rows = [...container.querySelectorAll(".subject-editor-row:not(.is-reordering)")];
+    container.insertBefore(row, rows[nextIndex] || null);
+    animateSubjectRows(previousRects);
+  };
+
+  handle.addEventListener("pointerdown", (event) => {
+    if (event.button !== undefined && event.button !== 0) return;
+    event.preventDefault();
+    startY = event.clientY;
+    currentY = event.clientY;
+    dropIndex = settingsDraft.subjects.findIndex((item) => item.id === subject.id);
+    isDragging = true;
+    row.classList.add("is-reordering");
+    updateDropMarker(currentY);
+    handle.setPointerCapture?.(event.pointerId);
+  });
+
+  handle.addEventListener("pointermove", (event) => {
+    if (!isDragging) return;
+    currentY = event.clientY;
+    row.style.transform = `translateY(${currentY - startY}px)`;
+    updateDropMarker(currentY);
+  });
+
+  handle.addEventListener("pointerup", finishDrag);
+  handle.addEventListener("pointercancel", finishDrag);
 }
 
 function renderScheduleSettings() {
@@ -3386,10 +3529,6 @@ function renderScheduleSettings() {
     </div>
     <div class="settings-block">
       <h3>時間割テンプレート</h3>
-      <label class="period-count-label">
-        <span>何限まで表示するか</span>
-        <input id="maxPeriodsInput" type="number" min="1" max="12">
-      </label>
       <div id="templateEditorList" class="template-editor-list"></div>
       <button id="addTemplateButton" class="wide-button" type="button">＋ 時間割テンプレートを追加</button>
     </div>
@@ -3397,12 +3536,6 @@ function renderScheduleSettings() {
   elements.settingsContent.append(wrapper);
   renderColorSliderEditor(wrapper.querySelector("#scheduleSubjectColorInput"), DEFAULT_UNSET_COLOR, () => {});
   wrapper.querySelector("#addScheduleSubjectButton").addEventListener("click", () => addSubjectFromSchedule(wrapper));
-  const maxPeriodsInput = wrapper.querySelector("#maxPeriodsInput");
-  maxPeriodsInput.value = settingsDraft.maxPeriods;
-  maxPeriodsInput.addEventListener("change", () => {
-    settingsDraft.maxPeriods = clamp(Number(maxPeriodsInput.value), 1, 12);
-    renderSettings();
-  });
   wrapper.querySelector("#addTemplateButton").addEventListener("click", () => {
     settingsDraft.scheduleTemplates.push(createScheduleTemplate("新しい時間割"));
     renderSettings();
@@ -3438,6 +3571,16 @@ function createScheduleTemplate(name) {
   };
 }
 
+function closeTemplateActionMenus() {
+  document.querySelectorAll(".template-action-menu.is-open").forEach((menu) => {
+    menu.classList.remove("is-open");
+  });
+  document.querySelectorAll(".template-action-button.is-active").forEach((button) => {
+    button.classList.remove("is-active");
+    button.setAttribute("aria-expanded", "false");
+  });
+}
+
 function renderTemplateEditors(container) {
   container.innerHTML = "";
   const templates = settingsDraft.scheduleTemplates.filter((template) => !template.archived);
@@ -3454,20 +3597,69 @@ function renderTemplateEditors(container) {
     card.className = "template-card";
     card.innerHTML = `
       <div class="template-card-head">
+        <div class="template-card-control-row">
+          <label class="period-count-label">
+            <span>何限まで表示するか</span>
+            <input class="max-periods-input" type="number" min="1" max="12">
+          </label>
+          <button class="template-action-button" type="button" aria-label="時間割メニュー" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="5" cy="12" r="1"></circle>
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="19" cy="12" r="1"></circle>
+            </svg>
+          </button>
+          <div class="template-action-menu">
+            <button class="small-button" type="button" data-template-action="archive">アーカイブ</button>
+            <button class="small-button danger-button" type="button" data-template-action="delete">削除</button>
+          </div>
+        </div>
         <input class="template-name-input" type="text" placeholder="時間割名">
-        <button class="small-button" type="button">アーカイブ</button>
       </div>
       <div class="schedule-table-wrap"></div>
     `;
+    const maxPeriodsInput = card.querySelector(".max-periods-input");
+    maxPeriodsInput.value = settingsDraft.maxPeriods;
+    maxPeriodsInput.addEventListener("change", () => {
+      settingsDraft.maxPeriods = clamp(Number(maxPeriodsInput.value), 1, 12);
+      renderSettings();
+    });
     const nameInput = card.querySelector(".template-name-input");
     nameInput.value = template.name;
     nameInput.addEventListener("input", () => {
       template.name = nameInput.value;
       template.updatedAt = new Date().toISOString();
     });
-    card.querySelector(".small-button").addEventListener("click", () => {
+    const actionButton = card.querySelector(".template-action-button");
+    const actionMenu = card.querySelector(".template-action-menu");
+    actionButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const willOpen = !actionMenu.classList.contains("is-open");
+      closeTemplateActionMenus();
+      actionMenu.classList.toggle("is-open", willOpen);
+      actionButton.classList.toggle("is-active", willOpen);
+      actionButton.setAttribute("aria-expanded", String(willOpen));
+    });
+    actionMenu.addEventListener("click", (event) => event.stopPropagation());
+    actionMenu.querySelector('[data-template-action="archive"]').addEventListener("click", () => {
+      const templateName = template.name.trim() || "この時間割";
+      if (!window.confirm(`${templateName}をアーカイブしますか？現在の時間割一覧から外れます。`)) {
+        return;
+      }
       template.archived = true;
       template.updatedAt = new Date().toISOString();
+      closeTemplateActionMenus();
+      renderSettings();
+    });
+    actionMenu.querySelector('[data-template-action="delete"]').addEventListener("click", () => {
+      const templateName = template.name.trim() || "この時間割";
+      if (!window.confirm(`${templateName}を削除しますか？この操作は保存して戻るまで確定されません。`)) {
+        return;
+      }
+      settingsDraft.scheduleTemplates = settingsDraft.scheduleTemplates.filter((item) => item.id !== template.id);
+      settingsDraft.scheduleRanges = settingsDraft.scheduleRanges.filter((range) => range.scheduleId !== template.id);
+      settingsDraft.scheduleRotation = normalizeScheduleRotation(settingsDraft.scheduleRotation, settingsDraft.scheduleTemplates);
+      closeTemplateActionMenus();
       renderSettings();
     });
     renderTemplateScheduleTable(card.querySelector(".schedule-table-wrap"), template);
@@ -3676,6 +3868,13 @@ function renderRangeEditorRows(container) {
         range.endDate = endInput.value;
       });
       row.querySelector("button").addEventListener("click", () => {
+        const scheduleName =
+          isRotationScheduleId(range.scheduleId)
+            ? "ローテーション"
+            : settingsDraft.scheduleTemplates.find((template) => template.id === range.scheduleId)?.name || "この時間割";
+        if (!window.confirm(`${scheduleName}の期間設定を削除しますか？`)) {
+          return;
+        }
         settingsDraft.scheduleRanges = settingsDraft.scheduleRanges.filter((item) => item.id !== range.id);
         renderSettings();
       });
@@ -4173,12 +4372,14 @@ function renderThemeSettings() {
   wrapper.querySelectorAll("[data-theme-mode]").forEach((button) => {
     button.addEventListener("click", () => {
       settingsDraft.theme.mode = button.dataset.themeMode;
+      applyTheme(settingsDraft.theme);
       renderSettings();
     });
   });
   renderColorSliderEditor(wrapper.querySelector("#themeAccentInput"), settingsDraft.theme.accent, (color) => {
     settingsDraft.theme.accent = color;
     setThemeVariables(wrapper, settingsDraft.theme);
+    applyTheme(settingsDraft.theme);
   });
 }
 
@@ -4410,7 +4611,9 @@ function renderStudyPicker() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "study-subject-button";
-    button.textContent = subject.name;
+    button.style.setProperty("--subject-color", subject.color);
+    button.innerHTML = `<span class="filter-dot" aria-hidden="true"></span><span></span>`;
+    button.querySelector("span:last-child").textContent = subject.name;
     button.addEventListener("click", () => addStudy(subject.id));
     elements.studyPicker.append(button);
   });
@@ -4557,6 +4760,12 @@ function bindGlobalEvents() {
     syncHistoryMenuState();
   });
   document.addEventListener("click", (event) => {
+    if (!event.target.closest(".color-slider-editor")) {
+      closeOpenColorSliderEditors();
+    }
+    if (!event.target.closest(".template-card-control-row")) {
+      closeTemplateActionMenus();
+    }
     if (!event.target.closest(".study-memo-popover") && !event.target.closest(".study-memo-menu-button")) {
       closeStudyMemoMenus();
     }
