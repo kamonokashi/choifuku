@@ -1,2 +1,3 @@
 node_modules/
 android/.idea/
+android/keystore.properties
