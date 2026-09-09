@@ -6,9 +6,188 @@ const REVIEW_NOTIFICATION_LESSON_ID_START = 221000;
 const REVIEW_NOTIFICATION_LOOKAHEAD_DAYS = 60;
 const REVIEW_NOTIFICATION_CHANNEL_ID = "choifuku-review-reminders";
 const DEFAULT_UNSET_COLOR = "#ff0000";
+const CUSTOM_COLOR_HISTORY_MAX = 7;
+const SUBJECT_COLOR_SAMPLES = [
+  "#6aa9ff",
+  "#4f7df3",
+  "#5ec8d8",
+  "#2f9fb5",
+  "#73c69b",
+  "#3fae7c",
+  "#b0b95f",
+  "#f0b56a",
+  "#ef8f5b",
+  "#e2685f",
+  "#e77c8e",
+  "#c98bd8",
+  "#9b7ede",
+  "#8d8f9a"
+];
 const DEFAULT_ACCENT_COLOR = "#1163ff";
 const PRIVACY_POLICY_URL = "https://kamonokashi.github.io/choifuku/privacy.html";
-const APP_VERSION = "1.0.6";
+const FEEDBACK_FORM_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLSeaeHZJHizyVgc1RaBQP34NhWEu1YzuF5dqKwr6hkbsdw-TDA/viewform";
+const FEEDBACK_FORM_VERSION_ENTRY = "entry.1995398460";
+const APP_VERSION = "1.0.18";
+const CHANGELOG = [
+  {
+    version: "1.0.18",
+    date: "2026-09-09",
+    items: [
+      "ノルマや科目が多いときに、チュートリアルの目印が画面の外にあって見えないことがあったのを直しました。目印まで自動で移動します。"
+    ]
+  },
+  {
+    version: "1.0.17",
+    date: "2026-09-09",
+    items: [
+      "チュートリアルの案内カードが、画面の左寄りに出ていたのを直しました。",
+      "チュートリアルで明るく示している部分の中身が、薄く表示されていたのを直しました。",
+      "チュートリアルで、ホームに戻ったあとに「こちらはメモ欄の例です」の案内を挟むようにしました。",
+      "ノルマのチュートリアルの①②③を、行ごとに分けました。",
+      "連続記録のアイコンをさらに大きくしました。",
+      "設定のヘルプのボタンを押したとき、設定を直接開かず、一覧のその項目まで案内するようにしました。"
+    ]
+  },
+  {
+    version: "1.0.16",
+    date: "2026-09-09",
+    items: [
+      "チュートリアル中に「設定に戻る」を押すと、確認画面が案内の下に隠れて操作できなくなっていたのを直しました。",
+      "チュートリアルの「スキップ」を画面の右上に移し、押し間違えないようにしました。",
+      "チュートリアルで、追加した時間割・ノルマそのものを明るく示すようにしました。「保存して戻る」も同じように示します。",
+      "チュートリアルの案内文を短くし、設定一覧の説明はなくしました。",
+      "時間割のチュートリアルに、科目の追加についての案内を足しました。",
+      "ほかに見るところがない案内は、画面の中央に出すようにしました。",
+      "連続記録のアイコンを大きくしました。ヘルプに残っていた絵文字も揃えました。",
+      "「今日のぶん、書き終わりました」の表示を作り直しました。"
+    ]
+  },
+  {
+    version: "1.0.15",
+    date: "2026-09-09",
+    items: [
+      "ノルマのやる日に「毎日」を追加しました。",
+      "ノルマ設定を「名前」と「やる日」の2つに分け、どこを設定しているか分かるようにしました。",
+      "ノルマの「呼び名（任意）」を「タイトル」に変えました。",
+      "ノルマの色のバーを、ホームのメモと同じ細さに揃えました。",
+      "ホームで、ノルマと「本日は授業が設定されていません」の間に余白を入れました。",
+      "連続記録のアイコンを、塗りのある炎に変えました。",
+      "チュートリアルに「スキップ」を付けました。最後に、設定から見直せることも表示します。",
+      "チュートリアルの途中で戻っても、その画面に合った案内に戻るようにしました。",
+      "チュートリアル中に押せないボタンを、押せないと分かる見た目にしました。"
+    ]
+  },
+  {
+    version: "1.0.14",
+    date: "2026-09-09",
+    items: [
+      "ホームを「まだのぶん」と「入力済み」に分けました。書き終えたメモは下にまとまります。",
+      "上の「授業 2/6」「ノルマ 0/2」の行に、書き終えるとチェックが付くようにしました。",
+      "「自習を追加」をノルマの下に戻し、いつもの位置で押せるようにしました。",
+      "授業が設定されていないときの案内を、ノルマより下に移しました。",
+      "連続記録の🔥を、アプリに合わせた線のアイコンに変えました。",
+      "ノルマの連続記録をタップすると「〇日連続！」と表示されるようにしました。",
+      "ノルマ設定の1行表示を中央ぞろえにし、曜日の部分を小さく控えめにしました。",
+      "ノルマ設定の余白を広げ、科目と呼び名を1行ずつに分けました。",
+      "チュートリアルを、時間割とノルマのどちらから始めるか選べるようにしました。設定の「アプリについて」からいつでも見直せます。",
+      "「更新履歴」を開いたときに、ページの途中に飛んでしまうのを直しました。",
+      "「保存しますか？」などの確認ボタンを大きくし、押し間違えにくくしました。",
+      "設定のヘルプのボタンの文字色を、読みやすい色に戻しました。"
+    ]
+  },
+  {
+    version: "1.0.13",
+    date: "2026-09-09",
+    items: [
+      "ホームのいちばん上に「授業 2/6」「ノルマ 0/2」の行を追加しました。タップするとその欄まで移動できます。",
+      "「自習を追加」をこの行に移し、授業が多くても押せるようにしました。",
+      "ノルマの連続記録を、0のときも常に表示するようにしました。",
+      "ノルマ設定で、科目の色が見えるようにしました。",
+      "ノルマ設定で、設定が揃ったノルマは1行に畳むようにしました。設定が足りないものは開いたまま、何が足りないかを表示します。",
+      "設定のヘルプのボタンにアイコンを入れ、見た目を1種類に揃えました。",
+      "ヘルプの「ご意見箱」「プライバシーポリシー」もボタンにし、押すと一覧のその場所まで移動するようにしました。",
+      "色を選ぶ画面で、タブを切り替えたときに「設定」ボタンが画面の外に出てしまうのを直しました。"
+    ]
+  },
+  {
+    version: "1.0.12",
+    date: "2026-09-09",
+    items: [
+      "「ノルマ」を追加しました。時間割とは別に、曜日や日数を決めて自分に課す学習を設定できます。時間割と一緒に使っても、ノルマだけでも使えます。",
+      "ノルマは「曜日ごと」か「○日やって○日休む」で決められます。祝日や休日設定の日を除くこともできます。",
+      "ホームに「今日のノルマ」欄が増えました。授業とは別に達成状況を数えます。",
+      "ノルマごとの連続記録を🔥で表示します。ノルマのない日は飛ばして数えます。",
+      "ノルマも連続記録の対象になりました。時間割を使わなくてもストリークが伸びます。",
+      "ノルマがある科目をアーカイブしようとすると、ノルマをどうするか確認するようにしました。"
+    ]
+  },
+  {
+    version: "1.0.11",
+    date: "2026-09-09",
+    items: [
+      "履歴のメモをアーカイブ・削除するとき、実行ボタンを画面下に固定しました。スクロールしても押しに戻る必要がありません。",
+      "メモのどこをタップしてもチェックできるようにしました。チェックの途中でほかの画面に移ろうとすると確認が出ます。",
+      "履歴のアーカイブ・削除・期間フィルターで、今日より後の日付を選べないようにしました。",
+      "設定の各ページに使い方のヘルプを追加し、ヘルプ画面の表示崩れを直しました。タイトルをタップすると、その設定に移動できます。",
+      "履歴画面にも使い方のヘルプを追加しました。",
+      "設定の並びを「科目・時間割」「アーカイブ」「アプリの設定」「アプリについて」の順に整理しました。",
+      "科目の色をサンプルから選べるようにし、自分で設定した色を最大7件覚えておくようにしました。",
+      "科目設定でEnterを押すと、そのまま次の科目を続けて入力できるようにしました。",
+      "ホームの「自習を追加」から、科目を追加するメニューを開けるようにしました。",
+      "ウィジェットのチェックマークをアプリと同じ形にし、Enterキーで保存できるようにしました。",
+      "ウィジェットの入力ボックスを、アプリを開いていても背後にアプリが映らないようにしました。",
+      "ご意見箱とプライバシーポリシーを開く前に、ブラウザが開くことを確認するようにしました。",
+      "メモ入力欄の文言を「今日覚えたことをメモ」に変えました。"
+    ]
+  },
+  {
+    version: "1.0.8",
+    date: "2026-09-07",
+    items: [
+      "ホーム画面ウィジェット「今日のメモ」を追加しました。今日の授業と自習のメモを表示し、縦横のサイズを変えられます。",
+      "ウィジェットのメモをタップすると、ホーム画面の上に入力ボックスが開いて、その場で書き込めるようにしました。"
+    ]
+  },
+  {
+    version: "1.0.7",
+    date: "2026-09-04",
+    items: [
+      "科目をアーカイブできるようにしました。アーカイブした科目は各画面の選択肢から外れ、「アーカイブされた科目一覧」で編集・復元できます。",
+      "科目をアーカイブするとき、その科目の履歴メモもまとめてアーカイブするか選べるようにしました。あとから「アーカイブされた科目一覧」のメニューでまとめてアーカイブすることもできます。",
+      "設定画面を「科目・時間割」「アプリの設定」「アーカイブ」「アプリについて」に分類し、右上に使い方を表示するヘルプボタンを追加しました。",
+      "更新履歴のページと、ご意見箱へのリンクを追加しました。",
+      "履歴のメモを1件ずつ選んでアーカイブ・削除できるようにしました。期間を指定してまとめてチェックすることもできます。",
+      "時間割テンプレートの表に科目カラーを表示するようにしました。",
+      "時間割テンプレートのメニューから「時間割の期間設定」へ移動できるようにしました。",
+      "ホームの「自習を追加」から科目設定へ移動できるようにしました。",
+      "時間割の期間設定で、開始日を終了日より後にしたときに終了日を合わせるようにしました。"
+    ]
+  },
+  {
+    version: "1.0.6",
+    date: "2026-06-24",
+    items: [
+      "科目の並べ替えと時間割テンプレートの編集を使いやすくしました。",
+      "ストア公開に向けたリリース署名の設定を追加しました。",
+      "ランチャーアイコンの色味を調整しました。"
+    ]
+  },
+  {
+    version: "1.0.5",
+    date: "2026-06-08",
+    items: ["チュートリアルの文言を分かりやすく更新しました。"]
+  },
+  {
+    version: "1.0.2",
+    date: "2026-06-07",
+    items: [
+      "履歴のメモ検索・期間フィルター・お気に入り表示を追加しました。",
+      "プライバシーポリシーのページと設定からのリンクを追加しました。",
+      "時間割のローテーション設定と、日ごとの予定変更を追加しました。"
+    ]
+  }
+];
 
 function getChoifukuAppIconSvg() {
   return `
@@ -187,14 +366,22 @@ let isOperationTutorialFreeEditMode = false;
 let isOperationTutorialTemplateHomeActive = false;
 let isOperationTutorialTemplateMemoComplete = false;
 let operationTutorialTemplateMemos = [];
-const operationTutorialSteps = [
-  {
-    id: "setup-schedule",
-    selector: ".setup-prompt .primary-button",
-    body: "時間割がまだ設定されていません。\nまずは時間割を作ってみましょう。",
-    assist: "「時間割を設定する」をタップ",
-    requiresTargetAction: true
-  },
+// 設定から呼び出したときは、設定済みでもチュートリアルを出す
+let isOperationTutorialForced = false;
+// 自由入力に入る直前の手順。戻ってきたときにその次から再開する
+let operationTutorialFreeEditStep = 0;
+let operationTutorialSyncTimer = null;
+const OPERATION_TUTORIAL_CHOICE_STEP = {
+  id: "choose-mode",
+  body: "choifukuは、時間割からでも、ノルマからでも始められます。\nどちらから設定しますか？",
+  assist: "あとから両方使えます",
+  choices: [
+    { label: "時間割を設定する", branch: "schedule" },
+    { label: "ノルマを設定する", branch: "norma" }
+  ]
+};
+
+const OPERATION_TUTORIAL_SCHEDULE_STEPS = [
   {
     id: "add-template",
     selector: "#addTemplateButton",
@@ -204,26 +391,59 @@ const operationTutorialSteps = [
   },
   {
     id: "edit-schedule",
-    selector: ".settings-detail",
-    body: "この画面で時間割を登録します。\n上部の「科目を追加」から、科目を登録することができます。",
+    selector: ".template-editor-list .template-card:last-of-type",
+    fallbackSelector: ".settings-detail",
+    body: "追加した時間割です。\nここに、曜日と時限ごとの科目を登録します。",
+    assist: "画面をタップ",
+    requiresTargetAction: false
+  },
+  {
+    id: "add-subject",
+    selector: "#scheduleSubjectBlock",
+    fallbackSelector: ".settings-detail",
+    body: "科目を追加したい場合は、こちらから登録できます。",
     assist: "画面をタップ",
     requiresTargetAction: false
   },
   {
     id: "save-schedule",
-    selector: ".settings-detail",
-    body: "設定できたら、「保存して戻る」を押してください。\n設定一覧画面に遷移し、チュートリアルが再開します。",
+    selector: "#saveScheduleSettingsButton",
+    fallbackSelector: ".settings-detail",
+    body: "設定できたら、「保存して戻る」を押してください。",
     assist: "画面をタップ",
     requiresTargetAction: false,
     allowsFreeEdit: true
+  }
+];
+
+const OPERATION_TUTORIAL_NORMA_STEPS = [
+  {
+    id: "add-norma",
+    selector: "#addNormaButton",
+    body: "ノルマを1つ追加してみましょう。",
+    assist: "「＋ ノルマを追加」をタップ",
+    requiresTargetAction: true
   },
   {
-    id: "exceptions",
-    selector: '[data-settings-mode="exceptions"]',
-    body: "こちらは、設定一覧画面です。\nこちらのボタンから、学校行事による授業変更などを設定できます。",
+    id: "edit-norma",
+    selector: ".norma-editor-list .norma-card:last-of-type",
+    fallbackSelector: ".settings-detail",
+    body: "追加したノルマです。\nこの3つを設定します。\n\n①科目\n②ノルマのタイトル\n③やる日",
     assist: "画面をタップ",
     requiresTargetAction: false
   },
+  {
+    id: "save-norma",
+    selector: "#saveNormaSettingsButton",
+    fallbackSelector: ".settings-detail",
+    body: "設定できたら、「保存して戻る」を押してください。",
+    assist: "画面をタップ",
+    requiresTargetAction: false,
+    allowsFreeEdit: true
+  }
+];
+
+const OPERATION_TUTORIAL_COMMON_STEPS = [
   {
     id: "back-home",
     selector: '.nav-button[data-view="homeView"]',
@@ -232,10 +452,18 @@ const operationTutorialSteps = [
     requiresTargetAction: true
   },
   {
+    id: "template-intro",
+    selector: ".tutorial-template-home",
+    body: "こちらはメモ欄の例です。\n設定した時間割やノルマとは別の内容が入っています。",
+    assist: "画面をタップ",
+    requiresTargetAction: false,
+    usesTemplateHome: true
+  },
+  {
     id: "lesson-memo",
     selector: ".tutorial-template-home .memo-input:not([data-complete='true'])",
     fallbackSelector: ".tutorial-template-home",
-    body: "メモを書いたらEnterを押してみましょう。\n入力済みのメモは下へ移動し、次の未入力メモへ進めます。",
+    body: "メモを書いたらEnterを押してみましょう。",
     assist: "上のメモに一言入力してEnter",
     requiresTargetAction: true,
     actionEvent: "operationTutorialTemplateMemoComplete",
@@ -249,17 +477,21 @@ const operationTutorialSteps = [
       ".tutorial-template-home .lesson-card:not(.is-complete)"
     ],
     combineHighlightRects: true,
-    body: "入力が終わったメモは、右側にチェックマークが付き、完了済みとして下へ移動します。\n\n未入力のメモと分かれて表示されるため、その日まだ振り返っていない授業がひと目で分かります。",
+    body: "入力が終わったメモは、このように完了済みとして下へ移動します。",
     assist: "画面をタップ",
     requiresTargetAction: false,
     usesTemplateHome: true
   }
 ];
+
+let operationTutorialSteps = [OPERATION_TUTORIAL_CHOICE_STEP];
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const weekdayKeys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"];
 const weekdayFullLabels = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
 const ROTATION_SCHEDULE_ID = "__rotation__";
+const NORMA_PERIOD_BASE = 201;
+const NORMA_STREAK_LOOKBACK_DAYS = 400;
 const holidaysByYear = {
   2026: {
     "2026-01-01": "元日",
@@ -294,9 +526,9 @@ const legacyDemoSchedule = [
 ];
 const defaultState = {
   subjects: [
-    { id: "english", name: "英語", color: "#6aa9ff" },
-    { id: "math", name: "数学", color: "#73c69b" },
-    { id: "history", name: "歴史", color: "#f0b56a" }
+    { id: "english", name: "英語", color: "#6aa9ff", archived: false },
+    { id: "math", name: "数学", color: "#73c69b", archived: false },
+    { id: "history", name: "歴史", color: "#f0b56a", archived: false }
   ],
   schedule: [],
   scheduleTemplates: [],
@@ -318,6 +550,8 @@ const defaultState = {
     time: "21:00"
   },
   maxPeriods: 6,
+  normas: [],
+  customColorHistory: [],
   memos: [],
   archivedMemos: [],
   completedDates: [],
@@ -342,6 +576,12 @@ let isMemoActionPanelOpen = false;
 let isHistoryMenuOpen = false;
 let isHistoryFilterOpen = false;
 let selectedMemoAction = "archive";
+let selectedMemoIds = new Set();
+let isStudyPickerMoreOpen = false;
+let isSettingsHelpOpen = false;
+let pendingSubjectFocusId = null;
+let studyPickerScrollTimer = null;
+let expandedNormaIds = new Set();
 let settingsMode = "menu";
 let settingsDraft = null;
 let settingsDraftSnapshot = "";
@@ -362,6 +602,8 @@ let lastStreakLabel = "";
 let pendingMemoFocusKey = null;
 let viewHistoryStack = [];
 const viewOrder = ["homeView", "historyView", "settingsView"];
+const WIDGET_LOOKAHEAD_DAYS = 7;
+let widgetSyncTimer = null;
 
 let elements = {};
 let isAppInitialized = false;
@@ -415,13 +657,25 @@ function collectElements() {
     dateChevron: document.querySelector("#dateChevron"),
     lessonList: document.querySelector("#lessonList"),
     calendarPanel: document.querySelector("#calendarPanel"),
+    homeSummary: document.querySelector("#homeSummary"),
     addStudyButton: document.querySelector("#addStudyButton"),
     studyPicker: document.querySelector("#studyPicker"),
+    lessonSection: document.querySelector("#lessonSection"),
+    homeNotice: document.querySelector("#homeNotice"),
+    doneSection: document.querySelector("#doneSection"),
+    doneList: document.querySelector("#doneList"),
+    doneCountLabel: document.querySelector("#doneCountLabel"),
     historyList: document.querySelector("#historyList"),
     historyControls: document.querySelector("#historyControls"),
     historyMenuButton: document.querySelector("#historyMenuButton"),
     subjectFilters: document.querySelector("#subjectFilters"),
-    settingsContent: document.querySelector("#settingsContent")
+    settingsContent: document.querySelector("#settingsContent"),
+    settingsHelpButton: document.querySelector("#settingsHelpButton"),
+    historyHelpButton: document.querySelector("#historyHelpButton"),
+    normaSection: document.querySelector("#normaSection"),
+    normaList: document.querySelector("#normaList"),
+    normaCompletionLabel: document.querySelector("#normaCompletionLabel"),
+    normaTitle: document.querySelector("#normaTitle")
   };
 }
 
@@ -560,14 +814,78 @@ function renderOnboarding() {
 
 function shouldOfferOperationTutorial() {
   const hasConfiguredSchedule = state.scheduleTemplates.length > 0 && state.scheduleRanges.length > 0;
-  return hasSeenOnboarding() && !hasCompletedOperationTutorial() && !hasConfiguredSchedule;
+  const hasNormas = getActiveNormas().length > 0;
+  return hasSeenOnboarding() && !hasCompletedOperationTutorial() && !hasConfiguredSchedule && !hasNormas;
 }
 
 function startOperationTutorial() {
   if (!shouldOfferOperationTutorial()) return;
+  beginOperationTutorial();
+}
+
+/** 設定から「もう一度見る」で呼ぶ。すでに設定済みでも動くようにする。 */
+function restartOperationTutorial() {
+  localStorage.removeItem(OPERATION_TUTORIAL_STORAGE_KEY);
+  beginOperationTutorial();
+}
+
+function beginOperationTutorial() {
+  cleanupOperationTutorialOverlay();
+  isOperationTutorialForced = true;
+  operationTutorialSteps = [OPERATION_TUTORIAL_CHOICE_STEP];
   operationTutorialStep = 0;
+  resetSettingsDetail();
   showView("homeView");
   window.setTimeout(renderOperationTutorial, 40);
+}
+
+/**
+ * 選んだ道すじに合わせて手順を組み立てる。
+ * ホームの案内が出ていない（すでに設定済み）ときは、設定タブから入る道に切り替える。
+ */
+function setOperationTutorialBranch(branch) {
+  const isNorma = branch === "norma";
+  const mode = isNorma ? "normas" : "schedule";
+  const promptButton = document.querySelector(`.setup-prompt [data-setup="${mode}"]`);
+  const entrySteps = promptButton
+    ? [
+        {
+          id: "setup-entry",
+          selector: `.setup-prompt [data-setup="${mode}"]`,
+          body: isNorma
+            ? "まずはノルマを作ってみましょう。"
+            : "まずは時間割を作ってみましょう。",
+          assist: isNorma ? "「ノルマを設定する」をタップ" : "「時間割を設定する」をタップ",
+          // 途中で戻ったとき、設定タブからでも入り直せるようにしておく
+          fallbackSelector: `[data-settings-mode="${mode}"]`,
+          fallbackAssist: isNorma ? "「ノルマ設定」をタップ" : "「時間割設定」をタップ",
+          requiresTargetAction: true
+        }
+      ]
+    : [
+        {
+          id: "open-settings",
+          selector: '.nav-button[data-view="settingsView"]',
+          body: "設定から始めましょう。",
+          assist: "「設定」をタップ",
+          requiresTargetAction: true
+        },
+        {
+          id: "open-page",
+          selector: `[data-settings-mode="${mode}"]`,
+          body: isNorma ? "「ノルマ設定」を開きます。" : "「時間割設定」を開きます。",
+          assist: isNorma ? "「ノルマ設定」をタップ" : "「時間割設定」をタップ",
+          requiresTargetAction: true
+        }
+      ];
+
+  operationTutorialSteps = [
+    OPERATION_TUTORIAL_CHOICE_STEP,
+    ...entrySteps,
+    ...(isNorma ? OPERATION_TUTORIAL_NORMA_STEPS : OPERATION_TUTORIAL_SCHEDULE_STEPS),
+    ...OPERATION_TUTORIAL_COMMON_STEPS
+  ];
+  advanceOperationTutorial();
 }
 
 function cleanupOperationTutorialTarget() {
@@ -585,17 +903,22 @@ function cleanupOperationTutorialTarget() {
 
 function cleanupOperationTutorialOverlay() {
   cleanupOperationTutorialTarget();
+  setOperationTutorialFocus(null);
   deactivateOperationTutorialTemplateHome();
   window.clearTimeout(operationTutorialCompletionTimer);
   operationTutorialCompletionTimer = null;
+  window.clearTimeout(operationTutorialSyncTimer);
+  operationTutorialSyncTimer = null;
   if (operationTutorialOverlay) operationTutorialOverlay.remove();
   operationTutorialOverlay = null;
+  isOperationTutorialForced = false;
   isOperationTutorialFreeEditMode = false;
   document.body.classList.remove("is-operation-tutorial-active");
   document.body.classList.remove("is-operation-tutorial-free-edit");
 }
 
 function finishOperationTutorial() {
+  isOperationTutorialForced = false;
   markOperationTutorialCompleted();
   showOperationTutorialCompletion();
 }
@@ -609,8 +932,8 @@ function showOperationTutorialCompletion() {
   overlay.innerHTML = `
     <div class="operation-tutorial-backdrop"></div>
     <div class="operation-tutorial-card" role="status" aria-live="polite">
-      <strong>これで、チュートリアルは終わりです。</strong>
-      <p>必要なときに、少しずつ使ってみてください。</p>
+      <strong>これで、<br>チュートリアルは終わりです。</strong>
+      <p class="operation-tutorial-complete-note">設定 →「アプリについて」→「チュートリアルをもう一度見る」から、いつでも見直せます。</p>
     </div>
   `;
   overlay.onclick = cleanupOperationTutorialOverlay;
@@ -627,6 +950,7 @@ function advanceOperationTutorial() {
 }
 
 function enterOperationTutorialFreeEditMode() {
+  operationTutorialFreeEditStep = operationTutorialStep;
   cleanupOperationTutorialTarget();
   if (operationTutorialOverlay) operationTutorialOverlay.remove();
   operationTutorialOverlay = null;
@@ -637,11 +961,59 @@ function enterOperationTutorialFreeEditMode() {
 
 function resumeOperationTutorialAfterFreeEdit() {
   if (!isOperationTutorialFreeEditMode) return;
-  if (getActiveViewId() !== "settingsView" || settingsMode !== "menu" || pendingSettingsAction) return;
+  // 設定の詳細を開いている間だけ待つ。それ以外の画面に出たら、そこで再開する
+  if (getActiveViewId() === "settingsView" && (settingsMode !== "menu" || pendingSettingsAction)) return;
   isOperationTutorialFreeEditMode = false;
   document.body.classList.remove("is-operation-tutorial-free-edit");
-  operationTutorialStep = 4;
+  // 手順は分岐で本数が変わるので、位置を決め打ちにしない
+  operationTutorialStep = operationTutorialFreeEditStep + 1;
   window.setTimeout(renderOperationTutorial, 40);
+}
+
+/**
+ * 戻る操作などで画面が変わったとき、いまの画面に合う手順まで巻き戻す。
+ * 目印にする要素が消えたままだと、どこを押せばいいのか分からなくなるため。
+ */
+function syncOperationTutorialToScreen() {
+  if (!operationTutorialOverlay || isOperationTutorialFreeEditMode) return;
+  if (operationTutorialOverlay.classList.contains("is-complete")) return;
+  // 画面の切り替えは何段階かに分かれて進むので、落ち着いてから見る
+  const scheduledAtStep = operationTutorialStep;
+  window.clearTimeout(operationTutorialSyncTimer);
+  operationTutorialSyncTimer = window.setTimeout(() => {
+    if (!operationTutorialOverlay || isOperationTutorialFreeEditMode) return;
+    const step = operationTutorialSteps[operationTutorialStep];
+    if (!step) return;
+    // 手順が自分で進んだ直後なら、それは戻る操作ではないので触らない
+    const hasAdvanced = operationTutorialStep !== scheduledAtStep;
+    if (!hasAdvanced && !step.usesTemplateHome && step.selector && !getOperationTutorialTarget(step)) {
+      const matched = findNearestOperationTutorialStep(operationTutorialStep);
+      if (matched !== -1) operationTutorialStep = matched;
+    }
+    renderOperationTutorial();
+  }, 90);
+}
+
+/** いまの画面で目印を出せる手順を、近いところから探す。手前を優先する。 */
+function findNearestOperationTutorialStep(fromIndex) {
+  for (let index = fromIndex - 1; index >= 0; index -= 1) {
+    const candidate = operationTutorialSteps[index];
+    if (candidate.choices || !candidate.selector || candidate.usesTemplateHome) continue;
+    if (getOperationTutorialTarget(candidate)) return index;
+  }
+  for (let index = fromIndex + 1; index < operationTutorialSteps.length; index += 1) {
+    const candidate = operationTutorialSteps[index];
+    if (candidate.choices || !candidate.selector || candidate.usesTemplateHome) continue;
+    if (getOperationTutorialTarget(candidate)) return index;
+  }
+  return -1;
+}
+
+function skipOperationTutorial() {
+  if (!operationTutorialOverlay) return;
+  isOperationTutorialFreeEditMode = false;
+  document.body.classList.remove("is-operation-tutorial-free-edit");
+  finishOperationTutorial();
 }
 
 function ensureOperationTutorialOverlay() {
@@ -660,8 +1032,18 @@ function getOperationTutorialTarget(step) {
   return null;
 }
 
+/** 予備の目印に切り替わったときは、その要素に合う言い方に変える。 */
+function getOperationTutorialAssist(step) {
+  if (!step.fallbackAssist) return step.assist;
+  const primary = step.selector ? document.querySelector(step.selector) : null;
+  return isOperationTutorialElementVisible(primary) ? step.assist : step.fallbackAssist;
+}
+
 function isOperationTutorialElementVisible(element) {
   if (!element || element.hidden) return false;
+  // 表示されていない画面の中の要素は、見えていても目印にはできない
+  const view = element.closest(".view");
+  if (view && !view.classList.contains("is-active")) return false;
   const rect = element.getBoundingClientRect();
   return rect.width > 0 && rect.height > 0;
 }
@@ -743,6 +1125,11 @@ function positionOperationTutorialHighlights(highlights, step, target) {
 function positionOperationTutorialCard(card, rect) {
   const gap = 18;
   const cardRect = card.getBoundingClientRect();
+  // 目印が無いなら、ほかに見るところが無いので画面の真ん中に出す
+  if (!rect) {
+    card.style.top = `${Math.max(24, Math.round((window.innerHeight - cardRect.height) / 2))}px`;
+    return;
+  }
   let top = Math.round(window.innerHeight * 0.58);
   if (rect) {
     const below = rect.top + rect.height + gap;
@@ -755,6 +1142,34 @@ function positionOperationTutorialCard(card, rect) {
   }
   top = Math.max(24, Math.min(top, window.innerHeight - cardRect.height - 24));
   card.style.top = `${top}px`;
+}
+
+/**
+ * 目印が画面の外にあると、どこを押せばいいのか分からなくなる。
+ * ノルマや科目が増えると起きるので、先に見える位置まで送る。
+ */
+function scrollOperationTutorialTargetIntoView(target) {
+  if (!target) return;
+  if (getComputedStyle(target).position === "fixed") return;
+  const rect = target.getBoundingClientRect();
+  const topLimit = 76;
+  const bottomLimit = window.innerHeight - 104;
+  // 背の高い目印は上に寄せて、案内カードを置く場所を下に空ける
+  const isTall = rect.height > (bottomLimit - topLimit) * 0.55;
+  if (isTall) {
+    if (Math.abs(rect.top - topLimit) > 8) window.scrollBy(0, rect.top - topLimit);
+    return;
+  }
+  if (rect.top >= topLimit && rect.bottom <= bottomLimit) return;
+  target.scrollIntoView({ block: "center" });
+}
+
+/** 明るく見せている範囲。この中は薄くしない。 */
+function setOperationTutorialFocus(target) {
+  document
+    .querySelectorAll(".operation-tutorial-focus")
+    .forEach((element) => element.classList.remove("operation-tutorial-focus"));
+  if (target) target.classList.add("operation-tutorial-focus");
 }
 
 function attachOperationTutorialTarget(step, target) {
@@ -786,7 +1201,7 @@ function createOperationTutorialTemplateMemos() {
       period: "2限",
       subject: "英語",
       color: "#16a34a",
-      placeholder: "今日覚えたことを1つだけ",
+      placeholder: "今日覚えたことをメモ",
       content: "",
       complete: false
     }
@@ -811,6 +1226,10 @@ function deactivateOperationTutorialTemplateHome() {
 }
 
 function renderOperationTutorialTemplateHome(previousPositions = new Map()) {
+  if (elements.homeSummary) elements.homeSummary.hidden = true;
+  if (elements.normaSection) elements.normaSection.hidden = true;
+  if (elements.doneSection) elements.doneSection.hidden = true;
+  if (elements.lessonSection) elements.lessonSection.hidden = false;
   elements.addStudyButton.hidden = true;
   elements.studyPicker.hidden = true;
   elements.lessonList.classList.add("tutorial-template-home");
@@ -912,7 +1331,14 @@ function renderOperationTutorial() {
     cleanupOperationTutorialOverlay();
     return;
   }
-  if (!operationTutorialOverlay && !shouldOfferOperationTutorial() && operationTutorialStep === 0) return;
+  if (
+    !operationTutorialOverlay &&
+    !isOperationTutorialForced &&
+    !shouldOfferOperationTutorial() &&
+    operationTutorialStep === 0
+  ) {
+    return;
+  }
 
   const step = operationTutorialSteps[operationTutorialStep];
   if (!step) {
@@ -927,23 +1353,53 @@ function renderOperationTutorial() {
   }
 
   const target = getOperationTutorialTarget(step);
+  scrollOperationTutorialTargetIntoView(target);
+  setOperationTutorialFocus(target);
   attachOperationTutorialTarget(step, target);
   const rects = getOperationTutorialHighlightRects(step, target);
   const rect = getUnionRect(rects);
   const overlay = ensureOperationTutorialOverlay();
   document.body.classList.add("is-operation-tutorial-active");
+  // 目印が無いときは、背景を暗くする役目の影も出ないので、代わりに幕を出す
   overlay.className = `operation-tutorial-overlay is-visible is-step-${operationTutorialStep + 1} ${
     step.requiresTargetAction ? "is-action-step" : "is-passive-step"
-  } ${step.usesTemplateHome && step.requiresTargetAction ? "is-template-home" : ""}`;
+  } ${step.usesTemplateHome && step.requiresTargetAction ? "is-template-home" : ""} ${
+    rects.length === 0 ? "is-no-highlight" : ""
+  }`;
   overlay.innerHTML = `
     <div class="operation-tutorial-backdrop"></div>
     ${rects.map(() => `<div class="operation-tutorial-highlight" aria-hidden="true"></div>`).join("")}
     <div class="operation-tutorial-card" role="dialog" aria-live="polite" aria-label="操作チュートリアル">
-      <span class="operation-tutorial-count">${operationTutorialStep + 1} / ${operationTutorialSteps.length}</span>
+      ${step.choices ? "" : `<span class="operation-tutorial-count">${operationTutorialStep + 1} / ${operationTutorialSteps.length}</span>`}
       <p class="operation-tutorial-body">${escapeHtml(step.body).replace(/\n/g, "<br>")}</p>
-      <p class="operation-tutorial-assist">${escapeHtml(step.assist)}</p>
+      ${
+        step.choices
+          ? `<div class="operation-tutorial-choices">${step.choices
+              .map(
+                (choice) =>
+                  `<button class="operation-tutorial-choice" type="button" data-tutorial-branch="${choice.branch}">${escapeHtml(
+                    choice.label
+                  )}</button>`
+              )
+              .join("")}</div>`
+          : ""
+      }
+      <p class="operation-tutorial-assist">${escapeHtml(getOperationTutorialAssist(step))}</p>
     </div>
+    <button class="operation-tutorial-skip" type="button" data-tutorial-skip>スキップ</button>
   `;
+
+  overlay.querySelector("[data-tutorial-skip]").addEventListener("click", (event) => {
+    event.stopPropagation();
+    skipOperationTutorial();
+  });
+
+  overlay.querySelectorAll("[data-tutorial-branch]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setOperationTutorialBranch(button.dataset.tutorialBranch);
+    });
+  });
 
   const highlights = [...overlay.querySelectorAll(".operation-tutorial-highlight")];
   const currentRects = positionOperationTutorialHighlights(highlights, step, target);
@@ -962,6 +1418,7 @@ function renderOperationTutorial() {
   positionOperationTutorialCard(card, currentRect);
 
   overlay.onclick = (event) => {
+    if (step.choices) return;
     if (event.target.closest(".operation-tutorial-card")) {
       if (step.allowsFreeEdit) {
         enterOperationTutorialFreeEditMode();
@@ -990,7 +1447,10 @@ function renderOperationTutorial() {
 }
 
 function ensureScheduleState(targetState) {
-  targetState.subjects = Array.isArray(targetState.subjects) ? targetState.subjects : [];
+  targetState.subjects = (Array.isArray(targetState.subjects) ? targetState.subjects : []).map((subject) => ({
+    ...subject,
+    archived: subject.archived === true
+  }));
   targetState.schedule = Array.isArray(targetState.schedule) ? targetState.schedule : [];
   targetState.scheduleTemplates = Array.isArray(targetState.scheduleTemplates)
     ? targetState.scheduleTemplates
@@ -999,6 +1459,13 @@ function ensureScheduleState(targetState) {
   targetState.scheduleRotation = normalizeScheduleRotation(targetState.scheduleRotation, targetState.scheduleTemplates);
   targetState.dateExceptions = Array.isArray(targetState.dateExceptions) ? targetState.dateExceptions : [];
   targetState.weekOverrides = Array.isArray(targetState.weekOverrides) ? targetState.weekOverrides : [];
+  targetState.normas = (Array.isArray(targetState.normas) ? targetState.normas : []).map(normalizeNorma);
+  targetState.customColorHistory = (
+    Array.isArray(targetState.customColorHistory) ? targetState.customColorHistory : []
+  )
+    .filter((color) => /^#[0-9a-f]{6}$/i.test(color || ""))
+    .map((color) => color.toLowerCase())
+    .slice(0, CUSTOM_COLOR_HISTORY_MAX);
   targetState.memos = Array.isArray(targetState.memos) ? targetState.memos : [];
   targetState.archivedMemos = Array.isArray(targetState.archivedMemos) ? targetState.archivedMemos : [];
   targetState.completedDates = Array.isArray(targetState.completedDates) ? targetState.completedDates : [];
@@ -1071,6 +1538,148 @@ function isSameSchedule(a, b) {
 
 function saveState() {
   saveStoredState(STORAGE_KEY, state);
+  scheduleWidgetSync();
+}
+
+function getWidgetBridge() {
+  const bridge = window.Capacitor?.Plugins?.WidgetBridge;
+  return bridge && typeof bridge.sync === "function" ? bridge : null;
+}
+
+function getWidgetPalette(mode) {
+  if (mode === "dark") {
+    return {
+      bg: "#111827",
+      surface: "#1f2937",
+      surfaceMuted: "#293544",
+      text: "#f3f7fb",
+      muted: "#a6b3c2",
+      line: "#394657",
+      doneEmptyBg: "#1b2532",
+      doneEmptyFg: "#647386"
+    };
+  }
+  return {
+    bg: "#f6f8f9",
+    surface: "#ffffff",
+    surfaceMuted: "#f1f3f5",
+    text: "#1f2933",
+    muted: "#697783",
+    line: "#dde3e8",
+    doneEmptyBg: "#e8edf1",
+    doneEmptyFg: "#9aa7b2"
+  };
+}
+
+function buildWidgetDayEntry(dateKey) {
+  const plan = getEffectiveDayPlan(dateKey);
+  const items = [...homeItemsForDate(dateKey), ...normasForDate(dateKey)].map((item) => {
+    const subject = getSubject(item.subjectId);
+    const memo = getMemoForItem(dateKey, item);
+    return {
+      key: getItemKey(item),
+      subjectId: item.subjectId,
+      period: item.period,
+      type: item.type,
+      periodLabel: getPeriodLabel(item),
+      subjectName: subject ? subject.name : "未登録科目",
+      color: subject ? subject.color : "#aab4bd",
+      content: memo ? memo.content : "",
+      complete: isComplete(item, dateKey)
+    };
+  });
+
+  return {
+    dateLabel: formatDisplayDate(dateKey),
+    // 毎日出る「現在の時間割：〇〇」は狭いウィジェットでは邪魔なので、休日や曜日変更のときだけ出す
+    status: plan.kind === "normal" || items.length > 0 ? "" : plan.message || "",
+    emptyText: plan.kind === "unset" ? "この日の予定はありません" : "メモはありません",
+    items
+  };
+}
+
+function buildWidgetPayload() {
+  const days = {};
+  for (let offset = 0; offset < WIDGET_LOOKAHEAD_DAYS; offset += 1) {
+    const dateKey = addDays(getToday(), offset);
+    days[dateKey] = buildWidgetDayEntry(dateKey);
+  }
+
+  const mode = state.theme.mode === "dark" ? "dark" : "light";
+  return {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    theme: {
+      dark: mode === "dark",
+      ...getWidgetPalette(mode),
+      accent: state.theme.accent,
+      onAccent: "#ffffff"
+    },
+    days
+  };
+}
+
+function scheduleWidgetSync() {
+  if (!getWidgetBridge()) return;
+  window.clearTimeout(widgetSyncTimer);
+  widgetSyncTimer = window.setTimeout(syncWidgetData, 250);
+}
+
+function syncWidgetData() {
+  const bridge = getWidgetBridge();
+  if (!bridge) return;
+  try {
+    bridge.sync({ payload: JSON.stringify(buildWidgetPayload()) });
+  } catch (error) {
+    console.info("[choifuku] widget sync failed", error);
+  }
+}
+
+/**
+ * ウィジェットの入力ボックスから書かれたメモを取り込む。
+ * ネイティブからは localStorage を直接触れないため、キュー経由で受け取る。
+ */
+async function drainWidgetPendingWrites() {
+  const bridge = getWidgetBridge();
+  if (!bridge || typeof bridge.takePendingWrites !== "function") return;
+
+  let writes = [];
+  try {
+    const result = await bridge.takePendingWrites();
+    if (Array.isArray(result?.writes)) writes = result.writes;
+  } catch (error) {
+    console.info("[choifuku] widget pending writes unavailable", error);
+    return;
+  }
+  if (writes.length === 0) return;
+
+  [...writes]
+    .sort((a, b) => Number(a?.savedAt || 0) - Number(b?.savedAt || 0))
+    .forEach((write) => {
+      if (!write || !write.date || !write.subjectId) return;
+      const period = Number(write.period);
+      if (!Number.isFinite(period)) return;
+      const type = write.type === "study" ? "study" : "lesson";
+      const content = String(write.content ?? "");
+      setMemo(write.date, write.subjectId, period, content, type, false);
+      const memo = getMemo(write.date, write.subjectId, period, type);
+      if (memo) memo.completed = content.trim().length > 0;
+    });
+
+  updateStreak();
+  saveState();
+  render();
+}
+
+function bindWidgetSync() {
+  if (!getWidgetBridge()) return;
+  const App = window.Capacitor?.Plugins?.App;
+  if (App && typeof App.addListener === "function") {
+    App.addListener("resume", () => drainWidgetPendingWrites());
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") drainWidgetPendingWrites();
+  });
 }
 
 function logReviewNotificationDebug(label, detail = "") {
@@ -1577,18 +2186,31 @@ function renderColorSliderEditor(container, initialColor, onChange) {
     <button class="color-picker-trigger" type="button" aria-label="色を設定">
       <span class="color-slider-preview" aria-hidden="true"></span>
     </button>
-    <div class="color-slider-panel" hidden>
-      <div class="color-slider-row">
-        <label>色相</label>
-        <input class="color-slider is-hue" type="range" min="0" max="360" value="${state.h}">
+    <div class="color-slider-panel is-sample-tab" hidden>
+      <div class="color-tab-row" role="tablist">
+        <button class="color-tab is-active" type="button" data-color-tab="sample">サンプル</button>
+        <button class="color-tab" type="button" data-color-tab="slider">自分で設定</button>
       </div>
-      <div class="color-slider-row">
-        <label>彩度</label>
-        <input class="color-slider is-saturation" type="range" min="0" max="100" value="${state.s}">
+      <div class="color-sample-grid">
+        ${SUBJECT_COLOR_SAMPLES.map(
+          (color) =>
+            `<button class="color-sample" type="button" data-color="${color}" style="--sample-color:${color}" aria-label="${color}"></button>`
+        ).join("")}
       </div>
-      <div class="color-slider-row">
-        <label>値</label>
-        <input class="color-slider is-value" type="range" min="0" max="100" value="${state.v}">
+      <div class="color-history-block"></div>
+      <div class="color-slider-body">
+        <div class="color-slider-row">
+          <label>色相</label>
+          <input class="color-slider is-hue" type="range" min="0" max="360" value="${state.h}">
+        </div>
+        <div class="color-slider-row">
+          <label>彩度</label>
+          <input class="color-slider is-saturation" type="range" min="0" max="100" value="${state.s}">
+        </div>
+        <div class="color-slider-row">
+          <label>値</label>
+          <input class="color-slider is-value" type="range" min="0" max="100" value="${state.v}">
+        </div>
       </div>
       <div class="color-slider-actions">
         <button class="color-slider-cancel" type="button">キャンセル</button>
@@ -1614,11 +2236,65 @@ function renderColorSliderEditor(container, initialColor, onChange) {
     panel.hidden = true;
   };
 
+  const historyBlock = container.querySelector(".color-history-block");
+
+  const syncSampleSelection = () => {
+    container.querySelectorAll(".color-sample").forEach((swatch) => {
+      swatch.classList.toggle("is-selected", swatch.dataset.color.toLowerCase() === selectedColor.toLowerCase());
+    });
+  };
+
+  const pickColor = (color) => {
+    const pickedState = getColorSliderState(color);
+    state.h = pickedState.h;
+    state.s = pickedState.s;
+    state.v = pickedState.v;
+    hueInput.value = state.h;
+    saturationInput.value = state.s;
+    valueInput.value = state.v;
+    update();
+    applyColor(color);
+    preview.style.background = color;
+    container.dataset.color = color;
+    closePanel();
+  };
+
+  const renderColorHistory = () => {
+    const history = getCustomColorHistory();
+    if (history.length === 0) {
+      historyBlock.innerHTML = "";
+      return;
+    }
+    historyBlock.innerHTML = `
+      <p class="color-history-label">自分で設定した色</p>
+      <div class="color-history-grid">
+        ${history
+          .map(
+            (color) =>
+              `<button class="color-sample" type="button" data-color="${color}" style="--sample-color:${color}" aria-label="${color}"></button>`
+          )
+          .join("")}
+      </div>
+    `;
+    historyBlock.querySelectorAll(".color-sample").forEach((swatch) => {
+      swatch.addEventListener("click", () => pickColor(swatch.dataset.color));
+    });
+  };
+
   const applyColor = (color) => {
     selectedColor = color;
     preview.style.background = selectedColor;
     container.dataset.color = selectedColor;
+    syncSampleSelection();
     onChange(selectedColor);
+  };
+
+  const setColorTab = (tab) => {
+    panel.classList.toggle("is-sample-tab", tab === "sample");
+    panel.classList.toggle("is-slider-tab", tab === "slider");
+    panel.querySelectorAll(".color-tab").forEach((tabButton) => {
+      tabButton.classList.toggle("is-active", tabButton.dataset.colorTab === tab);
+    });
   };
 
   const placePanel = () => {
@@ -1662,6 +2338,9 @@ function renderColorSliderEditor(container, initialColor, onChange) {
     container.classList.toggle("is-open", nextOpen);
     if (nextOpen) {
       panelOpenColor = selectedColor;
+      // 他の科目で色を作ったあとでも最新の履歴が出るよう、開くたびに作り直す
+      renderColorHistory();
+      syncSampleSelection();
       placePanel();
     } else {
       panel.hidden = true;
@@ -1669,6 +2348,17 @@ function renderColorSliderEditor(container, initialColor, onChange) {
       panel.style.left = "";
       panel.style.top = "";
     }
+  });
+
+  panel.querySelectorAll(".color-tab").forEach((tabButton) => {
+    tabButton.addEventListener("click", () => {
+      setColorTab(tabButton.dataset.colorTab);
+      // タブによって高さが変わるので、位置を計算し直さないと下のボタンが画面外に出る
+      placePanel();
+    });
+  });
+  panel.querySelectorAll(".color-sample-grid .color-sample").forEach((swatch) => {
+    swatch.addEventListener("click", () => pickColor(swatch.dataset.color));
   });
 
   const update = () => {
@@ -1703,12 +2393,35 @@ function renderColorSliderEditor(container, initialColor, onChange) {
     closePanel();
   });
   applyButton.addEventListener("click", () => {
-    applyColor(update());
+    const applied = update();
+    applyColor(applied);
+    rememberCustomColor(applied);
+    renderColorHistory();
     closePanel();
   });
   preview.style.background = selectedColor;
   container.dataset.color = selectedColor;
   update();
+  preview.style.background = selectedColor;
+  container.dataset.color = selectedColor;
+  syncSampleSelection();
+  renderColorHistory();
+}
+
+function getCustomColorHistory() {
+  return Array.isArray(state.customColorHistory) ? state.customColorHistory : [];
+}
+
+/** 「自分で設定」で決めた色を、新しい順に最大7件だけ覚えておく。 */
+function rememberCustomColor(color) {
+  if (!/^#[0-9a-f]{6}$/i.test(color || "")) return;
+  const normalized = color.toLowerCase();
+  if (SUBJECT_COLOR_SAMPLES.includes(normalized)) return;
+  state.customColorHistory = [normalized, ...getCustomColorHistory().filter((item) => item !== normalized)].slice(
+    0,
+    CUSTOM_COLOR_HISTORY_MAX
+  );
+  saveState();
 }
 
 function closeOpenColorSliderEditors() {
@@ -1812,6 +2525,162 @@ function getHolidayName(dateKey) {
 
 function getSubject(subjectId, subjects = state.subjects) {
   return subjects.find((subject) => subject.id === subjectId);
+}
+
+// ---- ノルマ ----------------------------------------------------------------
+// 時間割とは別に、「この曜日にやる」「○日やって○日休む」で自分に課す学習の予定。
+// メモは授業と同じ仕組みに乗せるため、ノルマごとに固定の period 番号
+// （NORMA_PERIOD_BASE 以降）を作成時に採番し、以後は変更しない。
+
+function normalizeNorma(norma) {
+  const frequency = norma?.frequency || {};
+  const type = ["cycle", "daily"].includes(frequency.type) ? frequency.type : "weekday";
+  return {
+    id: norma?.id || createId("norma"),
+    subjectId: norma?.subjectId || "",
+    label: String(norma?.label || ""),
+    period: Number(norma?.period) || NORMA_PERIOD_BASE,
+    archived: norma?.archived === true,
+    excludeHolidays: norma?.excludeHolidays !== false,
+    frequency: {
+      type,
+      weekdays: Array.isArray(frequency.weekdays)
+        ? frequency.weekdays.filter((day) => weekdayKeys.includes(day))
+        : [],
+      activeDays: clamp(Number(frequency.activeDays) || 1, 1, 30),
+      restDays: clamp(Number(frequency.restDays) || 1, 0, 30),
+      startDate: isValidDateKey(frequency.startDate || "") ? frequency.startDate : getToday()
+    },
+    createdAt: norma?.createdAt || new Date().toISOString(),
+    updatedAt: norma?.updatedAt || new Date().toISOString()
+  };
+}
+
+function getNormas(source = state.normas) {
+  return Array.isArray(source) ? source : [];
+}
+
+function getActiveNormas(source = state.normas) {
+  return getNormas(source).filter((norma) => !norma.archived);
+}
+
+function getArchivedNormas(source = state.normas) {
+  return getNormas(source).filter((norma) => norma.archived);
+}
+
+function nextNormaPeriod(source = state.normas) {
+  return getNormas(source).reduce((max, norma) => Math.max(max, Number(norma.period) || 0), NORMA_PERIOD_BASE - 1) + 1;
+}
+
+function createNorma(source) {
+  const firstSubject = getActiveSubjects(source ? source.subjects : state.subjects)[0];
+  return normalizeNorma({
+    id: createId("norma"),
+    subjectId: firstSubject ? firstSubject.id : "",
+    label: "",
+    period: nextNormaPeriod(source ? source.normas : state.normas),
+    archived: false,
+    excludeHolidays: true,
+    frequency: { type: "weekday", weekdays: [], activeDays: 1, restDays: 1, startDate: getToday() }
+  });
+}
+
+function getNormaLabel(norma) {
+  return norma.label.trim() || "ノルマ";
+}
+
+/** 祝日設定や休日設定で「休み」とみなす日か。 */
+function isRestDayForNorma(dateKey) {
+  if (getHolidayName(dateKey)) return true;
+  return state.dateExceptions.some((item) => item.date === dateKey && item.type === "holiday");
+}
+
+function isNormaActiveOnDate(norma, dateKey) {
+  if (!norma || norma.archived) return false;
+  if (!norma.subjectId) return false;
+  if (norma.excludeHolidays && isRestDayForNorma(dateKey)) return false;
+
+  const frequency = norma.frequency;
+  if (frequency.type === "daily") return true;
+  if (frequency.type === "weekday") {
+    const dayKey = weekdayKeys[parseDateKey(dateKey).getDay()];
+    return frequency.weekdays.includes(dayKey);
+  }
+
+  // ○日やって○日休む。祝日で休んでも周期はカレンダー通りに進む。
+  const cycleLength = frequency.activeDays + frequency.restDays;
+  if (cycleLength <= 0) return false;
+  if (!frequency.startDate || dateKey < frequency.startDate) return false;
+  const offset = getDaysBetween(frequency.startDate, dateKey);
+  return ((offset % cycleLength) + cycleLength) % cycleLength < frequency.activeDays;
+}
+
+function normasForDate(dateKey) {
+  return getActiveNormas()
+    .filter((norma) => isNormaActiveOnDate(norma, dateKey))
+    .map((norma) => ({
+      type: "norma",
+      normaId: norma.id,
+      subjectId: norma.subjectId,
+      period: norma.period,
+      label: norma.label
+    }));
+}
+
+/**
+ * ノルマ単体の連続記録。ノルマのない日は飛ばして数える。
+ * 今日はまだ書いていなくても記録は途切れない。
+ */
+function getNormaStreak(norma) {
+  // 毎日メモ全体を走査すると重いので、このノルマの達成日だけ先に集める
+  const doneDates = new Set(
+    state.memos
+      .filter(
+        (memo) =>
+          memo.type === "norma" &&
+          memo.subjectId === norma.subjectId &&
+          memo.period === norma.period &&
+          (memo.content || "").trim().length > 0 &&
+          memo.completed !== false
+      )
+      .map((memo) => memo.date)
+  );
+
+  const today = getToday();
+  let count = 0;
+  let cursor = today;
+  for (let step = 0; step < NORMA_STREAK_LOOKBACK_DAYS; step += 1) {
+    if (isNormaActiveOnDate(norma, cursor)) {
+      if (doneDates.has(cursor)) {
+        count += 1;
+      } else if (cursor !== today) {
+        break;
+      }
+    }
+    cursor = addDays(cursor, -1);
+    if (norma.frequency.type === "cycle" && cursor < norma.frequency.startDate) break;
+  }
+  return count;
+}
+
+function getActiveSubjects(source = state.subjects) {
+  return source.filter((subject) => !subject.archived);
+}
+
+function getArchivedSubjects(source = state.subjects) {
+  return source.filter((subject) => subject.archived);
+}
+
+function buildSubjectOptions(source, currentId = "") {
+  const activeSubjects = getActiveSubjects(source);
+  const currentSubject = source.find((subject) => subject.id === currentId && subject.archived);
+  const options = currentSubject ? [...activeSubjects, currentSubject] : activeSubjects;
+  return options
+    .map((subject) => {
+      const archivedLabel = subject.archived ? "（アーカイブ）" : "";
+      return `<option value="${subject.id}">${escapeHtml(subject.name || "名称未入力")}${archivedLabel}</option>`;
+    })
+    .join("");
 }
 
 function getScheduleTemplate(scheduleId, source = state.scheduleTemplates) {
@@ -2100,7 +2969,7 @@ function updateStreak() {
   state.streak.lastCompletedDate = null;
 
   for (let i = 0; i < 365; i += 1) {
-    const lessons = lessonsForDate(cursor);
+    const hasTargets = lessonsForDate(cursor).length > 0 || normasForDate(cursor).length > 0;
     const complete = isDateCompleteForStreak(cursor);
     const isToday = cursor === getToday();
 
@@ -2108,7 +2977,7 @@ function updateStreak() {
       count += 1;
       foundCompletedDay = true;
       state.streak.lastCompletedDate = state.streak.lastCompletedDate || cursor;
-    } else if (lessons.length > 0 && (foundCompletedDay || !isToday)) {
+    } else if (hasTargets && (foundCompletedDay || !isToday)) {
       break;
     }
 
@@ -2153,14 +3022,32 @@ function createLessonCard(item, date) {
   const meta = document.createElement("div");
   meta.className = "lesson-meta";
   const periodLabel = getPeriodLabel(item);
-  meta.innerHTML = `<span class="period">${periodLabel}</span><span class="subject-name"></span>`;
+  meta.innerHTML = `<span class="period"></span><span class="subject-name"></span>`;
+  meta.querySelector(".period").textContent = periodLabel;
   meta.querySelector(".subject-name").textContent = subject.name;
+
+  if (item.type === "norma") {
+    const norma = getNormas().find((entry) => entry.id === item.normaId);
+    const streak = norma ? getNormaStreak(norma) : 0;
+    const badge = document.createElement("button");
+    badge.type = "button";
+    // 0でも出しておかないと、連続記録があること自体に気づけない
+    badge.className = `norma-streak${streak === 0 ? " is-zero" : ""}`;
+    badge.innerHTML = `${getStreakIcon()}<span></span>`;
+    badge.querySelector("span").textContent = String(streak);
+    badge.setAttribute("aria-label", `連続${streak}日`);
+    badge.addEventListener("click", (event) => {
+      event.stopPropagation();
+      showStreakToast(streak);
+    });
+    meta.append(badge);
+  }
 
   const textarea = document.createElement("textarea");
   textarea.className = "memo-input";
   textarea.dataset.key = getItemKey(item);
   textarea.rows = 1;
-  textarea.placeholder = "今日覚えたことを1つだけ";
+  textarea.placeholder = "今日覚えたことをメモ";
   textarea.value = memo ? memo.content : "";
 
   const doneButton = document.createElement("button");
@@ -2242,6 +3129,7 @@ function deleteStudyMemo(date, item) {
 }
 
 function getPeriodLabel(item) {
+  if (item.type === "norma") return item.label?.trim() || "ノルマ";
   if (item.type === "study") return "自習";
   return item.endPeriod && item.endPeriod !== item.period
     ? `${item.period}-${item.endPeriod}限`
@@ -2284,7 +3172,7 @@ function completeMemoInput(textarea, date, item, options = {}) {
 }
 
 function getNextIncompleteKey(date, currentKey) {
-  const items = homeItemsForDate(date);
+  const items = [...homeItemsForDate(date), ...normasForDate(date)];
   const currentIndex = items.findIndex((entry) => getItemKey(entry) === currentKey);
   if (currentIndex === -1) return null;
 
@@ -2322,54 +3210,176 @@ function renderHome() {
   renderCalendar();
   const previousPositions = captureLessonPositions();
   elements.lessonList.innerHTML = "";
+  elements.homeNotice.innerHTML = "";
   if (isOperationTutorialTemplateHomeActive) {
     renderOperationTutorialTemplateHome(previousPositions);
     return;
   }
   elements.lessonList.classList.remove("tutorial-template-home");
-  const plan = getEffectiveDayPlan(selectedDate);
+
+  const date = selectedDate;
+  const plan = getEffectiveDayPlan(date);
   const hasConfiguredSchedule = state.scheduleTemplates.length > 0 && state.scheduleRanges.length > 0;
-  elements.addStudyButton.hidden = !hasConfiguredSchedule && plan.kind === "unset";
+  const hasNormas = getActiveNormas().length > 0;
+  const needsSetup = !hasConfiguredSchedule && !hasNormas && plan.kind === "unset";
+
+  const lessonItems = homeItemsForDate(date);
+  const normaItems = normasForDate(date);
+  const pendingLessons = lessonItems.filter((item) => !isComplete(item, date));
+  const pendingNormas = normaItems.filter((item) => !isComplete(item, date));
+  const doneItems = [...lessonItems, ...normaItems].filter((item) => isComplete(item, date));
+
   elements.studyPicker.hidden = true;
+  elements.addStudyButton.hidden = needsSetup;
+  renderHomeSummary({ needsSetup, lessonItems, normaItems, date });
 
-  const status = document.createElement("p");
-  status.className = `day-status is-${plan.kind}`;
-  status.textContent = plan.message;
-  if (plan.message) elements.lessonList.append(status);
+  // 未入力の授業
+  elements.lessonSection.hidden = pendingLessons.length === 0;
+  pendingLessons.forEach((item) => elements.lessonList.append(createLessonCard(item, date)));
 
-  if (!hasConfiguredSchedule && plan.kind === "unset") {
+  // 未入力のノルマ
+  renderNormaList(pendingNormas, normaItems, date);
+
+  // 授業が無い・未設定の案内は、ノルマより下に出す
+  renderHomeNotice({ needsSetup, plan, lessonItems, normaItems, pendingLessons, pendingNormas, date });
+
+  // 入力済みは下にまとめる
+  renderDoneList(doneItems, date);
+
+  animateLessonCards(previousPositions);
+}
+
+function renderHomeNotice({ needsSetup, plan, lessonItems, normaItems, pendingLessons, pendingNormas, date }) {
+  if (needsSetup) {
     const prompt = document.createElement("div");
     prompt.className = "setup-prompt";
     prompt.innerHTML = `
-      <p>時間割が未設定です</p>
-      <button class="primary-button" type="button">時間割を設定する</button>
+      <p>まだ何も設定されていません</p>
+      <div class="setup-prompt-actions">
+        <button class="primary-button" type="button" data-setup="schedule">時間割を設定する</button>
+        <button class="wide-button" type="button" data-setup="normas">ノルマを設定する</button>
+      </div>
+      <small class="setup-prompt-note">どちらか一方でも、両方でも使えます。</small>
     `;
-    prompt.querySelector("button").addEventListener("click", () => {
-      showView("settingsView");
-      openSettingsDetail("schedule");
+    prompt.querySelectorAll("[data-setup]").forEach((button) => {
+      button.addEventListener("click", () => {
+        showView("settingsView");
+        openSettingsDetail(button.dataset.setup);
+      });
     });
-    elements.lessonList.append(prompt);
+    elements.homeNotice.append(prompt);
     return;
   }
 
-  const date = selectedDate;
-  const items = homeItemsForDate(date);
+  if (plan.message) {
+    const status = document.createElement("p");
+    status.className = `day-status is-${plan.kind}`;
+    status.textContent = plan.message;
+    elements.homeNotice.append(status);
+  }
 
-  if (items.length === 0) {
+  const hasAnything = lessonItems.length > 0 || normaItems.length > 0;
+  if (!hasAnything) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent =
-      plan.kind === "unset"
-        ? "この日の授業はありません"
-        : selectedDate === getToday()
-          ? "今日の授業メモはありません"
-          : "この日の授業メモはありません";
-    elements.lessonList.append(empty);
+    empty.textContent = date === getToday() ? "今日のメモはまだありません" : "この日のメモはありません";
+    elements.homeNotice.append(empty);
     return;
   }
 
-  items.forEach((item) => elements.lessonList.append(createLessonCard(item, date)));
-  animateLessonCards(previousPositions);
+  if (pendingLessons.length === 0 && pendingNormas.length === 0) {
+    const done = document.createElement("div");
+    done.className = "home-all-done";
+    done.innerHTML = `
+      <span class="home-all-done-mark" aria-hidden="true">${getNormaCheckIcon()}</span>
+      <span class="home-all-done-text">
+        <strong></strong>
+        <small></small>
+      </span>
+    `;
+    const isToday = date === getToday();
+    done.querySelector("strong").textContent = isToday ? "今日のぶん、書き終わりました" : "この日のぶんは書き終わっています";
+    done.querySelector("small").textContent = isToday ? "おつかれさまでした。" : "";
+    elements.homeNotice.append(done);
+  }
+}
+
+function renderDoneList(doneItems, date) {
+  if (!elements.doneSection) return;
+  elements.doneSection.hidden = doneItems.length === 0;
+  elements.doneList.innerHTML = "";
+  if (doneItems.length === 0) return;
+  elements.doneCountLabel.textContent = `${doneItems.length}件`;
+  doneItems
+    .sort((a, b) => a.period - b.period)
+    .forEach((item) => elements.doneList.append(createLessonCard(item, date)));
+}
+
+/**
+ * 画面のいちばん上に置く要約行。授業とノルマの件数を出し、
+ * タップでその欄まで移動できるようにする。自習の追加もここから。
+ */
+function renderHomeSummary({ needsSetup, lessonItems, normaItems, date }) {
+  if (!elements.homeSummary) return;
+  elements.homeSummary.innerHTML = "";
+  if (needsSetup) {
+    elements.homeSummary.hidden = true;
+    return;
+  }
+
+  const studies = lessonItems.filter((item) => item.type === "study");
+  const chips = [];
+  if (lessonItems.length > 0) {
+    chips.push({
+      target: "lessonSection",
+      label: studies.length > 0 ? "授業・自習" : "授業",
+      done: lessonItems.filter((item) => isComplete(item, date)).length,
+      total: lessonItems.length
+    });
+  }
+  if (normaItems.length > 0) {
+    chips.push({
+      target: "normaSection",
+      label: "ノルマ",
+      done: normaItems.filter((item) => isComplete(item, date)).length,
+      total: normaItems.length
+    });
+  }
+
+  elements.homeSummary.hidden = chips.length === 0;
+  chips.forEach((chip) => {
+    const complete = chip.done === chip.total;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `home-summary-chip${complete ? " is-done" : ""}`;
+    button.innerHTML = `
+      <span class="home-summary-mark" aria-hidden="true">${complete ? getNormaCheckIcon() : ""}</span>
+      <span class="home-summary-label"></span>
+      <strong></strong>
+    `;
+    button.querySelector(".home-summary-label").textContent = chip.label;
+    button.querySelector("strong").textContent = `${chip.done}/${chip.total}`;
+    button.addEventListener("click", () => {
+      const section = document.querySelector(`#${chip.target}`);
+      if (section && !section.hidden) section.scrollIntoView({ block: "start" });
+      else elements.doneSection?.scrollIntoView({ block: "start" });
+    });
+    elements.homeSummary.append(button);
+  });
+}
+
+function renderNormaList(pendingNormas, normaItems, date) {
+  if (!elements.normaSection) return;
+  elements.normaList.innerHTML = "";
+  elements.normaSection.hidden = pendingNormas.length === 0;
+  elements.normaTitle.textContent = date === getToday() ? "今日のノルマ" : "選択日のノルマ";
+  if (pendingNormas.length === 0) return;
+
+  const done = normaItems.filter((item) => isComplete(item, date)).length;
+  elements.normaCompletionLabel.textContent = `${done} / ${normaItems.length}`;
+  [...pendingNormas]
+    .sort((a, b) => a.period - b.period)
+    .forEach((item) => elements.normaList.append(createLessonCard(item, date)));
 }
 
 function captureLessonPositions() {
@@ -2556,9 +3566,8 @@ function renderCalendar() {
 }
 
 function getDateStatus(dateKey) {
-  const lessons = lessonsForDate(dateKey);
   if (isDateCompleteForStreak(dateKey)) return "complete";
-  if (lessons.length === 0) return "no-lesson";
+  if (lessonsForDate(dateKey).length === 0 && normasForDate(dateKey).length === 0) return "no-lesson";
   return "incomplete";
 }
 
@@ -2595,6 +3604,14 @@ function renderHistory() {
   renderSubjectFilters();
   renderHistoryList();
   renderHistoryMenuButton();
+  renderMemoSelectionBar();
+}
+
+/** 一覧まわりだけを描き直す。上のパネルを作り直さないので、余計な動きが出ない。 */
+function refreshHistoryResults() {
+  renderSubjectFilters();
+  renderHistoryList();
+  renderMemoSelectionBar();
 }
 
 function renderHistoryMenuButton() {
@@ -2618,15 +3635,19 @@ function syncHistoryFilterState() {
 }
 
 function renderSubjectFilters() {
+  const subjects = historyMemoMode === "archive" ? state.subjects : getActiveSubjects();
+  if (activeHistorySubject !== "all" && !subjects.some((subject) => subject.id === activeHistorySubject)) {
+    activeHistorySubject = "all";
+  }
   elements.subjectFilters.innerHTML = "";
   elements.subjectFilters.append(createFilterButton("all", "すべて"));
-  state.subjects.forEach((subject) => {
+  subjects.forEach((subject) => {
     elements.subjectFilters.append(createFilterButton(subject.id, subject.name, subject.color));
   });
 }
 
-function renderHistoryList() {
-  const memos = getVisibleHistoryMemos()
+function getRenderedHistoryMemos() {
+  return getVisibleHistoryMemos()
     .filter((memo) => memo.content.trim().length > 0)
     .filter((memo) => memo.completed !== false)
     .filter((memo) => !historyFavoritesOnly || memo.favorite === true)
@@ -2638,6 +3659,10 @@ function renderHistoryList() {
         historySortOrder === "asc" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
       return dateSort || a.period - b.period;
     });
+}
+
+function renderHistoryList() {
+  const memos = getRenderedHistoryMemos();
 
   elements.historyList.innerHTML = "";
   if (memos.length === 0) {
@@ -2652,15 +3677,23 @@ function renderHistoryList() {
     return;
   }
 
+  const isSelecting = isMemoActionPanelOpen;
   memos.forEach((memo) => {
     const subject = getSubject(memo.subjectId);
+    const memoId = getMemoIdentity(memo);
+    const isSelected = isSelecting && selectedMemoIds.has(memoId);
     const item = document.createElement("article");
-    item.className = "history-item";
+    item.className = `history-item${isSelecting ? " is-selectable" : ""}${isSelected ? " is-selected" : ""}`;
     item.style.setProperty("--subject-color", subject ? subject.color : "#aab4bd");
     item.innerHTML = `
       <div class="color-bar"></div>
       <div class="history-content">
         <div class="history-card-head">
+          ${
+            isSelecting
+              ? `<input class="memo-select-checkbox" type="checkbox" aria-label="このメモを選択"${isSelected ? " checked" : ""}>`
+              : ""
+          }
           <div class="history-date"></div>
           <button class="favorite-button${memo.favorite ? " is-active" : ""}" type="button" aria-label="お気に入り">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2678,8 +3711,37 @@ function renderHistoryList() {
     item.querySelector(".favorite-button").addEventListener("click", () => {
       toggleMemoFavorite(memo);
     });
+    if (isSelecting) {
+      // チェックボックスだけでなく、メモのどこを押しても切り替えられるようにする
+      item.addEventListener("click", (event) => {
+        if (event.target.closest(".favorite-button")) return;
+        toggleMemoSelection(memoId, item);
+      });
+    }
     elements.historyList.append(item);
   });
+}
+
+function syncMemoSelectionState() {
+  const bar = document.querySelector(".memo-selection-bar");
+  if (!bar) return;
+  const countLabel = bar.querySelector(".memo-selection-count strong");
+  if (countLabel) countLabel.textContent = String(selectedMemoIds.size);
+  const runButton = bar.querySelector(".memo-selection-run");
+  if (runButton) runButton.disabled = selectedMemoIds.size === 0;
+}
+
+function toggleMemoSelection(memoId, item) {
+  const nextChecked = !selectedMemoIds.has(memoId);
+  if (nextChecked) {
+    selectedMemoIds.add(memoId);
+  } else {
+    selectedMemoIds.delete(memoId);
+  }
+  item.classList.toggle("is-selected", nextChecked);
+  const checkbox = item.querySelector(".memo-select-checkbox");
+  if (checkbox) checkbox.checked = nextChecked;
+  syncMemoSelectionState();
 }
 
 function getVisibleHistoryMemos() {
@@ -2712,30 +3774,35 @@ function renderHistoryControls() {
     <div class="history-menu-popover${isHistoryMenuOpen ? " is-open" : ""}">
       <button class="small-button memo-action-menu-button${historyMemoMode === "archive" ? " is-hidden" : ""}" type="button" data-open-memo-action="archive">
         <span>メモをアーカイブ</span>
-        <small>アーカイブする期間を選択します</small>
+        <small>アーカイブするメモを選びます</small>
       </button>
       <button class="small-button danger-button memo-action-menu-button" type="button" data-open-memo-action="reset">
         <span>メモを削除</span>
-        <small>削除する期間を選択します</small>
+        <small>削除するメモを選びます</small>
       </button>
     </div>
     <div class="memo-action-panel${isMemoActionPanelOpen ? "" : " is-hidden"}">
       <p class="memo-action-title">${selectedMemoAction === "archive" ? "メモをアーカイブ" : "メモを削除"}</p>
-      <div class="memo-action-range">
-        <label>
-          <span>開始日</span>
-          <input id="memoActionStartInput" type="date" value="${memoActionStart}">
-        </label>
-        <label>
-          <span>終了日</span>
-          <input id="memoActionEndInput" type="date" value="${memoActionEnd}">
-        </label>
+      <p class="memo-action-help">メモをタップしてチェックするか、期間を指定してまとめてチェックできます。</p>
+      <div class="memo-action-range-group">
+        <div class="memo-action-range">
+          <label>
+            <span>開始日</span>
+            <input id="memoActionStartInput" type="date" value="${memoActionStart}">
+          </label>
+          <label>
+            <span>終了日</span>
+            <input id="memoActionEndInput" type="date" value="${memoActionEnd}" min="${memoActionStart}">
+          </label>
+        </div>
+        <button class="small-button memo-range-check-button" type="button" data-memo-action-check>
+          ${getCheckOnIcon()}<span>この期間をチェック</span>
+        </button>
       </div>
-      <div class="memo-action-buttons">
-        <button class="small-button${selectedMemoAction === "reset" ? " danger-button" : ""}" type="button" data-memo-action="${selectedMemoAction}">${
-          selectedMemoAction === "archive" ? "この期間をアーカイブ" : "この期間を削除"
-        }</button>
-        <button class="small-button" type="button" data-memo-action-cancel>キャンセル</button>
+      <div class="memo-action-clear-row">
+        <button class="small-button memo-clear-button" type="button" data-memo-action-clear>
+          ${getCheckOffIcon()}<span>チェックをすべて外す</span>
+        </button>
       </div>
     </div>
     <div class="history-filter-panel">
@@ -2805,21 +3872,23 @@ function renderHistoryControls() {
     button.addEventListener("click", () => {
       const nextMode = button.dataset.historyMode;
       if (nextMode === historyMemoMode) return;
-      const tabs = elements.historyControls.querySelector(".history-mode-tabs");
-      tabs.classList.toggle("is-archive", nextMode === "archive");
-      tabs.querySelectorAll("[data-history-mode]").forEach((tabButton) => {
-        tabButton.classList.toggle("is-active", tabButton.dataset.historyMode === nextMode);
+      requestMemoSelectionExit(() => {
+        const tabs = elements.historyControls.querySelector(".history-mode-tabs");
+        tabs.classList.toggle("is-archive", nextMode === "archive");
+        tabs.querySelectorAll("[data-history-mode]").forEach((tabButton) => {
+          tabButton.classList.toggle("is-active", tabButton.dataset.historyMode === nextMode);
+        });
+        elements.historyList.classList.add("is-switching");
+        historyMemoMode = nextMode;
+        closeMemoActionPanel();
+        if (historyMemoMode === "archive") {
+          isHistoryMenuOpen = false;
+        }
+        window.setTimeout(() => {
+          renderHistory();
+          requestAnimationFrame(() => elements.historyList.classList.remove("is-switching"));
+        }, 260);
       });
-      elements.historyList.classList.add("is-switching");
-      historyMemoMode = nextMode;
-      if (historyMemoMode === "archive") {
-        isMemoActionPanelOpen = false;
-        isHistoryMenuOpen = false;
-      }
-      window.setTimeout(() => {
-        renderHistory();
-        requestAnimationFrame(() => elements.historyList.classList.remove("is-switching"));
-      }, 260);
     });
   });
   elements.historyControls.querySelector(".history-filter-header").addEventListener("click", () => {
@@ -2851,14 +3920,14 @@ function renderHistoryControls() {
   const endInput = elements.historyControls.querySelector("#historyEndInput");
   syncHistoryDateConstraints(startInput, endInput);
   startInput.addEventListener("change", () => {
-    historyCustomStart = startInput.value;
+    historyCustomStart = clampToToday(startInput.value);
     if (historyCustomStart && historyCustomEnd && historyCustomStart > historyCustomEnd) {
       historyCustomEnd = historyCustomStart;
     }
     renderHistory();
   });
   endInput.addEventListener("change", () => {
-    historyCustomEnd = endInput.value;
+    historyCustomEnd = clampToToday(endInput.value);
     if (historyCustomStart && historyCustomEnd && historyCustomEnd < historyCustomStart) {
       historyCustomStart = historyCustomEnd;
     }
@@ -2867,31 +3936,141 @@ function renderHistoryControls() {
   const actionStartInput = elements.historyControls.querySelector("#memoActionStartInput");
   const actionEndInput = elements.historyControls.querySelector("#memoActionEndInput");
   if (actionStartInput && actionEndInput) {
+    actionStartInput.max = getToday();
+    actionEndInput.max = getToday();
     actionStartInput.addEventListener("change", () => {
-      memoActionStart = actionStartInput.value;
+      memoActionStart = clampToToday(actionStartInput.value);
+      actionStartInput.value = memoActionStart;
+      if (memoActionStart && (!memoActionEnd || memoActionEnd < memoActionStart)) {
+        memoActionEnd = memoActionStart;
+        actionEndInput.value = memoActionEnd;
+      }
+      actionEndInput.min = memoActionStart || "";
     });
     actionEndInput.addEventListener("change", () => {
-      memoActionEnd = actionEndInput.value;
+      memoActionEnd = clampToToday(actionEndInput.value);
+      actionEndInput.value = memoActionEnd;
+      if (memoActionStart && memoActionEnd && memoActionEnd < memoActionStart) {
+        memoActionEnd = memoActionStart;
+        actionEndInput.value = memoActionEnd;
+      }
     });
   }
-  elements.historyControls.querySelectorAll("[data-memo-action]").forEach((button) => {
-    button.addEventListener("click", () => handleMemoRangeAction(button.dataset.memoAction));
-  });
+  const actionCheck = elements.historyControls.querySelector("[data-memo-action-check]");
+  if (actionCheck) actionCheck.addEventListener("click", checkMemosInRange);
+  const actionClear = elements.historyControls.querySelector("[data-memo-action-clear]");
+  if (actionClear) {
+    actionClear.addEventListener("click", () => {
+      selectedMemoIds.clear();
+      refreshHistoryResults();
+    });
+  }
   elements.historyControls.querySelectorAll("[data-open-memo-action]").forEach((button) => {
     button.addEventListener("click", () => {
       selectedMemoAction = button.dataset.openMemoAction;
+      selectedMemoIds.clear();
       isMemoActionPanelOpen = true;
       isHistoryMenuOpen = false;
       renderHistory();
     });
   });
-  const actionCancel = elements.historyControls.querySelector("[data-memo-action-cancel]");
-  if (actionCancel) {
-    actionCancel.addEventListener("click", () => {
-      isMemoActionPanelOpen = false;
-      renderHistory();
-    });
+}
+
+function closeMemoActionPanel() {
+  isMemoActionPanelOpen = false;
+  selectedMemoIds.clear();
+}
+
+function getCheckOnIcon() {
+  return `
+    <svg class="memo-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4.5"></rect>
+      <path d="M7.8 12.2L10.8 15.1L16.2 9.2"></path>
+    </svg>
+  `;
+}
+
+function getCheckOffIcon() {
+  return `
+    <svg class="memo-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4.5"></rect>
+      <path d="M8.6 8.6L15.4 15.4"></path>
+      <path d="M15.4 8.6L8.6 15.4"></path>
+    </svg>
+  `;
+}
+
+/** 選択中は、実行ボタンを画面下に固定して常に押せるようにする。 */
+function renderMemoSelectionBar() {
+  document.querySelector(".memo-selection-bar")?.remove();
+  // 履歴画面を離れているあいだは出さない
+  const isActive = isMemoActionPanelOpen && getActiveViewId() === "historyView";
+  document.body.classList.toggle("has-memo-selection-bar", isActive);
+  if (!isActive) return;
+
+  const isDelete = selectedMemoAction === "reset";
+  const bar = document.createElement("div");
+  bar.className = `memo-selection-bar${isDelete ? " is-delete" : ""}`;
+  bar.innerHTML = `
+    <p class="memo-selection-count"><strong>${selectedMemoIds.size}</strong>件をチェック中</p>
+    <div class="memo-selection-actions">
+      <button class="memo-selection-cancel" type="button">キャンセル</button>
+      <button class="memo-selection-run" type="button"${selectedMemoIds.size === 0 ? " disabled" : ""}>${
+        isDelete ? "削除" : "アーカイブ"
+      }</button>
+    </div>
+  `;
+  bar.querySelector(".memo-selection-cancel").addEventListener("click", () => {
+    closeMemoActionPanel();
+    renderHistory();
+  });
+  bar.querySelector(".memo-selection-run").addEventListener("click", () => {
+    handleMemoSelectionAction(selectedMemoAction);
+  });
+  document.body.append(bar);
+  positionMemoSelectionBar(bar);
+}
+
+function positionMemoSelectionBar(bar) {
+  const navHeight = document.querySelector(".bottom-nav")?.offsetHeight || 0;
+  bar.style.bottom = `${navHeight}px`;
+}
+
+function hasPendingMemoSelection() {
+  return isMemoActionPanelOpen && selectedMemoIds.size > 0;
+}
+
+/** チェックの途中でほかの画面に移ろうとしたときの確認。 */
+function requestMemoSelectionExit(action) {
+  if (!hasPendingMemoSelection()) {
+    action();
+    return true;
   }
+  const overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = `
+    <div class="confirm-card" role="dialog" aria-modal="true">
+      <p class="confirm-title">チェックの途中です</p>
+      <p class="confirm-body">${selectedMemoIds.size}件をチェック中です。このまま移動すると、チェックは取り消されます。</p>
+      <div class="confirm-actions">
+        <button class="small-button danger-button" type="button" data-action="leave">チェックをやめて移動する</button>
+        <button class="small-button" type="button" data-action="stay">ここに残る</button>
+      </div>
+    </div>
+  `;
+  const close = () => overlay.remove();
+  overlay.querySelector('[data-action="leave"]').addEventListener("click", () => {
+    close();
+    closeMemoActionPanel();
+    renderHistory();
+    action();
+  });
+  overlay.querySelector('[data-action="stay"]').addEventListener("click", close);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) close();
+  });
+  document.body.append(overlay);
+  return false;
 }
 
 function getMemoActionDefaultRange() {
@@ -2906,7 +4085,7 @@ function getMemoActionDefaultRange() {
   };
 }
 
-function handleMemoRangeAction(action) {
+function checkMemosInRange() {
   const defaults = getMemoActionDefaultRange();
   const startDate = memoActionStart || defaults.startDate;
   const endDate = memoActionEnd || defaults.endDate;
@@ -2915,51 +4094,64 @@ function handleMemoRangeAction(action) {
     return;
   }
 
-  const source = historyMemoMode === "archive" && action === "reset" ? state.archivedMemos : state.memos;
-  const targets = source.filter((memo) => memo.date >= startDate && memo.date <= endDate);
+  const targets = getRenderedHistoryMemos().filter((memo) => memo.date >= startDate && memo.date <= endDate);
   if (targets.length === 0) {
-    window.alert("指定した期間に対象のメモがありません。");
+    window.alert("指定した期間に、表示中のメモがありません。");
+    return;
+  }
+  targets.forEach((memo) => selectedMemoIds.add(getMemoIdentity(memo)));
+  refreshHistoryResults();
+}
+
+function handleMemoSelectionAction(action) {
+  const targetIds = new Set(selectedMemoIds);
+  const targets = getVisibleHistoryMemos().filter((memo) => targetIds.has(getMemoIdentity(memo)));
+  if (targets.length === 0) {
+    window.alert("メモがチェックされていません。");
     return;
   }
   const message =
     action === "archive"
-      ? "指定した期間のメモをアーカイブします。よろしいですか？"
-      : "指定した期間のメモを削除します。削除後も完了済みの日の連続記録は保持されます。よろしいですか？";
+      ? `チェックした${targets.length}件のメモをアーカイブします。よろしいですか？`
+      : `チェックした${targets.length}件のメモを削除します。削除後も完了済みの日の連続記録は保持されます。よろしいですか？`;
   if (!window.confirm(message)) return;
 
-  preserveCompletedDatesForRange(startDate, endDate);
+  preserveCompletedDatesForDates(targets.map((memo) => memo.date));
 
   if (action === "archive") {
     const archivedAt = new Date().toISOString();
     state.archivedMemos.push(...targets.map((memo) => ({ ...memo, archivedAt })));
-    state.memos = state.memos.filter((memo) => memo.date < startDate || memo.date > endDate);
+    state.memos = state.memos.filter((memo) => !targetIds.has(getMemoIdentity(memo)));
   } else if (historyMemoMode === "archive") {
-    state.archivedMemos = state.archivedMemos.filter((memo) => memo.date < startDate || memo.date > endDate);
+    state.archivedMemos = state.archivedMemos.filter((memo) => !targetIds.has(getMemoIdentity(memo)));
   } else {
-    state.memos = state.memos.filter((memo) => memo.date < startDate || memo.date > endDate);
+    state.memos = state.memos.filter((memo) => !targetIds.has(getMemoIdentity(memo)));
   }
-  isMemoActionPanelOpen = false;
+  closeMemoActionPanel();
   updateStreak();
   saveState();
   render();
 }
 
-function preserveCompletedDatesForRange(startDate, endDate) {
+function preserveCompletedDatesForDates(dates) {
   const completed = new Set(state.completedDates);
-  let cursor = startDate;
-  while (cursor <= endDate) {
-    if (isDateCompleteForStreak(cursor)) completed.add(cursor);
-    cursor = addDays(cursor, 1);
-  }
+  [...new Set(dates)].forEach((dateKey) => {
+    if (isDateCompleteForStreak(dateKey)) completed.add(dateKey);
+  });
   state.completedDates = [...completed].sort();
 }
 
 function isDateCompleteForStreak(dateKey) {
   const lessons = lessonsForDate(dateKey);
-  if (lessons.length === 0) {
+  const normas = normasForDate(dateKey);
+  if (lessons.length === 0 && normas.length === 0) {
     return hasCompletedStudyMemoForDate(dateKey);
   }
-  return state.completedDates.includes(dateKey) || lessons.every((lesson) => isComplete(lesson, dateKey));
+  if (state.completedDates.includes(dateKey)) return true;
+  return (
+    lessons.every((lesson) => isComplete(lesson, dateKey)) &&
+    normas.every((norma) => isComplete(norma, dateKey))
+  );
 }
 
 function hasCompletedStudyMemoForDate(dateKey) {
@@ -2987,8 +4179,16 @@ function isMemoInHistoryRange(memo) {
 
 function syncHistoryDateConstraints(startInput, endInput) {
   if (!startInput || !endInput) return;
-  startInput.max = historyCustomEnd || "";
+  // メモは今日より先には書けないので、今日より後の日付は選べないようにする
+  startInput.max = historyCustomEnd || getToday();
   endInput.min = historyCustomStart || "";
+  endInput.max = getToday();
+}
+
+/** 今日より後の日付が入っていたら今日に丸める。 */
+function clampToToday(dateKey) {
+  const today = getToday();
+  return dateKey && dateKey > today ? today : dateKey;
 }
 
 function isMemoMatchingHistorySearch(memo) {
@@ -3019,13 +4219,15 @@ function createFilterButton(id, label, color = null) {
   button.querySelector("span:last-child").textContent = label;
   button.addEventListener("click", () => {
     activeHistorySubject = id;
-    renderHistory();
+    refreshHistoryResults();
   });
   return button;
 }
 
 function openSettingsDetail(mode) {
   closeCalendar();
+  // 一覧の途中までスクロールした状態のまま詳細に入ると、途中から表示されてしまう
+  window.scrollTo(0, 0);
   settingsMode = mode;
   settingsDraft = {
     subjects: clone(state.subjects),
@@ -3034,9 +4236,11 @@ function openSettingsDetail(mode) {
     scheduleRotation: clone(state.scheduleRotation),
     dateExceptions: clone(state.dateExceptions),
     weekOverrides: clone(state.weekOverrides),
+    normas: clone(getNormas()),
     theme: clone(state.theme),
     notification: clone(state.notification),
-    maxPeriods: state.maxPeriods
+    maxPeriods: state.maxPeriods,
+    pendingSubjectMemoArchiveIds: []
   };
   settingsDraftSnapshot = serializeSettingsDraft();
   renderSettings();
@@ -3051,6 +4255,7 @@ function closeSettingsDetail(force = false) {
   settingsDraftSnapshot = "";
   pendingSettingsAction = null;
   renderSettings();
+  syncOperationTutorialToScreen();
 }
 
 function serializeSettingsDraft() {
@@ -3103,9 +4308,25 @@ function cancelPendingSettingsAction() {
 
 function renderSettings() {
   elements.settingsContent.innerHTML = "";
+  removeGlobalOverlays();
+  if (!getSettingsHelp(settingsMode)) isSettingsHelpOpen = false;
+  syncSettingsHelpButton();
   if (pendingSettingsAction) renderUnsavedSettingsNotice();
+  if (isSettingsHelpOpen) renderSettingsHelpOverlay();
   if (settingsMode === "subjects") {
     renderSubjectSettings();
+    return;
+  }
+  if (settingsMode === "subjectArchive") {
+    renderSubjectArchiveSettings();
+    return;
+  }
+  if (settingsMode === "changelog") {
+    renderChangelogSettings();
+    return;
+  }
+  if (settingsMode === "normas") {
+    renderNormaSettings();
     return;
   }
   if (settingsMode === "schedule") {
@@ -3136,6 +4357,129 @@ function renderSettings() {
   resumeOperationTutorialAfterFreeEdit();
 }
 
+/**
+ * オーバーレイは body 直下に出す。
+ * 画面切り替えのために .view へ transform が指定されていて、
+ * その中に置くと position:fixed が画面全体まで広がらないため。
+ */
+function removeGlobalOverlays() {
+  document
+    .querySelectorAll(".settings-help-overlay, .unsaved-overlay, .confirm-overlay")
+    .forEach((overlay) => overlay.remove());
+}
+
+function getSettingsHelp(mode) {
+  return SETTINGS_HELP[mode] || null;
+}
+
+function syncSettingsHelpButton() {
+  if (!elements.settingsHelpButton) return;
+  const hasHelp = Boolean(getSettingsHelp(settingsMode));
+  elements.settingsHelpButton.hidden = !hasHelp;
+  elements.settingsHelpButton.classList.toggle("is-active", hasHelp && isSettingsHelpOpen);
+  elements.settingsHelpButton.setAttribute("aria-expanded", String(hasHelp && isSettingsHelpOpen));
+}
+
+function renderSettingsHelpOverlay() {
+  const help = getSettingsHelp(settingsMode);
+  if (help) showHelpOverlay(help);
+}
+
+function showHelpOverlay(help) {
+  const sections = help.sections || [{ items: help.items || [] }];
+  const overlay = document.createElement("div");
+  overlay.className = "settings-help-overlay";
+  overlay.innerHTML = `
+    <div class="settings-help-card" role="dialog" aria-modal="true" aria-label="${escapeHtml(help.title)}">
+      <div class="settings-help-head">
+        <h3>${escapeHtml(help.title)}</h3>
+        <button class="settings-help-close" type="button" aria-label="閉じる">×</button>
+      </div>
+      <div class="settings-help-body">
+        ${help.tip ? `<p class="settings-help-tip">${escapeHtml(help.tip)}</p>` : ""}
+        ${help.lead ? `<div class="settings-help-lead">${help.lead()}</div>` : ""}
+        ${sections
+          .map(
+            (section) => `
+          <section class="settings-help-section">
+            ${section.title ? `<h4>${escapeHtml(section.title)}</h4>` : ""}
+            ${section.items.map(createSettingsHelpItem).join("")}
+          </section>
+        `
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+  const close = () => {
+    isSettingsHelpOpen = false;
+    overlay.remove();
+    syncSettingsHelpButton();
+  };
+  overlay.querySelector(".settings-help-close").addEventListener("click", close);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) close();
+  });
+  // 設定を直接開かず、一覧のボタンまで案内する。どこにある設定なのかが分かるように。
+  overlay.querySelectorAll("[data-help-jump]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const mode = button.dataset.helpJump;
+      close();
+      showView("settingsView");
+      highlightSettingsMenuButton(`[data-settings-mode="${mode}"]`);
+    });
+  });
+  overlay.querySelectorAll("[data-help-external]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = button.dataset.helpExternal;
+      close();
+      if (target === "tutorial") {
+        restartOperationTutorial();
+        return;
+      }
+      showView("settingsView");
+      highlightSettingsMenuButton(`[data-settings-external="${target}"]`);
+    });
+  });
+  document.body.append(overlay);
+}
+
+/** ヘルプの中で設定へ飛ぶボタン。アイコンもボタンの中に入れて、見た目を1種類に揃える。 */
+function createSettingsHelpJumpButton(icon, label, { mode, external } = {}) {
+  const attribute = mode ? `data-help-jump="${mode}"` : `data-help-external="${external}"`;
+  return `
+    <button class="settings-help-jump settings-icon-${icon}" type="button" ${attribute}>
+      <span class="settings-menu-icon settings-help-icon" aria-hidden="true">${getSettingsMenuIcon(icon)}</span>
+      <span class="settings-help-jump-label">${escapeHtml(label)}</span>
+      <svg class="settings-help-jump-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6L15 12L9 18"></path></svg>
+    </button>
+  `;
+}
+
+function createSettingsHelpItem(item) {
+  if (item.icon && (item.mode || item.external)) {
+    return `
+      <div class="settings-help-item is-jump-item">
+        ${createSettingsHelpJumpButton(item.icon, item.title, { mode: item.mode, external: item.external })}
+        <span class="settings-help-item-body">${escapeHtml(item.body)}</span>
+      </div>
+    `;
+  }
+  return `
+    <div class="settings-help-item has-no-icon">
+      <span class="settings-help-bullet" aria-hidden="true"></span>
+      <span class="settings-help-copy">
+        <span class="settings-help-item-title">${escapeHtml(item.title)}</span>
+        <span class="settings-help-item-body">${escapeHtml(item.body)}</span>
+      </span>
+    </div>
+  `;
+}
+
+function createSettingsHelpChip(icon, label, mode) {
+  return createSettingsHelpJumpButton(icon, label, { mode });
+}
+
 function renderUnsavedSettingsNotice() {
   const notice = document.createElement("div");
   notice.className = "unsaved-overlay";
@@ -3152,7 +4496,7 @@ function renderUnsavedSettingsNotice() {
   notice.querySelector('[data-action="discard"]').addEventListener("click", discardSettingsAndContinue);
   notice.querySelector('[data-action="save"]').addEventListener("click", saveSettingsAndContinue);
   notice.querySelector('[data-action="cancel"]').addEventListener("click", cancelPendingSettingsAction);
-  elements.settingsContent.append(notice);
+  document.body.append(notice);
 }
 
 function renderSettingsMenu() {
@@ -3161,27 +4505,106 @@ function renderSettingsMenu() {
   const activeTemplateCount = getActiveTemplates(state.scheduleTemplates).length;
   const archivedTemplateCount = state.scheduleTemplates.length - activeTemplateCount;
   menu.innerHTML = `
-    ${createSettingsMenuButton("subjects", "科目設定", "科目の追加・編集を行います", `${state.subjects.length}件`, "book")}
+    ${createSettingsGroupHeading("科目・時間割")}
+    ${createSettingsMenuButton("subjects", "科目設定", "科目の追加・編集を行います", `${getActiveSubjects().length}件`, "book")}
     ${createSettingsMenuButton("schedule", "時間割設定", "時間割テンプレートの作成・編集を行います", `${activeTemplateCount}件`, "clock")}
     ${createSettingsMenuButton("ranges", "時間割の期間設定", "時間割を使う期間を設定します", `${state.scheduleRanges.length}件`, "calendar")}
     ${createSettingsMenuButton(
       "exceptions",
       "休日・日ごとの予定の設定",
-      "特定日の休日設定や曜日変更を行います",
+      "特定日を休みにしたり、曜日を入れ替えることができます",
       `${state.dateExceptions.length + state.weekOverrides.length}件`,
       "holiday"
     )}
+    ${createSettingsMenuButton(
+      "normas",
+      "ノルマ設定",
+      "曜日や日数を決めて、自分に課す学習を設定します",
+      `${getActiveNormas().length}件`,
+      "target"
+    )}
+    ${createSettingsGroupHeading("アーカイブ")}
+    ${createSettingsMenuButton(
+      "subjectArchive",
+      "アーカイブされた科目一覧",
+      "使わなくなった科目を確認・編集・復元できます",
+      `${getArchivedSubjects().length}件`,
+      "archiveBook"
+    )}
+    ${createSettingsMenuButton("archive", "アーカイブされた時間割一覧", "過去に使っていた時間割を確認・復元できます", `${archivedTemplateCount}件`, "archive")}
+    ${createSettingsGroupHeading("アプリの設定")}
     ${createSettingsMenuButton("notification", "通知設定", "復習の時間をお知らせする通知を設定します", getNotificationMenuLabel(), "bell")}
     ${createSettingsMenuButton("theme", "画面の色設定", "ダークモードやアクセントカラーを変更できます", getThemeModeLabel(state.theme.mode), "palette")}
-    ${createSettingsMenuButton("archive", "アーカイブされた時間割一覧", "過去に使っていた時間割を確認・復元できます", `${archivedTemplateCount}件`, "archive")}
-    ${createSettingsExternalButton("プライバシーポリシー", "データの取り扱いについて確認できます", "privacy")}
+    ${createSettingsGroupHeading("アプリについて")}
+    ${createSettingsExternalButton("チュートリアルをもう一度見る", "使い方の案内を最初から表示します", "guide", "tutorial")}
+    ${createSettingsMenuButton("changelog", "更新履歴", "アップデートで変わった内容を確認できます", `Ver ${APP_VERSION}`, "note")}
+    ${createSettingsExternalButton("ご意見箱", "感想や不具合の報告を送れます", "feedback", "feedback")}
+    ${createSettingsExternalButton("プライバシーポリシー", "データの取り扱いについて確認できます", "privacy", "privacy")}
     ${createSettingsInfoRow("アプリバージョン", "現在インストールされているバージョン", `Version ${APP_VERSION}`, "info")}
   `;
   menu.querySelectorAll("[data-settings-mode]").forEach((button) => {
     button.addEventListener("click", () => openSettingsDetail(button.dataset.settingsMode));
   });
-  menu.querySelector("[data-open-privacy-policy]").addEventListener("click", openPrivacyPolicy);
+  menu.querySelectorAll("[data-settings-external]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = button.dataset.settingsExternal;
+      if (action === "tutorial") {
+        restartOperationTutorial();
+        return;
+      }
+      if (action === "feedback") {
+        openFeedbackForm();
+        return;
+      }
+      openPrivacyPolicy();
+    });
+  });
   elements.settingsContent.append(menu);
+}
+
+/** 一覧の該当ボタンまでスクロールして、どれのことか分かるよう一瞬光らせる。 */
+function highlightSettingsMenuButton(selector) {
+  // showView() の中で描き直しが終わっているので、そのまま探して構わない
+  const button = elements.settingsContent.querySelector(selector);
+  if (!button) return;
+  button.scrollIntoView({ block: "center" });
+  button.classList.add("is-highlighted");
+  window.setTimeout(() => button.classList.remove("is-highlighted"), 1600);
+}
+
+function createSettingsGroupHeading(title) {
+  return `<p class="settings-group-heading">${title}</p>`;
+}
+
+function renderChangelogSettings() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail";
+  wrapper.innerHTML = `
+    <div class="settings-action-bar settings-action-bar-single">
+      <button class="back-button" type="button">← 設定に戻る</button>
+    </div>
+    <div class="settings-block">
+      <h3>更新履歴</h3>
+      <div class="changelog-list">
+        ${CHANGELOG.map(
+          (entry, index) => `
+          <section class="changelog-entry">
+            <div class="changelog-entry-head">
+              <span class="changelog-version">Version ${escapeHtml(entry.version)}</span>
+              ${index === 0 ? `<span class="changelog-badge">最新</span>` : ""}
+              <span class="changelog-date">${escapeHtml(entry.date)}</span>
+            </div>
+            <ul class="changelog-items">
+              ${entry.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+            </ul>
+          </section>
+        `
+        ).join("")}
+      </div>
+    </div>
+  `;
+  elements.settingsContent.append(wrapper);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
 }
 
 function createSettingsMenuButton(mode, title, description, count, icon) {
@@ -3202,9 +4625,9 @@ function createSettingsMenuButton(mode, title, description, count, icon) {
   `;
 }
 
-function createSettingsExternalButton(title, description, icon) {
+function createSettingsExternalButton(title, description, icon, action) {
   return `
-    <button class="settings-menu-button settings-icon-${icon}" type="button" data-open-privacy-policy>
+    <button class="settings-menu-button settings-icon-${icon}" type="button" data-settings-external="${action}">
       <span class="settings-menu-icon" aria-hidden="true">${getSettingsMenuIcon(icon)}</span>
       <span class="settings-menu-copy">
         <span class="settings-menu-title">${title}</span>
@@ -3239,8 +4662,63 @@ function openPrivacyPolicy() {
     window.alert("オフラインのため、プライバシーポリシーを開けません。通信環境を確認してから、もう一度お試しください。");
     return;
   }
+  showConfirmOverlay({
+    title: "ブラウザを開きます",
+    body: "プライバシーポリシーはブラウザで開きます。アプリはこのまま残ります。",
+    confirmLabel: "開く",
+    onConfirm: () => openExternalUrl(PRIVACY_POLICY_URL)
+  });
+}
+
+function buildFeedbackFormUrl() {
+  const url = new URL(FEEDBACK_FORM_URL);
+  url.searchParams.set("usp", "pp_url");
+  url.searchParams.set(FEEDBACK_FORM_VERSION_ENTRY, APP_VERSION);
+  return url.toString();
+}
+
+function openFeedbackForm() {
+  if (navigator.onLine === false) {
+    window.alert("オフラインのため、ご意見箱を開けません。通信環境を確認してから、もう一度お試しください。");
+    return;
+  }
+  showConfirmOverlay({
+    title: "ブラウザを開きます",
+    body: "ご意見箱はブラウザで開きます。アプリはこのまま残ります。",
+    confirmLabel: "開く",
+    onConfirm: () => openExternalUrl(buildFeedbackFormUrl())
+  });
+}
+
+/** 確認だけを出す共通のオーバーレイ。 */
+function showConfirmOverlay({ title, body, confirmLabel, cancelLabel = "キャンセル", danger = false, onConfirm }) {
+  const overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = `
+    <div class="confirm-card" role="dialog" aria-modal="true">
+      <p class="confirm-title">${escapeHtml(title)}</p>
+      <p class="confirm-body">${escapeHtml(body)}</p>
+      <div class="confirm-actions">
+        <button class="small-button${danger ? " danger-button" : " primary-mini-button"}" type="button" data-action="ok">${escapeHtml(confirmLabel)}</button>
+        <button class="small-button" type="button" data-action="cancel">${escapeHtml(cancelLabel)}</button>
+      </div>
+    </div>
+  `;
+  const close = () => overlay.remove();
+  overlay.querySelector('[data-action="ok"]').addEventListener("click", () => {
+    close();
+    onConfirm();
+  });
+  overlay.querySelector('[data-action="cancel"]').addEventListener("click", close);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) close();
+  });
+  document.body.append(overlay);
+}
+
+function openExternalUrl(url) {
   const link = document.createElement("a");
-  link.href = PRIVACY_POLICY_URL;
+  link.href = url;
   link.target = "_blank";
   link.rel = "noopener noreferrer external";
   document.body.append(link);
@@ -3302,6 +4780,42 @@ function getSettingsMenuIcon(icon) {
         <path d="M9.5 13H14.5"></path>
       </svg>
     `,
+    archiveBook: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="4.5" width="16" height="4" rx="1.5"></rect>
+        <path d="M6 8.5V19.5H18V8.5"></path>
+        <path d="M9.4 11.6C10.3 11.1 11.2 11.2 12 11.8V17.4C11.2 16.8 10.3 16.7 9.4 17.2V11.6Z"></path>
+        <path d="M14.6 11.6C13.7 11.1 12.8 11.2 12 11.8V17.4C12.8 16.8 13.7 16.7 14.6 17.2V11.6Z"></path>
+      </svg>
+    `,
+    target: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8.5"></circle>
+        <circle cx="12" cy="12" r="4.6"></circle>
+        <circle cx="12" cy="12" r="1.1" fill="currentColor"></circle>
+      </svg>
+    `,
+    guide: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8.5"></circle>
+        <path d="M10.2 9.4L15.4 12L10.2 14.6V9.4Z"></path>
+      </svg>
+    `,
+    note: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 3.8H14.5L18.5 7.8V20.2H6V3.8Z"></path>
+        <path d="M14.2 3.9V8H18.4"></path>
+        <path d="M9 12.4H15"></path>
+        <path d="M9 16.1H13"></path>
+      </svg>
+    `,
+    feedback: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 6.4C4.5 5.4 5.3 4.6 6.3 4.6H17.7C18.7 4.6 19.5 5.4 19.5 6.4V14.3C19.5 15.3 18.7 16.1 17.7 16.1H10.2L6.2 19.4V16.1H6.3C5.3 16.1 4.5 15.3 4.5 14.3V6.4Z"></path>
+        <path d="M12 7.6V11.2"></path>
+        <path d="M12 13.4H12.01"></path>
+      </svg>
+    `,
     privacy: `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 3.5L19 6.3V11.2C19 15.7 16.2 19 12 20.6C7.8 19 5 15.7 5 11.2V6.3L12 3.5Z"></path>
@@ -3318,6 +4832,149 @@ function getSettingsMenuIcon(icon) {
   };
   return icons[icon] || icons.book;
 }
+
+const SETTINGS_HELP = {
+  menu: {
+    title: "設定の使い方",
+    tip: "ボタンをタップすると、その設定に移動できます。",
+    lead: () =>
+      `<span class="settings-help-lead-line">まず ${createSettingsHelpChip("clock", "時間割設定", "schedule")} から、時間割を設定しましょう。</span>` +
+      `<span class="settings-help-lead-line">時間割の詳細は、次の2つから行えます。</span>` +
+      `<span class="settings-help-chip-group">` +
+      `${createSettingsHelpChip("calendar", "時間割の期間設定", "ranges")}` +
+      `${createSettingsHelpChip("holiday", "休日・日ごとの予定の設定", "exceptions")}` +
+      `</span>`,
+    sections: [
+      {
+        title: "科目・時間割",
+        items: [
+          { icon: "book", mode: "subjects", title: "科目設定", body: "授業や自習で使う科目を登録します。使わなくなった科目はアーカイブできます。" },
+          { icon: "clock", mode: "schedule", title: "時間割設定", body: "曜日と時限に科目をあてはめた「時間割テンプレート」を作ります。まずはここから。" },
+          { icon: "calendar", mode: "ranges", title: "時間割の期間設定", body: "どのテンプレートを、いつからいつまで使うかを決めます。" },
+          { icon: "holiday", mode: "exceptions", title: "休日・日ごとの予定の設定", body: "特定の日を休みにしたり、曜日を入れ替えることができます。" },
+          { icon: "target", mode: "normas", title: "ノルマ設定", body: "時間割とは別に、曜日や日数を決めて自分に課す学習を設定します。時間割と一緒に使えます。" }
+        ]
+      },
+      {
+        title: "アーカイブ",
+        items: [
+          { icon: "archiveBook", mode: "subjectArchive", title: "アーカイブされた科目一覧", body: "アーカイブした科目の確認・編集と、元に戻す操作ができます。" },
+          { icon: "archive", mode: "archive", title: "アーカイブされた時間割一覧", body: "過去に使っていた時間割テンプレートを確認・復元できます。" }
+        ]
+      },
+      {
+        title: "アプリの設定",
+        items: [
+          { icon: "bell", mode: "notification", title: "通知設定", body: "復習の時間をお知らせする通知の時刻と頻度を設定します。" },
+          { icon: "palette", mode: "theme", title: "画面の色設定", body: "ライト／ダークの切り替えと、アクセントカラーを変更できます。" }
+        ]
+      },
+      {
+        title: "アプリについて",
+        items: [
+          { icon: "guide", external: "tutorial", title: "チュートリアルをもう一度見る", body: "使い方の案内を最初から表示します。時間割とノルマのどちらから始めるか選べます。" },
+          { icon: "note", mode: "changelog", title: "更新履歴", body: "アップデートで変わった内容を確認できます。" },
+          { icon: "feedback", external: "feedback", title: "ご意見箱", body: "感想や不具合の報告を送れます。バージョンは自動で入力されます。" },
+          { icon: "privacy", external: "privacy", title: "プライバシーポリシー", body: "データの取り扱いについて確認できます。" }
+        ]
+      }
+    ]
+  },
+  subjects: {
+    title: "科目設定の使い方",
+    items: [
+      { title: "科目を追加する", body: "「＋ 科目を追加」で行が増えます。Enterを押すと次の科目に進めます。" },
+      { title: "色を決める", body: "名前の右の四角から選びます。ホーム・履歴・時間割表・ウィジェットに反映されます。" },
+      { title: "並び替える", body: "左の「≡」を上下にドラッグします。" },
+      { title: "アーカイブと削除", body: "右の「…」から。アーカイブは選択肢から外すだけで、書いたメモは残ります。" },
+      { title: "保存", body: "「保存して戻る」で確定します。" }
+    ]
+  },
+  subjectArchive: {
+    title: "アーカイブされた科目一覧の使い方",
+    items: [
+      { title: "名前と色の編集", body: "アーカイブ中でも、ここで変更できます。" },
+      { title: "元に戻す", body: "「…」→「元に戻す」で、各画面の選択肢に戻ります。" },
+      { title: "メモをまとめて移す", body: "「…」→「この科目のメモをアーカイブ」で移せます。0件のときは出ません。" },
+      { title: "保存", body: "「保存して戻る」で確定します。" }
+    ]
+  },
+  schedule: {
+    title: "時間割設定の使い方",
+    items: [
+      { title: "時間割テンプレート", body: "曜日と時限に科目をあてはめた表です。複数作っておけます。" },
+      { title: "科目を追加", body: "この画面を離れずに科目を足せます。Enterでも追加できます。" },
+      { title: "何限まで表示するか", body: "表に出す時限の数です。すべてのテンプレートで共通です。" },
+      { title: "「…」メニュー", body: "期間設定への移動、アーカイブ、削除ができます。" },
+      { title: "保存", body: "「保存して戻る」で確定します。" }
+    ]
+  },
+  ranges: {
+    title: "時間割の期間設定の使い方",
+    items: [
+      { title: "期間を追加", body: "どのテンプレートを、いつからいつまで使うかを決めます。" },
+      { title: "ローテーション", body: "週替わりの時間割はこちら。何週で1巡するかと開始日を決めます。" },
+      { title: "期間は重ねられません", body: "同じ日に2つの時間割は設定できません。" },
+      { title: "保存", body: "「保存して戻る」で確定します。" }
+    ]
+  },
+  exceptions: {
+    title: "休日・日ごとの予定の設定の使い方",
+    items: [
+      { title: "日ごと", body: "日付を選んで、休みにする・曜日を入れ替える・別の時間割にする。" },
+      { title: "週ごと", body: "1週間まるごと別の時間割に切り替えます。" },
+      { title: "祝日", body: "祝日は自動で休みです。授業がある日は「日ごと」で上書きします。" },
+      { title: "保存", body: "「保存して戻る」で確定します。" }
+    ]
+  },
+  archive: {
+    title: "アーカイブされた時間割一覧の使い方",
+    items: [
+      { title: "復元", body: "「復元」で現在の時間割一覧に戻ります。" },
+      { title: "残しておけます", body: "削除せず置いておけば、あとで見返せます。" },
+      { title: "保存", body: "「保存して戻る」で確定します。" }
+    ]
+  },
+  notification: {
+    title: "通知設定の使い方",
+    items: [
+      { title: "通知のオン・オフ", body: "初回はスマホ側で通知の許可が必要です。" },
+      { title: "頻度", body: "毎日か、授業のある日だけかを選べます。" },
+      { title: "時刻", body: "指定した時刻にお知らせします。" },
+      { title: "メッセージ", body: "通知に表示される文章を変えられます。" }
+    ]
+  },
+  theme: {
+    title: "画面の色設定の使い方",
+    items: [
+      { title: "ライト・ダーク", body: "ホーム画面のウィジェットにも反映されます。" },
+      { title: "アクセントカラー", body: "ボタンやチェックの色です。文字に使うときは読みやすさのため自動で調整します。" }
+    ]
+  },
+  normas: {
+    title: "ノルマ設定の使い方",
+    items: [
+      { title: "ノルマとは", body: "時間割とは別に、自分で決めた予定です。時間割を使わなくても、両方使ってもかまいません。" },
+      { title: "科目とタイトル", body: "科目を選び、必要ならタイトルを付けます。同じ科目でも「単語帳」「長文」のように分けられます。" },
+      { title: "毎日", body: "曜日を問わず毎日やるとき。選ぶだけで設定は終わりです。" },
+      { title: "曜日ごと", body: "決まった曜日にやるとき。曜日をタップして選びます。" },
+      { title: "○日やって○日休む", body: "「1日やって1日休む」で1日おき、「3日やって1日休む」で3日連続のあと1日休みです。開始日が周期の起点になります。" },
+      { title: "祝日・休みの日", body: "除くと、祝日と休日設定した日はノルマなしになります。周期はカレンダー通りに進みます。" },
+      { title: "連続記録", body: "ホームのノルマに炎のアイコンで表示されます。ノルマのない日は飛ばして数えます。" },
+      { title: "保存", body: "「保存して戻る」で確定します。" }
+    ]
+  }
+};
+
+const HISTORY_HELP = {
+  title: "履歴の使い方",
+  items: [
+    { title: "今までのメモ", body: "書いたメモが日付と科目つきで並びます。星でお気に入りにできます。" },
+    { title: "絞り込みと検索", body: "科目のボタンで絞れます。「フィルター」から期間・並び順・検索も使えます。" },
+    { title: "アーカイブと削除", body: "右上の「…」から。メモをタップしてチェックし、下のボタンで実行します。" },
+    { title: "通常メモとアーカイブ", body: "上のタブで切り替えます。アーカイブしたメモはアーカイブ側に移ります。" }
+  ]
+};
 
 function getThemeModeLabel(mode) {
   return mode === "dark" ? "ダーク" : "ライト";
@@ -3341,24 +4998,223 @@ function renderSubjectSettings() {
       <div id="subjectEditorList" class="editor-list"></div>
       <button id="addSubjectRowButton" class="wide-button" type="button">＋ 科目を追加</button>
     </div>
+    <div class="settings-block">
+      <h3>アーカイブ</h3>
+      <div id="subjectSettingsArchiveNote"></div>
+      <button id="openSubjectArchiveButton" class="wide-button" type="button">アーカイブされた科目一覧を開く（${
+        getArchivedSubjects(settingsDraft.subjects).length
+      }件）</button>
+    </div>
   `;
   elements.settingsContent.append(wrapper);
+  renderPendingMemoArchiveNote(wrapper.querySelector("#subjectSettingsArchiveNote"));
   wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
   wrapper.querySelector("#addSubjectRowButton").addEventListener("click", () => {
     settingsDraft.subjects.push({
       id: createId("subject"),
       name: "",
-      color: DEFAULT_UNSET_COLOR
+      color: DEFAULT_UNSET_COLOR,
+      archived: false
     });
     renderSettings();
+  });
+  wrapper.querySelector("#openSubjectArchiveButton").addEventListener("click", () => {
+    requestSettingsExit(() => openSettingsDetail("subjectArchive"));
   });
   wrapper.querySelector("#saveSubjectSettingsButton").addEventListener("click", saveSubjectSettings);
   renderSubjectEditorRows(wrapper.querySelector("#subjectEditorList"));
 }
 
+function createSubjectRowActionCell(actions) {
+  return `
+    <div class="subject-action-cell">
+      <button class="template-action-button subject-action-button" type="button" aria-label="科目メニュー" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="5" cy="12" r="1"></circle>
+          <circle cx="12" cy="12" r="1"></circle>
+          <circle cx="19" cy="12" r="1"></circle>
+        </svg>
+      </button>
+      <div class="template-action-menu subject-action-menu">
+        ${actions
+          .map(
+            (action) =>
+              `<button class="small-button${action.danger ? " danger-button" : ""}" type="button" data-subject-action="${action.id}">${action.text}</button>`
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function bindSubjectRowActionMenu(row) {
+  const actionButton = row.querySelector(".subject-action-button");
+  const actionMenu = row.querySelector(".subject-action-menu");
+  actionButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const willOpen = !actionMenu.classList.contains("is-open");
+    closeTemplateActionMenus();
+    actionMenu.classList.toggle("is-open", willOpen);
+    actionButton.classList.toggle("is-active", willOpen);
+    actionButton.setAttribute("aria-expanded", String(willOpen));
+  });
+  actionMenu.addEventListener("click", (event) => event.stopPropagation());
+  return actionMenu;
+}
+
+function getPendingSubjectMemoArchiveIds() {
+  if (!Array.isArray(settingsDraft.pendingSubjectMemoArchiveIds)) {
+    settingsDraft.pendingSubjectMemoArchiveIds = [];
+  }
+  return settingsDraft.pendingSubjectMemoArchiveIds;
+}
+
+function isSubjectMemoArchiveQueued(subjectId) {
+  return getPendingSubjectMemoArchiveIds().includes(subjectId);
+}
+
+function queueSubjectMemoArchive(subjectId) {
+  if (!isSubjectMemoArchiveQueued(subjectId)) getPendingSubjectMemoArchiveIds().push(subjectId);
+}
+
+function unqueueSubjectMemoArchive(subjectId) {
+  settingsDraft.pendingSubjectMemoArchiveIds = getPendingSubjectMemoArchiveIds().filter(
+    (id) => id !== subjectId
+  );
+}
+
+function getSubjectMemoCount(subjectId) {
+  return state.memos.filter(
+    (memo) => memo.subjectId === subjectId && (memo.content || "").trim().length > 0
+  ).length;
+}
+
+function requestSubjectMemoArchive(subject, { alertWhenEmpty = false } = {}) {
+  const memoCount = getSubjectMemoCount(subject.id);
+  const subjectName = subject.name.trim() || "この科目";
+  if (memoCount === 0) {
+    if (alertWhenEmpty) window.alert(`${subjectName}の履歴メモはありません。`);
+    return;
+  }
+  if (
+    !window.confirm(
+      `${subjectName}の履歴メモ${memoCount}件も、まとめてアーカイブしますか？\n\n［OK］メモもアーカイブに移動します\n［キャンセル］メモは通常メモのまま残します`
+    )
+  ) {
+    return;
+  }
+  queueSubjectMemoArchive(subject.id);
+}
+
+function archiveSubjectInDraft(subject) {
+  const subjectName = subject.name.trim() || "この科目";
+  if (!window.confirm(`${subjectName}をアーカイブしますか？時間割やホームの科目の選択肢から外れます。`)) {
+    return;
+  }
+  const relatedNormas = getActiveNormas(settingsDraft.normas).filter((norma) => norma.subjectId === subject.id);
+  if (relatedNormas.length > 0) {
+    closeTemplateActionMenus();
+    showNormaConflictOverlay(subject, relatedNormas);
+    return;
+  }
+  subject.archived = true;
+  requestSubjectMemoArchive(subject);
+  closeTemplateActionMenus();
+  renderSettings();
+}
+
+/** アーカイブしようとした科目にノルマが残っているときの確認。 */
+function showNormaConflictOverlay(subject, relatedNormas) {
+  const subjectName = subject.name.trim() || "この科目";
+  const overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = `
+    <div class="confirm-card" role="dialog" aria-modal="true">
+      <p class="confirm-title">この科目のノルマがあります</p>
+      <p class="confirm-body">現在、${escapeHtml(subjectName)}のノルマが${relatedNormas.length}件設定されています。どうしますか？</p>
+      <div class="confirm-actions">
+        <button class="small-button primary-mini-button" type="button" data-action="edit">ノルマの科目を変更する</button>
+        <button class="small-button" type="button" data-action="archive">ノルマごとアーカイブする</button>
+        <button class="small-button" type="button" data-action="cancel">キャンセル</button>
+      </div>
+    </div>
+  `;
+  const close = () => overlay.remove();
+  overlay.querySelector('[data-action="edit"]').addEventListener("click", () => {
+    close();
+    // 科目はアーカイブせず、ノルマ設定へ移動して科目を選び直してもらう
+    requestSettingsExit(() => openSettingsDetail("normas"));
+  });
+  overlay.querySelector('[data-action="archive"]').addEventListener("click", () => {
+    close();
+    subject.archived = true;
+    relatedNormas.forEach((norma) => {
+      norma.archived = true;
+      norma.updatedAt = new Date().toISOString();
+    });
+    requestSubjectMemoArchive(subject);
+    renderSettings();
+  });
+  overlay.querySelector('[data-action="cancel"]').addEventListener("click", close);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) close();
+  });
+  document.body.append(overlay);
+}
+
+function renderPendingMemoArchiveNote(container) {
+  const names = getPendingSubjectMemoArchiveIds()
+    .map((id) => settingsDraft.subjects.find((subject) => subject.id === id))
+    .filter(Boolean)
+    .map((subject) => subject.name.trim() || "名称未入力");
+  if (names.length === 0) return;
+  const note = document.createElement("p");
+  note.className = "settings-note pending-archive-note";
+  note.textContent = `保存すると、${names.join("・")}の履歴メモをアーカイブに移動します。`;
+  container.append(note);
+}
+
+function archiveMemosForSubjects(subjectIds) {
+  const targetSubjectIds = new Set(subjectIds);
+  if (targetSubjectIds.size === 0) return;
+  const targets = state.memos.filter(
+    (memo) => targetSubjectIds.has(memo.subjectId) && (memo.content || "").trim().length > 0
+  );
+  if (targets.length === 0) return;
+
+  preserveCompletedDatesForDates(targets.map((memo) => memo.date));
+  const archivedAt = new Date().toISOString();
+  const targetKeys = new Set(targets.map((memo) => getMemoIdentity(memo)));
+  state.archivedMemos.push(...targets.map((memo) => ({ ...memo, archivedAt })));
+  state.memos = state.memos.filter((memo) => !targetKeys.has(getMemoIdentity(memo)));
+}
+
+function deleteSubjectFromDraft(subject) {
+  const subjectName = subject.name.trim() || "この科目";
+  if (!window.confirm(`${subjectName}を削除します。時間割に設定されているこの科目も外れます。よろしいですか？`)) {
+    return;
+  }
+  const removedId = subject.id;
+  const currentIndex = settingsDraft.subjects.findIndex((item) => item.id === removedId);
+  if (currentIndex === -1) return;
+  unqueueSubjectMemoArchive(removedId);
+  settingsDraft.subjects.splice(currentIndex, 1);
+  settingsDraft.normas = getNormas(settingsDraft.normas).filter((norma) => norma.subjectId !== removedId);
+  settingsDraft.scheduleTemplates.forEach((template) => {
+    weekdayKeys.forEach((dayKey) => {
+      Object.keys(template.schedule?.[dayKey] || {}).forEach((period) => {
+        if (template.schedule[dayKey][period] === removedId) delete template.schedule[dayKey][period];
+      });
+    });
+  });
+  closeTemplateActionMenus();
+  renderSettings();
+}
+
 function renderSubjectEditorRows(container) {
   container.innerHTML = "";
-  if (settingsDraft.subjects.length === 0) {
+  const subjects = getActiveSubjects(settingsDraft.subjects);
+  if (subjects.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
     empty.textContent = "科目がありません";
@@ -3366,7 +5222,7 @@ function renderSubjectEditorRows(container) {
     return;
   }
 
-  settingsDraft.subjects.forEach((subject, index) => {
+  subjects.forEach((subject) => {
     const row = document.createElement("div");
     row.className = "subject-editor-row";
     row.dataset.subjectId = subject.id;
@@ -3374,41 +5230,434 @@ function renderSubjectEditorRows(container) {
       <button class="subject-drag-handle" type="button" aria-label="科目の並び順を変更">≡</button>
       <input class="subject-name-editor" type="text" placeholder="科目名">
       <div class="subject-color-editor"></div>
-      <button class="small-button subject-delete-button" type="button" aria-label="科目を削除">
-        <span class="subject-delete-label">削除</span>
-        <span class="subject-delete-icon" aria-hidden="true">×</span>
-      </button>
+      ${createSubjectRowActionCell([
+        { id: "archive", text: "アーカイブ" },
+        { id: "delete", text: "削除", danger: true }
+      ])}
     `;
     const dragHandle = row.querySelector(".subject-drag-handle");
     const nameInput = row.querySelector(".subject-name-editor");
     const colorInput = row.querySelector(".subject-color-editor");
-    if (!/^#[0-9a-f]{6}$/i.test(subject.color || "")) settingsDraft.subjects[index].color = DEFAULT_UNSET_COLOR;
+    if (!/^#[0-9a-f]{6}$/i.test(subject.color || "")) subject.color = DEFAULT_UNSET_COLOR;
     nameInput.value = subject.name;
-    renderColorSliderEditor(colorInput, settingsDraft.subjects[index].color, (color) => {
+    renderColorSliderEditor(colorInput, subject.color, (color) => {
       subject.color = color;
     });
     nameInput.addEventListener("input", () => {
       subject.name = nameInput.value;
     });
-    row.querySelector(".subject-delete-button").addEventListener("click", () => {
-      const subjectName = subject.name.trim() || "この科目";
-      if (!window.confirm(`${subjectName}を削除します。時間割に設定されているこの科目も外れます。よろしいですか？`)) {
-        return;
-      }
-      const removedId = subject.id;
-      const currentIndex = settingsDraft.subjects.findIndex((item) => item.id === removedId);
-      if (currentIndex === -1) return;
-      settingsDraft.subjects.splice(currentIndex, 1);
-      settingsDraft.scheduleTemplates.forEach((template) => {
-        weekdayKeys.forEach((dayKey) => {
-          Object.keys(template.schedule?.[dayKey] || {}).forEach((period) => {
-            if (template.schedule[dayKey][period] === removedId) delete template.schedule[dayKey][period];
-          });
-        });
-      });
-      renderSettings();
+    nameInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || isImeComposing(event)) return;
+      event.preventDefault();
+      focusNextSubjectRow(subject);
+    });
+    const actionMenu = bindSubjectRowActionMenu(row);
+    actionMenu.querySelector('[data-subject-action="archive"]').addEventListener("click", () => {
+      archiveSubjectInDraft(subject);
+    });
+    actionMenu.querySelector('[data-subject-action="delete"]').addEventListener("click", () => {
+      deleteSubjectFromDraft(subject);
     });
     setupSubjectRowDrag(container, row, dragHandle, subject);
+    container.append(row);
+  });
+
+  if (pendingSubjectFocusId) {
+    const targetId = pendingSubjectFocusId;
+    pendingSubjectFocusId = null;
+    requestAnimationFrame(() => focusSubjectNameInput(targetId));
+  }
+}
+
+/** 日本語入力の変換確定でEnterが飛んでくるので、確定用のEnterは無視する。 */
+function isImeComposing(event) {
+  return event.isComposing === true || event.keyCode === 229;
+}
+
+function focusSubjectNameInput(subjectId) {
+  const row = document.querySelector(`.subject-editor-row[data-subject-id="${subjectId}"]`);
+  const input = row?.querySelector(".subject-name-editor");
+  if (!input) return;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+
+/** メモ欄と同じように、Enterで次の科目へ進む。最後の行なら新しい行を足す。 */
+function focusNextSubjectRow(subject) {
+  const activeSubjects = getActiveSubjects(settingsDraft.subjects);
+  const index = activeSubjects.findIndex((item) => item.id === subject.id);
+  if (index === -1) return;
+
+  const next = activeSubjects[index + 1];
+  if (next) {
+    focusSubjectNameInput(next.id);
+    return;
+  }
+  if (subject.name.trim().length === 0) {
+    focusSubjectNameInput(subject.id);
+    return;
+  }
+  const created = {
+    id: createId("subject"),
+    name: "",
+    color: DEFAULT_UNSET_COLOR,
+    archived: false
+  };
+  settingsDraft.subjects.push(created);
+  pendingSubjectFocusId = created.id;
+  renderSettings();
+  focusSubjectNameInput(created.id);
+}
+
+function renderNormaSettings() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail";
+  wrapper.innerHTML = `
+    <div class="settings-action-bar">
+      <button class="back-button" type="button">← 設定に戻る</button>
+      <button id="saveNormaSettingsButton" class="primary-button" type="button">保存して戻る</button>
+    </div>
+    <div class="settings-block">
+      <h3>ノルマ</h3>
+      <div id="normaEditorList" class="norma-editor-list"></div>
+      <button id="addNormaButton" class="wide-button" type="button">＋ ノルマを追加</button>
+    </div>
+    <div class="settings-block" id="normaArchiveBlock">
+      <h3>アーカイブされたノルマ</h3>
+      <div id="normaArchiveList" class="editor-list"></div>
+    </div>
+  `;
+  elements.settingsContent.append(wrapper);
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
+  wrapper.querySelector("#saveNormaSettingsButton").addEventListener("click", saveNormaSettings);
+  wrapper.querySelector("#addNormaButton").addEventListener("click", () => {
+    const created = createNorma(settingsDraft);
+    settingsDraft.normas.push(created);
+    expandedNormaIds.add(created.id);
+    renderSettings();
+  });
+  renderNormaEditorRows(wrapper.querySelector("#normaEditorList"));
+  renderNormaArchiveRows(wrapper.querySelector("#normaArchiveList"), wrapper.querySelector("#normaArchiveBlock"));
+}
+
+/** 設定が足りていないノルマは動かないので、何が足りないかを返す。 */
+function getNormaSetupIssue(norma) {
+  if (!norma.subjectId) return "科目が選ばれていません";
+  if (norma.frequency.type === "weekday" && norma.frequency.weekdays.length === 0) {
+    return "曜日が選ばれていません";
+  }
+  if (norma.frequency.type === "cycle" && !norma.frequency.startDate) {
+    return "開始日が設定されていません";
+  }
+  return "";
+}
+
+/** 折りたたんだときに出す1行の要約。名前と頻度で見た目を分ける。 */
+function getNormaSummaryParts(norma) {
+  const subject = getSubject(norma.subjectId, settingsDraft.subjects);
+  const label = norma.label.trim() ? `｜${norma.label.trim()}` : "";
+  const name = `${subject ? subject.name : "未登録科目"}${label}`;
+  if (norma.frequency.type === "daily") return { name, detail: "毎日" };
+  if (norma.frequency.type === "weekday") {
+    const days = weekdayKeys
+      .map((key, index) => (norma.frequency.weekdays.includes(key) ? weekdayLabels[index] : null))
+      .filter(Boolean)
+      .join("");
+    return { name, detail: days ? `${days}曜` : "曜日未設定" };
+  }
+  return { name, detail: `${norma.frequency.activeDays}日やって${norma.frequency.restDays}日休む` };
+}
+
+function renderNormaEditorRows(container) {
+  container.innerHTML = "";
+  const normas = getActiveNormas(settingsDraft.normas);
+  if (normas.length === 0) {
+    container.innerHTML = `<p class="empty-state">ノルマがありません</p>`;
+    return;
+  }
+
+  normas.forEach((norma) => {
+    const issue = getNormaSetupIssue(norma);
+    // 設定が揃っているものは畳んでおき、足りないものは開いたままにする
+    const expanded = expandedNormaIds.has(norma.id) || Boolean(issue);
+    const subject = getSubject(norma.subjectId, settingsDraft.subjects);
+
+    const card = document.createElement("div");
+    card.className = `norma-card${expanded ? " is-expanded" : " is-collapsed"}${issue ? " has-issue" : ""}`;
+    card.style.setProperty("--subject-color", subject ? subject.color : "#aab4bd");
+    card.innerHTML = `
+      <div class="norma-color-bar" aria-hidden="true"></div>
+      <button class="norma-summary" type="button" aria-expanded="${expanded}">
+        <span class="norma-summary-mark" aria-hidden="true">${issue ? getNormaWarnIcon() : getNormaCheckIcon()}</span>
+        <span class="norma-summary-text"></span>
+        <svg class="norma-summary-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10L12 15L17 10"></path></svg>
+      </button>
+      <div class="norma-card-body">
+      <div class="norma-block">
+        <p class="norma-block-label">名前</p>
+        <div class="norma-card-head">
+          <div class="norma-subject-field">
+            <span class="norma-subject-dot" aria-hidden="true"></span>
+            <select class="norma-subject-select" aria-label="科目"></select>
+          </div>
+          <input class="norma-label-input" type="text" placeholder="タイトル" maxlength="20">
+          ${createSubjectRowActionCell([
+            { id: "archive", text: "アーカイブ" },
+            { id: "delete", text: "削除", danger: true }
+          ])}
+        </div>
+      </div>
+      <div class="norma-block">
+        <p class="norma-block-label">やる日</p>
+        <div class="norma-frequency-tabs" role="tablist">
+          <button class="norma-frequency-tab" type="button" data-frequency="daily">毎日</button>
+          <button class="norma-frequency-tab" type="button" data-frequency="weekday">曜日ごと</button>
+          <button class="norma-frequency-tab" type="button" data-frequency="cycle">○日やって○日休む</button>
+        </div>
+        <div class="norma-weekday-row"></div>
+        <div class="norma-cycle-row">
+          <label class="norma-cycle-field"><input class="norma-active-days" type="number" min="1" max="30"><span>日やって</span></label>
+          <label class="norma-cycle-field"><input class="norma-rest-days" type="number" min="0" max="30"><span>日休む</span></label>
+          <label class="norma-cycle-start"><span>開始日</span><input class="norma-start-date" type="date"></label>
+        </div>
+        <label class="norma-holiday-row">
+          <input class="norma-exclude-holidays" type="checkbox">
+          <span>祝日・休みの日はノルマなしにする</span>
+        </label>
+      </div>
+      </div>
+    `;
+
+    const summary = getNormaSummaryParts(norma);
+    const summaryText = card.querySelector(".norma-summary-text");
+    summaryText.innerHTML = `<span class="norma-summary-name"></span><span class="norma-summary-detail"></span>`;
+    summaryText.querySelector(".norma-summary-name").textContent = summary.name;
+    summaryText.querySelector(".norma-summary-detail").textContent = issue ? `${summary.detail}（${issue}）` : summary.detail;
+    card.querySelector(".norma-summary").addEventListener("click", () => {
+      if (expandedNormaIds.has(norma.id)) expandedNormaIds.delete(norma.id);
+      else expandedNormaIds.add(norma.id);
+      renderSettings();
+    });
+
+    const subjectSelect = card.querySelector(".norma-subject-select");
+    subjectSelect.innerHTML = `<option value="">科目を選択</option>${buildSubjectOptions(
+      settingsDraft.subjects,
+      norma.subjectId
+    )}`;
+    subjectSelect.value = norma.subjectId;
+    subjectSelect.addEventListener("change", () => {
+      norma.subjectId = subjectSelect.value;
+      norma.updatedAt = new Date().toISOString();
+      renderSettings();
+    });
+
+    const labelInput = card.querySelector(".norma-label-input");
+    labelInput.value = norma.label;
+    labelInput.addEventListener("input", () => {
+      norma.label = labelInput.value;
+    });
+
+    card.querySelectorAll(".norma-frequency-tab").forEach((tab) => {
+      tab.classList.toggle("is-active", tab.dataset.frequency === norma.frequency.type);
+      tab.addEventListener("click", () => {
+        norma.frequency.type = tab.dataset.frequency;
+        renderSettings();
+      });
+    });
+    card.classList.toggle("is-daily", norma.frequency.type === "daily");
+    card.classList.toggle("is-weekday", norma.frequency.type === "weekday");
+    card.classList.toggle("is-cycle", norma.frequency.type === "cycle");
+
+    const weekdayRow = card.querySelector(".norma-weekday-row");
+    weekdayKeys.forEach((dayKey, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `norma-weekday${norma.frequency.weekdays.includes(dayKey) ? " is-active" : ""}`;
+      button.textContent = weekdayLabels[index];
+      button.addEventListener("click", () => {
+        const selected = new Set(norma.frequency.weekdays);
+        if (selected.has(dayKey)) selected.delete(dayKey);
+        else selected.add(dayKey);
+        norma.frequency.weekdays = weekdayKeys.filter((key) => selected.has(key));
+        button.classList.toggle("is-active", selected.has(dayKey));
+      });
+      weekdayRow.append(button);
+    });
+
+    const activeDaysInput = card.querySelector(".norma-active-days");
+    const restDaysInput = card.querySelector(".norma-rest-days");
+    const startDateInput = card.querySelector(".norma-start-date");
+    activeDaysInput.value = norma.frequency.activeDays;
+    restDaysInput.value = norma.frequency.restDays;
+    startDateInput.value = norma.frequency.startDate;
+    activeDaysInput.addEventListener("change", () => {
+      norma.frequency.activeDays = clamp(Number(activeDaysInput.value), 1, 30);
+      activeDaysInput.value = norma.frequency.activeDays;
+    });
+    restDaysInput.addEventListener("change", () => {
+      norma.frequency.restDays = clamp(Number(restDaysInput.value), 0, 30);
+      restDaysInput.value = norma.frequency.restDays;
+    });
+    startDateInput.addEventListener("change", () => {
+      norma.frequency.startDate = startDateInput.value || getToday();
+      startDateInput.value = norma.frequency.startDate;
+    });
+
+    const holidayCheckbox = card.querySelector(".norma-exclude-holidays");
+    holidayCheckbox.checked = norma.excludeHolidays;
+    holidayCheckbox.addEventListener("change", () => {
+      norma.excludeHolidays = holidayCheckbox.checked;
+    });
+
+    const actionMenu = bindSubjectRowActionMenu(card);
+    actionMenu.querySelector('[data-subject-action="archive"]').addEventListener("click", () => {
+      norma.archived = true;
+      closeTemplateActionMenus();
+      renderSettings();
+    });
+    actionMenu.querySelector('[data-subject-action="delete"]').addEventListener("click", () => {
+      if (!window.confirm(`${getNormaLabel(norma)}を削除しますか？書いたメモは履歴に残ります。`)) return;
+      settingsDraft.normas = settingsDraft.normas.filter((item) => item.id !== norma.id);
+      closeTemplateActionMenus();
+      renderSettings();
+    });
+
+    container.append(card);
+  });
+}
+
+function getStreakIcon() {
+  return `
+    <svg class="streak-icon" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true">
+      <path d="M13.3 2.6c-.3 2.3.5 3.8 1.7 5.2 1.5 1.8 2.6 3.4 2.6 5.5a5.6 5.6 0 0 1-11.2 0c0-1.5.5-2.8 1.5-3.9.2 1.1.8 1.7 1.7 1.9.9.2 1.6-.4 1.6-1.4 0-1.2-.6-2-.6-3.3 0-1.6.9-3 2.7-4ZM12 13.9c1 1.3 1.6 2 1.6 2.9a1.6 1.6 0 0 1-3.2 0c0-.9.6-1.6 1.6-2.9Z"></path>
+    </svg>
+  `;
+}
+
+/** 連続記録をタップしたときに、短く出す吹き出し。 */
+function showStreakToast(streak) {
+  document.querySelector(".streak-toast")?.remove();
+  const toast = document.createElement("div");
+  toast.className = "streak-toast";
+  toast.innerHTML = `${getStreakIcon()}<span></span>`;
+  toast.querySelector("span").textContent = streak > 0 ? `${streak}日連続！` : "今日から始めましょう";
+  document.body.append(toast);
+  window.setTimeout(() => toast.classList.add("is-leaving"), 1500);
+  window.setTimeout(() => toast.remove(), 1900);
+}
+
+function getNormaCheckIcon() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 12.4L10.2 16L17.8 8"></path></svg>`;
+}
+
+function getNormaWarnIcon() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.6L21 19.4H3L12 4.6Z"></path><path d="M12 10.4V14.2"></path><path d="M12 16.8H12.01"></path></svg>`;
+}
+
+function renderNormaArchiveRows(container, block) {
+  const archived = getArchivedNormas(settingsDraft.normas);
+  block.hidden = archived.length === 0;
+  container.innerHTML = "";
+  archived.forEach((norma) => {
+    const subject = getSubject(norma.subjectId, settingsDraft.subjects);
+    const row = document.createElement("div");
+    row.className = "simple-list-row";
+    row.innerHTML = `<span></span><button class="small-button" type="button">元に戻す</button>`;
+    row.querySelector("span").textContent = `${subject ? subject.name : "未登録科目"}｜${getNormaLabel(norma)}`;
+    row.querySelector("button").classList.add("norma-restore-button");
+    row.querySelector("button").addEventListener("click", () => {
+      norma.archived = false;
+      norma.updatedAt = new Date().toISOString();
+      renderSettings();
+    });
+    container.append(row);
+  });
+}
+
+function renderSubjectArchiveSettings() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "settings-detail";
+  wrapper.innerHTML = `
+    <div class="settings-action-bar">
+      <button class="back-button" type="button">← 設定に戻る</button>
+      <button id="saveSubjectArchiveSettingsButton" class="primary-button" type="button">保存して戻る</button>
+    </div>
+    <div class="settings-block">
+      <h3>アーカイブされた科目一覧</h3>
+      <div id="subjectArchiveNote"></div>
+      <div id="subjectArchiveList" class="editor-list"></div>
+    </div>
+  `;
+  elements.settingsContent.append(wrapper);
+  renderPendingMemoArchiveNote(wrapper.querySelector("#subjectArchiveNote"));
+  wrapper.querySelector(".back-button").addEventListener("click", () => closeSettingsDetail());
+  wrapper
+    .querySelector("#saveSubjectArchiveSettingsButton")
+    .addEventListener("click", saveSubjectArchiveSettings);
+
+  const container = wrapper.querySelector("#subjectArchiveList");
+  const archived = getArchivedSubjects(settingsDraft.subjects);
+  if (archived.length === 0) {
+    container.innerHTML = `<p class="empty-state">アーカイブされた科目はありません</p>`;
+    return;
+  }
+
+  archived.forEach((subject) => {
+    const memoCount = getSubjectMemoCount(subject.id);
+    const memoArchiveQueued = isSubjectMemoArchiveQueued(subject.id);
+    const rowActions = [{ id: "restore", text: "元に戻す" }];
+    if (memoArchiveQueued) {
+      rowActions.push({ id: "cancelMemoArchive", text: "メモのアーカイブを取り消す" });
+    } else if (memoCount > 0) {
+      rowActions.push({ id: "archiveMemos", text: `この科目のメモをアーカイブ（${memoCount}件）` });
+    }
+    rowActions.push({ id: "delete", text: "削除", danger: true });
+
+    const row = document.createElement("div");
+    row.className = `subject-editor-row is-archived${memoArchiveQueued ? " is-memo-archive-queued" : ""}`;
+    row.dataset.subjectId = subject.id;
+    row.innerHTML = `
+      <span class="subject-archive-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="4.5" width="16" height="4" rx="1.5"></rect>
+          <path d="M6 8.5V19.5H18V8.5"></path>
+          <path d="M9.5 13H14.5"></path>
+        </svg>
+      </span>
+      <input class="subject-name-editor" type="text" placeholder="科目名">
+      <div class="subject-color-editor"></div>
+      ${createSubjectRowActionCell(rowActions)}
+    `;
+    const nameInput = row.querySelector(".subject-name-editor");
+    const colorInput = row.querySelector(".subject-color-editor");
+    if (!/^#[0-9a-f]{6}$/i.test(subject.color || "")) subject.color = DEFAULT_UNSET_COLOR;
+    nameInput.value = subject.name;
+    renderColorSliderEditor(colorInput, subject.color, (color) => {
+      subject.color = color;
+    });
+    nameInput.addEventListener("input", () => {
+      subject.name = nameInput.value;
+    });
+    const actionMenu = bindSubjectRowActionMenu(row);
+    actionMenu.querySelector('[data-subject-action="restore"]').addEventListener("click", () => {
+      subject.archived = false;
+      unqueueSubjectMemoArchive(subject.id);
+      closeTemplateActionMenus();
+      renderSettings();
+    });
+    actionMenu.querySelector('[data-subject-action="archiveMemos"]')?.addEventListener("click", () => {
+      requestSubjectMemoArchive(subject, { alertWhenEmpty: true });
+      closeTemplateActionMenus();
+      renderSettings();
+    });
+    actionMenu.querySelector('[data-subject-action="cancelMemoArchive"]')?.addEventListener("click", () => {
+      unqueueSubjectMemoArchive(subject.id);
+      closeTemplateActionMenus();
+      renderSettings();
+    });
+    actionMenu.querySelector('[data-subject-action="delete"]').addEventListener("click", () => {
+      deleteSubjectFromDraft(subject);
+    });
     container.append(row);
   });
 }
@@ -3435,7 +5684,7 @@ function setupSubjectRowDrag(container, row, handle, subject) {
       }
     }
     rows[rows.length - 1]?.classList.add("is-drop-after");
-    return settingsDraft.subjects.length;
+    return getActiveSubjects(settingsDraft.subjects).length;
   };
 
   const updateDropMarker = (clientY) => {
@@ -3474,14 +5723,16 @@ function setupSubjectRowDrag(container, row, handle, subject) {
     row.style.transform = "";
     clearDropMarkers();
 
-    const currentIndex = settingsDraft.subjects.findIndex((item) => item.id === subject.id);
+    const activeSubjects = getActiveSubjects(settingsDraft.subjects);
+    const currentIndex = activeSubjects.findIndex((item) => item.id === subject.id);
     if (currentIndex === -1) return;
-    let nextIndex = clamp(dropIndex, 0, settingsDraft.subjects.length);
+    let nextIndex = clamp(dropIndex, 0, activeSubjects.length);
     if (nextIndex === currentIndex) return;
 
-    const [movedSubject] = settingsDraft.subjects.splice(currentIndex, 1);
+    const [movedSubject] = activeSubjects.splice(currentIndex, 1);
     if (nextIndex > currentIndex) nextIndex -= 1;
-    settingsDraft.subjects.splice(nextIndex, 0, movedSubject);
+    activeSubjects.splice(nextIndex, 0, movedSubject);
+    settingsDraft.subjects = [...activeSubjects, ...getArchivedSubjects(settingsDraft.subjects)];
 
     const rows = [...container.querySelectorAll(".subject-editor-row:not(.is-reordering)")];
     container.insertBefore(row, rows[nextIndex] || null);
@@ -3493,7 +5744,7 @@ function setupSubjectRowDrag(container, row, handle, subject) {
     event.preventDefault();
     startY = event.clientY;
     currentY = event.clientY;
-    dropIndex = settingsDraft.subjects.findIndex((item) => item.id === subject.id);
+    dropIndex = getActiveSubjects(settingsDraft.subjects).findIndex((item) => item.id === subject.id);
     isDragging = true;
     row.classList.add("is-reordering");
     updateDropMarker(currentY);
@@ -3519,7 +5770,7 @@ function renderScheduleSettings() {
       <button class="back-button" type="button">← 設定に戻る</button>
       <button id="saveScheduleSettingsButton" class="primary-button" type="button">保存して戻る</button>
     </div>
-    <div class="settings-block">
+    <div class="settings-block" id="scheduleSubjectBlock">
       <h3>科目を追加</h3>
       <div class="inline-subject-form">
         <input id="scheduleSubjectNameInput" type="text" placeholder="例：物理">
@@ -3536,6 +5787,11 @@ function renderScheduleSettings() {
   elements.settingsContent.append(wrapper);
   renderColorSliderEditor(wrapper.querySelector("#scheduleSubjectColorInput"), DEFAULT_UNSET_COLOR, () => {});
   wrapper.querySelector("#addScheduleSubjectButton").addEventListener("click", () => addSubjectFromSchedule(wrapper));
+  wrapper.querySelector("#scheduleSubjectNameInput").addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || isImeComposing(event)) return;
+    event.preventDefault();
+    addSubjectFromSchedule(wrapper);
+  });
   wrapper.querySelector("#addTemplateButton").addEventListener("click", () => {
     settingsDraft.scheduleTemplates.push(createScheduleTemplate("新しい時間割"));
     renderSettings();
@@ -3554,7 +5810,8 @@ function addSubjectFromSchedule(wrapper) {
   settingsDraft.subjects.push({
     id: createId("subject"),
     name,
-    color: colorInput.dataset.color || DEFAULT_UNSET_COLOR
+    color: colorInput.dataset.color || DEFAULT_UNSET_COLOR,
+    archived: false
   });
   renderSettings();
 }
@@ -3610,6 +5867,7 @@ function renderTemplateEditors(container) {
             </svg>
           </button>
           <div class="template-action-menu">
+            <button class="small-button" type="button" data-template-action="ranges">時間割の期間設定へ</button>
             <button class="small-button" type="button" data-template-action="archive">アーカイブ</button>
             <button class="small-button danger-button" type="button" data-template-action="delete">削除</button>
           </div>
@@ -3641,6 +5899,10 @@ function renderTemplateEditors(container) {
       actionButton.setAttribute("aria-expanded", String(willOpen));
     });
     actionMenu.addEventListener("click", (event) => event.stopPropagation());
+    actionMenu.querySelector('[data-template-action="ranges"]').addEventListener("click", () => {
+      closeTemplateActionMenus();
+      requestSettingsExit(() => openSettingsDetail("ranges"));
+    });
     actionMenu.querySelector('[data-template-action="archive"]').addEventListener("click", () => {
       const templateName = template.name.trim() || "この時間割";
       if (!window.confirm(`${templateName}をアーカイブしますか？現在の時間割一覧から外れます。`)) {
@@ -3679,12 +5941,20 @@ function renderTemplateScheduleTable(container, template) {
     row.innerHTML = `<th>${period}限</th>`;
     weekdayKeys.forEach((dayKey) => {
       const cell = document.createElement("td");
+      const currentSubjectId = template.schedule?.[dayKey]?.[period] || "";
+      const cellWrap = document.createElement("div");
+      cellWrap.className = "schedule-cell";
+      cellWrap.innerHTML = `<span class="schedule-cell-dot" aria-hidden="true"></span>`;
       const select = document.createElement("select");
       select.className = "schedule-cell-select";
-      select.innerHTML = `<option value="">-</option>${settingsDraft.subjects
-        .map((subject) => `<option value="${subject.id}">${subject.name || "名称未入力"}</option>`)
-        .join("")}`;
-      select.value = template.schedule?.[dayKey]?.[period] || "";
+      select.innerHTML = `<option value="">-</option>${buildSubjectOptions(settingsDraft.subjects, currentSubjectId)}`;
+      select.value = currentSubjectId;
+      const syncCellColor = () => {
+        const subject = getSubject(select.value, settingsDraft.subjects);
+        cellWrap.classList.toggle("has-subject", Boolean(subject));
+        if (subject) cellWrap.style.setProperty("--subject-color", subject.color);
+      };
+      syncCellColor();
       select.addEventListener("change", () => {
         if (!template.schedule[dayKey]) template.schedule[dayKey] = {};
         if (select.value) {
@@ -3693,8 +5963,10 @@ function renderTemplateScheduleTable(container, template) {
           delete template.schedule[dayKey][period];
         }
         template.updatedAt = new Date().toISOString();
+        syncCellColor();
       });
-      cell.append(select);
+      cellWrap.append(select);
+      cell.append(cellWrap);
       row.append(cell);
     });
     tbody.append(row);
@@ -3861,11 +6133,21 @@ function renderRangeEditorRows(container) {
       const endInput = row.querySelector(".range-end-input");
       startInput.value = range.startDate;
       endInput.value = range.endDate;
+      endInput.min = range.startDate || "";
       startInput.addEventListener("change", () => {
         range.startDate = startInput.value;
+        if (range.startDate && (!range.endDate || range.endDate < range.startDate)) {
+          range.endDate = range.startDate;
+          endInput.value = range.endDate;
+        }
+        endInput.min = range.startDate || "";
       });
       endInput.addEventListener("change", () => {
         range.endDate = endInput.value;
+        if (range.startDate && range.endDate && range.endDate < range.startDate) {
+          range.endDate = range.startDate;
+          endInput.value = range.endDate;
+        }
       });
       row.querySelector("button").addEventListener("click", () => {
         const scheduleName =
@@ -4412,6 +6694,18 @@ function saveExceptionSettings() {
   render();
 }
 
+function saveNormaSettings() {
+  applyCurrentSettingsDraft();
+  closeSettingsDetail(true);
+  render();
+}
+
+function saveSubjectArchiveSettings() {
+  applyCurrentSettingsDraft();
+  closeSettingsDetail(true);
+  render();
+}
+
 function saveArchiveSettings() {
   applyCurrentSettingsDraft();
   rescheduleReviewNotificationsIfEnabled();
@@ -4434,8 +6728,12 @@ function saveThemeSettings() {
 
 function applyCurrentSettingsDraft() {
   if (!settingsDraft) return;
-  if (settingsMode === "subjects") {
+  if (settingsMode === "subjects" || settingsMode === "subjectArchive") {
     applySubjectSettingsDraft();
+    return;
+  }
+  if (settingsMode === "normas") {
+    applyNormaSettingsDraft();
     return;
   }
   if (settingsMode === "schedule") {
@@ -4476,6 +6774,19 @@ function applySubjectSettingsDraft() {
       });
     });
   });
+  archiveMemosForSubjects(getPendingSubjectMemoArchiveIds());
+  settingsDraft.pendingSubjectMemoArchiveIds = [];
+  state.normas = getNormas(settingsDraft.normas)
+    .map(normalizeNorma)
+    .filter((norma) => validIds.has(norma.subjectId));
+  updateStreak();
+  saveState();
+}
+
+function applyNormaSettingsDraft() {
+  state.normas = getNormas(settingsDraft.normas)
+    .map(normalizeNorma)
+    .filter((norma) => norma.subjectId);
   updateStreak();
   saveState();
 }
@@ -4598,16 +6909,17 @@ function createId(prefix) {
 }
 
 function renderStudyPicker() {
+  closeStudyPickerMenu();
   elements.studyPicker.innerHTML = "";
-  if (state.subjects.length === 0) {
+  const subjects = getActiveSubjects();
+  if (subjects.length === 0) {
     const empty = document.createElement("p");
-    empty.className = "empty-state";
+    empty.className = "empty-state study-picker-empty";
     empty.textContent = "先に科目を登録してください";
     elements.studyPicker.append(empty);
-    return;
   }
 
-  state.subjects.forEach((subject) => {
+  subjects.forEach((subject) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "study-subject-button";
@@ -4617,17 +6929,105 @@ function renderStudyPicker() {
     button.addEventListener("click", () => addStudy(subject.id));
     elements.studyPicker.append(button);
   });
+
+  const moreButton = document.createElement("button");
+  moreButton.type = "button";
+  moreButton.className = "study-subject-button study-picker-more";
+  moreButton.setAttribute("aria-label", "科目のその他の操作");
+  moreButton.setAttribute("aria-expanded", "false");
+  moreButton.textContent = "…";
+  moreButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleStudyPickerMenu(moreButton);
+  });
+  elements.studyPicker.append(moreButton);
+}
+
+/** 「…」の上に浮かせる小さなメニュー。横スクロールの外に出すので隠れない。 */
+function toggleStudyPickerMenu(anchor) {
+  if (document.querySelector(".study-picker-menu")) {
+    closeStudyPickerMenu();
+    return;
+  }
+  const menu = document.createElement("div");
+  menu.className = "study-picker-menu";
+  menu.innerHTML = `
+    <button class="study-picker-add" type="button">
+      <span aria-hidden="true">＋</span><span>科目を追加</span>
+    </button>
+  `;
+  menu.addEventListener("click", (event) => event.stopPropagation());
+  menu.querySelector(".study-picker-add").addEventListener("click", openSubjectSettingsFromStudyPicker);
+  document.body.append(menu);
+
+  const anchorRect = anchor.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const margin = 12;
+  const left = clamp(
+    anchorRect.left + anchorRect.width / 2 - menuRect.width / 2,
+    margin,
+    Math.max(margin, window.innerWidth - menuRect.width - margin)
+  );
+  let top = anchorRect.top - menuRect.height - 8;
+  if (top < margin) top = anchorRect.bottom + 8;
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+
+  isStudyPickerMoreOpen = true;
+  anchor.classList.add("is-active");
+  anchor.setAttribute("aria-expanded", "true");
+}
+
+function closeStudyPickerMenu() {
+  document.querySelector(".study-picker-menu")?.remove();
+  document.querySelectorAll(".study-picker-more.is-active").forEach((button) => {
+    button.classList.remove("is-active");
+    button.setAttribute("aria-expanded", "false");
+  });
+  isStudyPickerMoreOpen = false;
+}
+
+function openSubjectSettingsFromStudyPicker() {
+  closeStudyPicker();
+  resetSettingsDetail();
+  showView("settingsView");
+  openSettingsDetail("subjects");
+}
+
+function closeStudyPicker() {
+  closeStudyPickerMenu();
+  elements.studyPicker.hidden = true;
+  syncStudyPickerToggleState();
+}
+
+/** 科目一覧が画面下（タブバーの裏）に隠れてしまうときは、見える位置までスクロールする。 */
+function ensureStudyPickerVisible() {
+  window.clearTimeout(studyPickerScrollTimer);
+  if (elements.studyPicker.hidden) return;
+  studyPickerScrollTimer = window.setTimeout(() => {
+    if (elements.studyPicker.hidden) return;
+    const rect = elements.studyPicker.getBoundingClientRect();
+    // 上に出ているときは、まず見える位置まで戻す
+    if (rect.top < 0) {
+      window.scrollBy(0, rect.top - 12);
+      return;
+    }
+    const navHeight = document.querySelector(".bottom-nav")?.offsetHeight || 0;
+    const overflow = rect.bottom - (window.innerHeight - navHeight - 12);
+    // behavior:"smooth" が効かない環境があるので、確実に動く二引数の形で動かす
+    if (overflow > 0) window.scrollBy(0, overflow);
+  }, 80);
 }
 
 function addStudy(subjectId) {
   const date = selectedDate;
   const studyCount = state.memos.filter((memo) => memo.date === date && memo.type === "study").length;
-  elements.studyPicker.hidden = true;
-  syncStudyPickerToggleState();
+  closeStudyPicker();
   setMemo(date, subjectId, 100 + studyCount + 1, "", "study");
 }
 
 function syncStudyPickerToggleState() {
+  if (!elements.addStudyButton) return;
   const isOpen = !elements.studyPicker.hidden;
   elements.addStudyButton.classList.toggle("is-open", isOpen);
   elements.addStudyButton.setAttribute("aria-expanded", String(isOpen));
@@ -4675,6 +7075,8 @@ function showView(viewId, options = {}) {
     });
   }
   render();
+  resumeOperationTutorialAfterFreeEdit();
+  syncOperationTutorialToScreen();
 }
 
 function getActiveViewId() {
@@ -4717,25 +7119,38 @@ function selectCalendarDate(dateKey) {
     requestSettingsExit(moveHome);
     return;
   }
+  if (getActiveViewId() === "historyView") {
+    requestMemoSelectionExit(moveHome);
+    return;
+  }
   moveHome();
 }
 
 function bindNavigation() {
   document.querySelectorAll(".nav-button").forEach((button) => {
     button.addEventListener("click", () => {
-      closeCalendar();
-      if (button.dataset.view !== "settingsView") {
-        requestSettingsExit(() => {
-          resetSettingsDetail();
-          showView(button.dataset.view);
-        });
+      const targetView = button.dataset.view;
+      const moveToView = () => {
+        closeCalendar();
+        if (targetView !== "settingsView") {
+          requestSettingsExit(() => {
+            resetSettingsDetail();
+            showView(targetView);
+          });
+          return;
+        }
+        if (getActiveViewId() === "settingsView" && settingsMode !== "menu") {
+          closeSettingsDetail();
+          return;
+        }
+        showView(targetView);
+      };
+
+      if (targetView !== "historyView" && getActiveViewId() === "historyView") {
+        requestMemoSelectionExit(moveToView);
         return;
       }
-      if (getActiveViewId() === "settingsView" && settingsMode !== "menu") {
-        closeSettingsDetail();
-        return;
-      }
-      showView(button.dataset.view);
+      moveToView();
     });
   });
 }
@@ -4752,7 +7167,26 @@ function bindGlobalEvents() {
   document.addEventListener("focusin", rememberPendingMemoFocus, true);
   elements.addStudyButton.addEventListener("click", () => {
     elements.studyPicker.hidden = !elements.studyPicker.hidden;
+    renderStudyPicker();
     syncStudyPickerToggleState();
+    ensureStudyPickerVisible();
+  });
+  elements.settingsHelpButton?.addEventListener("click", () => {
+    if (isSettingsHelpOpen) {
+      isSettingsHelpOpen = false;
+      document.querySelector(".settings-help-overlay")?.remove();
+      syncSettingsHelpButton();
+      return;
+    }
+    const help = getSettingsHelp(settingsMode);
+    if (!help) return;
+    isSettingsHelpOpen = true;
+    syncSettingsHelpButton();
+    showHelpOverlay(help);
+  });
+  elements.historyHelpButton?.addEventListener("click", () => {
+    document.querySelector(".settings-help-overlay")?.remove();
+    showHelpOverlay(HISTORY_HELP);
   });
   elements.historyMenuButton.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -4763,11 +7197,14 @@ function bindGlobalEvents() {
     if (!event.target.closest(".color-slider-editor")) {
       closeOpenColorSliderEditors();
     }
-    if (!event.target.closest(".template-card-control-row")) {
+    if (!event.target.closest(".template-card-control-row") && !event.target.closest(".subject-action-cell")) {
       closeTemplateActionMenus();
     }
     if (!event.target.closest(".study-memo-popover") && !event.target.closest(".study-memo-menu-button")) {
       closeStudyMemoMenus();
+    }
+    if (!event.target.closest(".study-picker-menu") && !event.target.closest(".study-picker-more")) {
+      closeStudyPickerMenu();
     }
     if (!isHistoryMenuOpen) return;
     const clickedMenu = event.target.closest(".history-menu-popover");
@@ -4809,6 +7246,10 @@ function bindAndroidBackButton() {
 }
 
 function handleBackNavigation() {
+  if (getActiveViewId() === "historyView" && hasPendingMemoSelection()) {
+    requestMemoSelectionExit(handleBackNavigation);
+    return;
+  }
   if (getActiveViewId() === "settingsView" && settingsMode !== "menu") {
     closeSettingsDetail();
     return;
@@ -4845,8 +7286,12 @@ function initApp() {
   bindNavigation();
   bindGlobalEvents();
   bindAndroidBackButton();
+  bindWidgetSync();
+  console.info("[choifuku][dbg] hasCapacitor=" + Boolean(window.Capacitor) + " plugins=" + Object.keys(window.Capacitor?.Plugins || {}).join("|") + " bridge=" + Boolean(getWidgetBridge()));
   render();
   rescheduleReviewNotificationsIfEnabled();
+  drainWidgetPendingWrites();
+  syncWidgetData();
   if (!elements.onboardingOverlay) startOperationTutorial();
 }
 

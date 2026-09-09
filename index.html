@@ -19,7 +19,9 @@
           </button>
         </div>
         <button id="streakButton" class="streak-pill" type="button" aria-label="ストリーク">
-          <span aria-hidden="true">🔥</span>
+          <svg class="streak-icon" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true">
+            <path d="M13.3 2.6c-.3 2.3.5 3.8 1.7 5.2 1.5 1.8 2.6 3.4 2.6 5.5a5.6 5.6 0 0 1-11.2 0c0-1.5.5-2.8 1.5-3.9.2 1.1.8 1.7 1.7 1.9.9.2 1.6-.4 1.6-1.4 0-1.2-.6-2-.6-3.3 0-1.6.9-3 2.7-4ZM12 13.9c1 1.3 1.6 2 1.6 2.9a1.6 1.6 0 0 1-3.2 0c0-.9.6-1.6 1.6-2.9Z"></path>
+          </svg>
           <strong id="streakCount">0日</strong>
         </button>
       </header>
@@ -27,28 +29,60 @@
 
       <main>
         <section id="homeView" class="view is-active" aria-labelledby="homeTitle">
-          <div class="section-heading">
-            <h2 id="homeTitle">今日の授業</h2>
-            <p id="completionLabel">0 / 0</p>
+          <div id="homeSummary" class="home-summary" hidden></div>
+
+          <div id="lessonSection">
+            <div class="section-heading">
+              <h2 id="homeTitle">今日の授業</h2>
+              <p id="completionLabel">0 / 0</p>
+            </div>
+            <div id="lessonList" class="lesson-list"></div>
           </div>
-          <div id="lessonList" class="lesson-list"></div>
+
+          <section id="normaSection" class="norma-section" hidden aria-labelledby="normaTitle">
+            <div class="section-heading">
+              <h2 id="normaTitle">今日のノルマ</h2>
+              <p id="normaCompletionLabel">0 / 0</p>
+            </div>
+            <div id="normaList" class="lesson-list"></div>
+          </section>
+
+          <div id="homeNotice" class="home-notice"></div>
+
           <button id="addStudyButton" class="wide-button" type="button">
             <span class="button-toggle-icon" aria-hidden="true">＋</span>
             <span>自習を追加</span>
           </button>
           <div id="studyPicker" class="study-picker" hidden></div>
+
+          <section id="doneSection" class="done-section" hidden aria-labelledby="doneTitle">
+            <div class="section-heading">
+              <h2 id="doneTitle">入力済み</h2>
+              <p id="doneCountLabel"></p>
+            </div>
+            <div id="doneList" class="lesson-list"></div>
+          </section>
         </section>
 
         <section id="historyView" class="view" aria-labelledby="historyTitle">
           <div class="section-heading">
             <h2 id="historyTitle">履歴</h2>
-            <button id="historyMenuButton" class="icon-menu-button" type="button" aria-label="履歴メニュー">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="5" cy="12" r="1"></circle>
-                <circle cx="12" cy="12" r="1"></circle>
-                <circle cx="19" cy="12" r="1"></circle>
-              </svg>
-            </button>
+            <div class="section-heading-actions">
+              <button id="historyHelpButton" class="icon-menu-button" type="button" aria-label="履歴の使い方">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M9.6 9.4C9.8 8.3 10.8 7.5 12 7.5C13.4 7.5 14.5 8.5 14.5 9.8C14.5 11.4 12.9 11.8 12.2 12.6C11.9 12.9 12 13.4 12 14"></path>
+                  <path d="M12 16.8H12.01"></path>
+                </svg>
+              </button>
+              <button id="historyMenuButton" class="icon-menu-button" type="button" aria-label="履歴メニュー">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="5" cy="12" r="1"></circle>
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <circle cx="19" cy="12" r="1"></circle>
+                </svg>
+              </button>
+            </div>
           </div>
           <div id="historyControls" class="history-controls"></div>
           <p class="filter-label">科目</p>
@@ -59,6 +93,13 @@
         <section id="settingsView" class="view" aria-labelledby="settingsTitle">
           <div class="section-heading">
             <h2 id="settingsTitle">設定</h2>
+            <button id="settingsHelpButton" class="icon-menu-button" type="button" aria-label="設定の使い方" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M9.6 9.4C9.8 8.3 10.8 7.5 12 7.5C13.4 7.5 14.5 8.5 14.5 9.8C14.5 11.4 12.9 11.8 12.2 12.6C11.9 12.9 12 13.4 12 14"></path>
+                <path d="M12 16.8H12.01"></path>
+              </svg>
+            </button>
           </div>
 
           <div id="settingsContent"></div>
