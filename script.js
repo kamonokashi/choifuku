@@ -28,140 +28,24 @@ const PRIVACY_POLICY_URL = "https://kamonokashi.github.io/choifuku/privacy.html"
 const FEEDBACK_FORM_URL =
   "https://docs.google.com/forms/d/e/1FAIpQLSeaeHZJHizyVgc1RaBQP34NhWEu1YzuF5dqKwr6hkbsdw-TDA/viewform";
 const FEEDBACK_FORM_VERSION_ENTRY = "entry.1995398460";
-const APP_VERSION = "1.0.18";
+const APP_VERSION = "1.1.0";
 const CHANGELOG = [
   {
-    version: "1.0.18",
+    version: "1.1.0",
     date: "2026-09-09",
     items: [
-      "ノルマや科目が多いときに、チュートリアルの目印が画面の外にあって見えないことがあったのを直しました。目印まで自動で移動します。"
-    ]
-  },
-  {
-    version: "1.0.17",
-    date: "2026-09-09",
-    items: [
-      "チュートリアルの案内カードが、画面の左寄りに出ていたのを直しました。",
-      "チュートリアルで明るく示している部分の中身が、薄く表示されていたのを直しました。",
-      "チュートリアルで、ホームに戻ったあとに「こちらはメモ欄の例です」の案内を挟むようにしました。",
-      "ノルマのチュートリアルの①②③を、行ごとに分けました。",
-      "連続記録のアイコンをさらに大きくしました。",
-      "設定のヘルプのボタンを押したとき、設定を直接開かず、一覧のその項目まで案内するようにしました。"
-    ]
-  },
-  {
-    version: "1.0.16",
-    date: "2026-09-09",
-    items: [
-      "チュートリアル中に「設定に戻る」を押すと、確認画面が案内の下に隠れて操作できなくなっていたのを直しました。",
-      "チュートリアルの「スキップ」を画面の右上に移し、押し間違えないようにしました。",
-      "チュートリアルで、追加した時間割・ノルマそのものを明るく示すようにしました。「保存して戻る」も同じように示します。",
-      "チュートリアルの案内文を短くし、設定一覧の説明はなくしました。",
-      "時間割のチュートリアルに、科目の追加についての案内を足しました。",
-      "ほかに見るところがない案内は、画面の中央に出すようにしました。",
-      "連続記録のアイコンを大きくしました。ヘルプに残っていた絵文字も揃えました。",
-      "「今日のぶん、書き終わりました」の表示を作り直しました。"
-    ]
-  },
-  {
-    version: "1.0.15",
-    date: "2026-09-09",
-    items: [
-      "ノルマのやる日に「毎日」を追加しました。",
-      "ノルマ設定を「名前」と「やる日」の2つに分け、どこを設定しているか分かるようにしました。",
-      "ノルマの「呼び名（任意）」を「タイトル」に変えました。",
-      "ノルマの色のバーを、ホームのメモと同じ細さに揃えました。",
-      "ホームで、ノルマと「本日は授業が設定されていません」の間に余白を入れました。",
-      "連続記録のアイコンを、塗りのある炎に変えました。",
-      "チュートリアルに「スキップ」を付けました。最後に、設定から見直せることも表示します。",
-      "チュートリアルの途中で戻っても、その画面に合った案内に戻るようにしました。",
-      "チュートリアル中に押せないボタンを、押せないと分かる見た目にしました。"
-    ]
-  },
-  {
-    version: "1.0.14",
-    date: "2026-09-09",
-    items: [
-      "ホームを「まだのぶん」と「入力済み」に分けました。書き終えたメモは下にまとまります。",
-      "上の「授業 2/6」「ノルマ 0/2」の行に、書き終えるとチェックが付くようにしました。",
-      "「自習を追加」をノルマの下に戻し、いつもの位置で押せるようにしました。",
-      "授業が設定されていないときの案内を、ノルマより下に移しました。",
-      "連続記録の🔥を、アプリに合わせた線のアイコンに変えました。",
-      "ノルマの連続記録をタップすると「〇日連続！」と表示されるようにしました。",
-      "ノルマ設定の1行表示を中央ぞろえにし、曜日の部分を小さく控えめにしました。",
-      "ノルマ設定の余白を広げ、科目と呼び名を1行ずつに分けました。",
-      "チュートリアルを、時間割とノルマのどちらから始めるか選べるようにしました。設定の「アプリについて」からいつでも見直せます。",
-      "「更新履歴」を開いたときに、ページの途中に飛んでしまうのを直しました。",
-      "「保存しますか？」などの確認ボタンを大きくし、押し間違えにくくしました。",
-      "設定のヘルプのボタンの文字色を、読みやすい色に戻しました。"
-    ]
-  },
-  {
-    version: "1.0.13",
-    date: "2026-09-09",
-    items: [
-      "ホームのいちばん上に「授業 2/6」「ノルマ 0/2」の行を追加しました。タップするとその欄まで移動できます。",
-      "「自習を追加」をこの行に移し、授業が多くても押せるようにしました。",
-      "ノルマの連続記録を、0のときも常に表示するようにしました。",
-      "ノルマ設定で、科目の色が見えるようにしました。",
-      "ノルマ設定で、設定が揃ったノルマは1行に畳むようにしました。設定が足りないものは開いたまま、何が足りないかを表示します。",
-      "設定のヘルプのボタンにアイコンを入れ、見た目を1種類に揃えました。",
-      "ヘルプの「ご意見箱」「プライバシーポリシー」もボタンにし、押すと一覧のその場所まで移動するようにしました。",
-      "色を選ぶ画面で、タブを切り替えたときに「設定」ボタンが画面の外に出てしまうのを直しました。"
-    ]
-  },
-  {
-    version: "1.0.12",
-    date: "2026-09-09",
-    items: [
-      "「ノルマ」を追加しました。時間割とは別に、曜日や日数を決めて自分に課す学習を設定できます。時間割と一緒に使っても、ノルマだけでも使えます。",
-      "ノルマは「曜日ごと」か「○日やって○日休む」で決められます。祝日や休日設定の日を除くこともできます。",
-      "ホームに「今日のノルマ」欄が増えました。授業とは別に達成状況を数えます。",
-      "ノルマごとの連続記録を🔥で表示します。ノルマのない日は飛ばして数えます。",
-      "ノルマも連続記録の対象になりました。時間割を使わなくてもストリークが伸びます。",
-      "ノルマがある科目をアーカイブしようとすると、ノルマをどうするか確認するようにしました。"
-    ]
-  },
-  {
-    version: "1.0.11",
-    date: "2026-09-09",
-    items: [
-      "履歴のメモをアーカイブ・削除するとき、実行ボタンを画面下に固定しました。スクロールしても押しに戻る必要がありません。",
-      "メモのどこをタップしてもチェックできるようにしました。チェックの途中でほかの画面に移ろうとすると確認が出ます。",
-      "履歴のアーカイブ・削除・期間フィルターで、今日より後の日付を選べないようにしました。",
-      "設定の各ページに使い方のヘルプを追加し、ヘルプ画面の表示崩れを直しました。タイトルをタップすると、その設定に移動できます。",
-      "履歴画面にも使い方のヘルプを追加しました。",
-      "設定の並びを「科目・時間割」「アーカイブ」「アプリの設定」「アプリについて」の順に整理しました。",
-      "科目の色をサンプルから選べるようにし、自分で設定した色を最大7件覚えておくようにしました。",
-      "科目設定でEnterを押すと、そのまま次の科目を続けて入力できるようにしました。",
-      "ホームの「自習を追加」から、科目を追加するメニューを開けるようにしました。",
-      "ウィジェットのチェックマークをアプリと同じ形にし、Enterキーで保存できるようにしました。",
-      "ウィジェットの入力ボックスを、アプリを開いていても背後にアプリが映らないようにしました。",
-      "ご意見箱とプライバシーポリシーを開く前に、ブラウザが開くことを確認するようにしました。",
-      "メモ入力欄の文言を「今日覚えたことをメモ」に変えました。"
-    ]
-  },
-  {
-    version: "1.0.8",
-    date: "2026-09-07",
-    items: [
-      "ホーム画面ウィジェット「今日のメモ」を追加しました。今日の授業と自習のメモを表示し、縦横のサイズを変えられます。",
-      "ウィジェットのメモをタップすると、ホーム画面の上に入力ボックスが開いて、その場で書き込めるようにしました。"
-    ]
-  },
-  {
-    version: "1.0.7",
-    date: "2026-09-04",
-    items: [
-      "科目をアーカイブできるようにしました。アーカイブした科目は各画面の選択肢から外れ、「アーカイブされた科目一覧」で編集・復元できます。",
-      "科目をアーカイブするとき、その科目の履歴メモもまとめてアーカイブするか選べるようにしました。あとから「アーカイブされた科目一覧」のメニューでまとめてアーカイブすることもできます。",
-      "設定画面を「科目・時間割」「アプリの設定」「アーカイブ」「アプリについて」に分類し、右上に使い方を表示するヘルプボタンを追加しました。",
-      "更新履歴のページと、ご意見箱へのリンクを追加しました。",
-      "履歴のメモを1件ずつ選んでアーカイブ・削除できるようにしました。期間を指定してまとめてチェックすることもできます。",
-      "時間割テンプレートの表に科目カラーを表示するようにしました。",
-      "時間割テンプレートのメニューから「時間割の期間設定」へ移動できるようにしました。",
-      "ホームの「自習を追加」から科目設定へ移動できるようにしました。",
-      "時間割の期間設定で、開始日を終了日より後にしたときに終了日を合わせるようにしました。"
+      "「ノルマ」を追加しました。時間割とは別に、曜日や日数を決めて自分に課す学習を設定できます。時間割と一緒でも、ノルマだけでも使えます。",
+      "ノルマは「毎日」「曜日ごと」「○日やって○日休む」から選べます。祝日や休日設定の日を除くこともできます。",
+      "ノルマごとの連続記録を表示します。ノルマのない日は飛ばして数えます。",
+      "ホーム画面をつくり直しました。上部に授業とノルマの件数が並び、タップするとその欄まで移動できます。書き終えたメモは「入力済み」にまとまります。",
+      "ホーム画面のウィジェットを追加しました。その日のメモを見て、ホーム画面のまま書き込めます。サイズは自由に変えられます。",
+      "科目をアーカイブできるようにしました。使わなくなった科目を、記録を残したまま一覧から外せます。その科目のメモをまとめてアーカイブすることもできます。",
+      "履歴のメモを1件ずつ選んで、アーカイブ・削除できるようにしました。期間をまとめて選ぶこともできます。",
+      "チュートリアルをつくり直しました。時間割とノルマのどちらから始めるか選べます。設定の「アプリについて」から、いつでも見直せます。",
+      "設定画面を整理し、ヘルプを追加しました。各画面にもヘルプがあります。",
+      "更新履歴とご意見箱を追加しました。",
+      "科目の色に、サンプルから選ぶ方法と、自分で作った色の履歴を追加しました。",
+      "通知の「予定のある日」に、ノルマの日も含めるようにしました。"
     ]
   },
   {
@@ -1659,7 +1543,8 @@ async function drainWidgetPendingWrites() {
       if (!write || !write.date || !write.subjectId) return;
       const period = Number(write.period);
       if (!Number.isFinite(period)) return;
-      const type = write.type === "study" ? "study" : "lesson";
+      // ノルマを落とすと period だけ合った別のメモになってしまう
+      const type = ["study", "norma"].includes(write.type) ? write.type : "lesson";
       const content = String(write.content ?? "");
       setMemo(write.date, write.subjectId, period, content, type, false);
       const memo = getMemo(write.date, write.subjectId, period, type);
@@ -1869,8 +1754,9 @@ function createLessonDayReviewNotifications(notification) {
   let dateKey = getToday();
   for (let index = 0; index < REVIEW_NOTIFICATION_LOOKAHEAD_DAYS; index += 1) {
     const deliveryDate = createNotificationDate(dateKey, notification.time);
-    const lessons = getEffectiveDayPlan(dateKey).lessons;
-    if (lessons.length > 0 && deliveryDate > now) {
+    // ノルマだけ使う人にも届くようにする。授業が無くても予定はあるため
+    const hasPlan = getEffectiveDayPlan(dateKey).lessons.length > 0 || normasForDate(dateKey).length > 0;
+    if (hasPlan && deliveryDate > now) {
       notifications.push({
         id: REVIEW_NOTIFICATION_LESSON_ID_START + index,
         title: "Choifuku",
@@ -4939,7 +4825,7 @@ const SETTINGS_HELP = {
     title: "通知設定の使い方",
     items: [
       { title: "通知のオン・オフ", body: "初回はスマホ側で通知の許可が必要です。" },
-      { title: "頻度", body: "毎日か、授業のある日だけかを選べます。" },
+      { title: "頻度", body: "毎日か、授業やノルマのある日だけかを選べます。" },
       { title: "時刻", body: "指定した時刻にお知らせします。" },
       { title: "メッセージ", body: "通知に表示される文章を変えられます。" }
     ]
@@ -4982,7 +4868,7 @@ function getThemeModeLabel(mode) {
 
 function getNotificationMenuLabel() {
   if (!state.notification?.enabled) return "オフ";
-  return state.notification.frequency === "daily" ? "毎日" : "授業日";
+  return state.notification.frequency === "daily" ? "毎日" : "予定のある日";
 }
 
 function renderSubjectSettings() {
@@ -6498,7 +6384,7 @@ function renderArchiveSettings() {
 function renderNotificationSettings() {
   const notification = settingsDraft.notification;
   const enabledClass = notification.enabled ? " is-enabled" : "";
-  const frequencyLabel = notification.frequency === "daily" ? "毎日" : "授業のある日のみ";
+  const frequencyLabel = notification.frequency === "daily" ? "毎日" : "授業やノルマのある日だけ";
   const message = escapeHtml(notification.message);
   const time = escapeHtml(notification.time);
   const { hourOptions, minuteOptions } = buildNotificationTimeSelectOptions(notification.time);
@@ -6539,7 +6425,7 @@ function renderNotificationSettings() {
           <div class="notification-row">
             <span class="notification-row-label">頻度</span>
             <div class="notification-segment" role="group" aria-label="通知頻度">
-              <button class="${notification.frequency === "lesson-days" ? "is-selected" : ""}" type="button" data-notification-frequency="lesson-days">授業日</button>
+              <button class="${notification.frequency === "lesson-days" ? "is-selected" : ""}" type="button" data-notification-frequency="lesson-days">予定のある日</button>
               <button class="${notification.frequency === "daily" ? "is-selected" : ""}" type="button" data-notification-frequency="daily">毎日</button>
             </div>
           </div>
