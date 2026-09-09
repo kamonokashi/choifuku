@@ -1,0 +1,30 @@
+<svg viewBox="0 0 128 128" role="img" aria-label="choifuku icon preview v2" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iconV2Border" x1="12" y1="7" x2="116" y2="121" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8cb6ff" />
+      <stop offset="100%" stop-color="#4e84ff" />
+    </linearGradient>
+    <linearGradient id="iconV2Fold" x1="93" y1="5" x2="114" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7faaff" />
+      <stop offset="100%" stop-color="#3f78ff" />
+    </linearGradient>
+    <linearGradient id="iconV2Pen" x1="101" y1="57" x2="75" y2="111" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#287cff" />
+      <stop offset="100%" stop-color="#45a4ff" />
+    </linearGradient>
+  </defs>
+
+  <rect x="5.5" y="8" width="117" height="114" rx="20" fill="#ffffff" stroke="url(#iconV2Border)" stroke-width="1.8" />
+
+  <path d="M94 6.5h15.5c5.2 0 9.5 4.3 9.5 9.5v23.5l-11.8-10.2-13.2 5.2z" fill="url(#iconV2Fold)" />
+  <path d="M96.5 8.5h11.5c4.5 0 8.2 3.7 8.2 8.2v15.6l-8.4-7.2-11.3 4.2z" fill="#9cc0ff" opacity="0.42" />
+
+  <line x1="24" y1="40" x2="76" y2="40" stroke="#78a6ff" stroke-width="3.7" stroke-linecap="round" />
+  <line x1="24" y1="58" x2="65" y2="58" stroke="#6f9fff" stroke-width="3.7" stroke-linecap="round" />
+  <line x1="24" y1="75" x2="62" y2="75" stroke="#6f9fff" stroke-width="3.7" stroke-linecap="round" />
+
+  <g transform="rotate(27 88 89)">
+    <rect x="79" y="55" width="18" height="57" rx="9" fill="url(#iconV2Pen)" />
+    <path d="M79.2 104.5h17.6L88 119z" fill="#ffffff" stroke="#4d98ff" stroke-width="1.6" stroke-linejoin="round" />
+  </g>
+</svg>
