@@ -1,3 +1,7 @@
 node_modules/
 android/.idea/
 android/keystore.properties
+
+# ビルド成果物（Play へのアップロード用に生成するもの）
+artifacts/
+android/app/release/
