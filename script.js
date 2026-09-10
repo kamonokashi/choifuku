@@ -617,15 +617,13 @@ function showWhatsNew(version, entry) {
       ${
         entry.action
           ? `<p class="whats-new-line">${createSettingsHelpJumpButton(entry.action.icon, entry.action.label, {
-              mode: entry.action.mode
+              mode: entry.action.mode,
+              // ラベルに「→」が入っているので、末尾の矢印は重ねない
+              showChevron: false
             })}<span>${escapeHtml(entry.action.suffix || "")}</span></p>`
           : ""
       }
-      <p class="whats-new-line whats-new-more"><span>その他の更新については</span>${createSettingsHelpJumpButton(
-        "note",
-        "こちら",
-        { mode: "changelog" }
-      )}</p>
+      <button class="whats-new-text-link" type="button" data-help-jump="changelog">その他の更新についてはこちら →</button>
       <button class="primary-button whats-new-close" type="button">閉じる</button>
     </div>
   `;
@@ -4414,13 +4412,17 @@ function showHelpOverlay(help) {
 }
 
 /** ヘルプの中で設定へ飛ぶボタン。アイコンもボタンの中に入れて、見た目を1種類に揃える。 */
-function createSettingsHelpJumpButton(icon, label, { mode, external } = {}) {
+function createSettingsHelpJumpButton(icon, label, { mode, external, showChevron = true } = {}) {
   const attribute = mode ? `data-help-jump="${mode}"` : `data-help-external="${external}"`;
   return `
     <button class="settings-help-jump settings-icon-${icon}" type="button" ${attribute}>
       <span class="settings-menu-icon settings-help-icon" aria-hidden="true">${getSettingsMenuIcon(icon)}</span>
       <span class="settings-help-jump-label">${escapeHtml(label)}</span>
-      <svg class="settings-help-jump-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6L15 12L9 18"></path></svg>
+      ${
+        showChevron
+          ? `<svg class="settings-help-jump-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6L15 12L9 18"></path></svg>`
+          : ""
+      }
     </button>
   `;
 }
