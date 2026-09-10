@@ -4798,12 +4798,15 @@ body.has-memo-selection-bar .app-shell {
   line-height: 1.45;
 }
 
+/* 折り返すときは文節の切れ目で、行の長さをそろえる（「た。」だけが落ちないように） */
 .whats-new-lead {
   margin-bottom: 20px;
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 800;
   line-height: 1.7;
+  word-break: auto-phrase;
+  text-wrap: balance;
 }
 
 .whats-new-line {

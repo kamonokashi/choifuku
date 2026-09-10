@@ -83,7 +83,7 @@ const CHANGELOG = [
 const WHATS_NEW = {
   "1.1.0": {
     headline: "新しく「ノルマ」機能が\n追加されました！",
-    lead: "時間割とは別に、\n自分で決めた勉強の予定を立てられます。",
+    lead: "時間割とは別に、ノルマが設定できるようになりました。",
     action: { icon: "target", mode: "normas", label: "設定 → ノルマ設定", suffix: "から、設定できます。" }
   }
 };
