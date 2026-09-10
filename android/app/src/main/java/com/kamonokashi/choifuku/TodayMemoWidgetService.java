@@ -10,6 +10,10 @@ import android.widget.RemoteViewsService;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /** ウィジェットの一覧（スクロール部分）にメモ行を供給する。 */
 public class TodayMemoWidgetService extends RemoteViewsService {
 
@@ -20,9 +24,23 @@ public class TodayMemoWidgetService extends RemoteViewsService {
 
     static class MemoFactory implements RemoteViewsFactory {
 
+        /** 一覧の1行。メモか、「入力済み」の見出し（item が null）のどちらか。 */
+        private static final class Row {
+            final JSONObject item;
+            Row(JSONObject item) {
+                this.item = item;
+            }
+        }
+
+        private static final long DONE_HEADER_ID = "__done_header__".hashCode();
+
         private final Context context;
         private JSONObject payload;
-        private JSONArray items = new JSONArray();
+        private final List<Row> rows = new ArrayList<>();
+        private int doneCount = 0;
+        // 一覧を読み込んだ日。タップで書く日付はこれに揃える。
+        // 表示のたびに今日を取り直すと、日付をまたいだとき前日の一覧に今日の日付で書いてしまう。
+        private String itemsDate = WidgetData.todayKey();
 
         MemoFactory(Context context) {
             this.context = context;
@@ -39,25 +57,48 @@ public class TodayMemoWidgetService extends RemoteViewsService {
         }
 
         private void reload() {
+            itemsDate = WidgetData.todayKey();
             payload = WidgetData.readPayload(context);
-            items = WidgetData.todayItems(payload);
+            JSONArray items = WidgetData.todayItems(payload);
+
+            List<JSONObject> pending = new ArrayList<>();
+            List<JSONObject> done = new ArrayList<>();
+            for (int i = 0; i < items.length(); i += 1) {
+                JSONObject item = items.optJSONObject(i);
+                if (item == null) continue;
+                if (item.optBoolean("complete", false)) done.add(item);
+                else pending.add(item);
+            }
+            Collections.sort(pending, (a, b) -> a.optInt("period", 0) - b.optInt("period", 0));
+            Collections.sort(done, (a, b) -> a.optInt("period", 0) - b.optInt("period", 0));
+
+            rows.clear();
+            for (JSONObject item : pending) rows.add(new Row(item));
+            // 入力済みがあるときだけ、境目に見出しを入れて別のまとまりに見せる
+            if (!done.isEmpty()) rows.add(new Row(null));
+            for (JSONObject item : done) rows.add(new Row(item));
+            doneCount = done.size();
         }
 
         @Override
         public void onDestroy() {
-            items = new JSONArray();
+            rows.clear();
         }
 
         @Override
         public int getCount() {
-            return items.length();
+            return rows.size();
         }
 
         @Override
         public RemoteViews getViewAt(int position) {
-            JSONObject item = items.optJSONObject(position);
+            if (position < 0 || position >= rows.size()) {
+                return new RemoteViews(context.getPackageName(), R.layout.widget_memo_item);
+            }
+            JSONObject item = rows.get(position).item;
+            if (item == null) return buildDoneHeader();
+
             RemoteViews row = new RemoteViews(context.getPackageName(), R.layout.widget_memo_item);
-            if (item == null) return row;
 
             boolean complete = item.optBoolean("complete", false);
             String content = item.optString("content", "");
@@ -101,7 +142,7 @@ public class TodayMemoWidgetService extends RemoteViewsService {
 
             // タップしたらこのメモの入力ボックスを開く
             Intent fillIn = new Intent();
-            fillIn.putExtra(MemoQuickInputActivity.EXTRA_DATE, WidgetData.todayKey());
+            fillIn.putExtra(MemoQuickInputActivity.EXTRA_DATE, itemsDate);
             fillIn.putExtra(MemoQuickInputActivity.EXTRA_ITEM_KEY, item.optString("key", ""));
             fillIn.putExtra(MemoQuickInputActivity.EXTRA_SUBJECT_ID, item.optString("subjectId", ""));
             fillIn.putExtra(MemoQuickInputActivity.EXTRA_SUBJECT_NAME, item.optString("subjectName", ""));
@@ -116,6 +157,17 @@ public class TodayMemoWidgetService extends RemoteViewsService {
             return row;
         }
 
+        private RemoteViews buildDoneHeader() {
+            RemoteViews header = new RemoteViews(context.getPackageName(), R.layout.widget_section_header);
+            int muted = WidgetData.themeColor(payload, "muted", TodayMemoWidgetProvider.LIGHT_MUTED);
+            // 背景の線色だと淡すぎて境目に見えないので、文字色を薄めて使う
+            header.setInt(R.id.section_line, "setColorFilter", WidgetData.withAlpha(muted, 110));
+            header.setTextColor(R.id.section_title, muted);
+            header.setTextColor(R.id.section_count, muted);
+            header.setTextViewText(R.id.section_count, doneCount + "件");
+            return header;
+        }
+
         @Override
         public RemoteViews getLoadingView() {
             return null;
@@ -123,13 +175,15 @@ public class TodayMemoWidgetService extends RemoteViewsService {
 
         @Override
         public int getViewTypeCount() {
-            return 1;
+            return 2;
         }
 
         @Override
         public long getItemId(int position) {
-            JSONObject item = items.optJSONObject(position);
-            return item == null ? position : item.optString("key", String.valueOf(position)).hashCode();
+            if (position < 0 || position >= rows.size()) return position;
+            JSONObject item = rows.get(position).item;
+            if (item == null) return DONE_HEADER_ID;
+            return item.optString("key", String.valueOf(position)).hashCode();
         }
 
         @Override

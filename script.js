@@ -1,6 +1,8 @@
 const STORAGE_KEY = "studyReviewApp.v1";
 const ONBOARDING_STORAGE_KEY = "choifuku.onboardingCompleted";
 const OPERATION_TUTORIAL_STORAGE_KEY = "choifuku.operationTutorialCompleted";
+// 最後にお知らせを確認した版。アップデート後の初回だけお知らせを出すのに使う
+const LAST_SEEN_VERSION_STORAGE_KEY = "choifuku.lastSeenVersion";
 const REVIEW_NOTIFICATION_DAILY_ID_START = 220000;
 const REVIEW_NOTIFICATION_LESSON_ID_START = 221000;
 const REVIEW_NOTIFICATION_LOOKAHEAD_DAYS = 60;
@@ -72,6 +74,19 @@ const CHANGELOG = [
     ]
   }
 ];
+
+/**
+ * アップデート後、はじめて開いたときに出すお知らせ。版ごとに1件まで。
+ * 載っていない版に上がったときは、何も出さずに「見た」扱いにする。
+ * action.mode は設定の詳細画面（openSettingsDetail に渡す値）。
+ */
+const WHATS_NEW = {
+  "1.1.0": {
+    headline: "新しく「ノルマ」機能が\n追加されました！",
+    lead: "時間割とは別に、自分で決めた勉強の予定を立てられます。",
+    action: { icon: "target", mode: "normas", label: "設定 → ノルマ設定", suffix: "から、設定できます。" }
+  }
+};
 
 function getChoifukuAppIconSvg() {
   return `
@@ -571,6 +586,64 @@ function markOnboardingCompleted() {
   localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
 }
 
+function markCurrentVersionSeen() {
+  localStorage.setItem(LAST_SEEN_VERSION_STORAGE_KEY, APP_VERSION);
+}
+
+/**
+ * アップデートのお知らせを出すかどうか決めて、必要なら出す。
+ * 新しく入れた人はオンボーディングで一通り知るので、出さずに「見た」扱いにする。
+ * 1.1.0 より前は版を記録していなかったので、記録が無くてもオンボーディング済みなら更新した人とみなす。
+ */
+function showWhatsNewIfNeeded() {
+  if (localStorage.getItem(LAST_SEEN_VERSION_STORAGE_KEY) === APP_VERSION) return;
+  const entry = WHATS_NEW[APP_VERSION];
+  if (!hasSeenOnboarding() || !entry) {
+    markCurrentVersionSeen();
+    return;
+  }
+  showWhatsNew(entry);
+}
+
+function showWhatsNew(entry) {
+  document.querySelector(".whats-new-overlay")?.remove();
+  const overlay = document.createElement("div");
+  overlay.className = "whats-new-overlay";
+  overlay.innerHTML = `
+    <div class="whats-new-card" role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle">
+      <p class="whats-new-eyebrow">アップデートのお知らせ<span>Ver ${escapeHtml(APP_VERSION)}</span></p>
+      <h2 id="whatsNewTitle" class="whats-new-headline">${escapeHtml(entry.headline).replace(/\n/g, "<br>")}</h2>
+      ${entry.lead ? `<p class="whats-new-lead">${escapeHtml(entry.lead)}</p>` : ""}
+      ${
+        entry.action
+          ? `<p class="whats-new-line">${createSettingsHelpJumpButton(entry.action.icon, entry.action.label, {
+              mode: entry.action.mode
+            })}<span>${escapeHtml(entry.action.suffix || "")}</span></p>`
+          : ""
+      }
+      <p class="whats-new-line whats-new-more"><span>その他の更新については</span>${createSettingsHelpJumpButton(
+        "note",
+        "こちら",
+        { mode: "changelog" }
+      )}</p>
+      <button class="primary-button whats-new-close" type="button">閉じる</button>
+    </div>
+  `;
+  const close = () => {
+    markCurrentVersionSeen();
+    overlay.remove();
+  };
+  overlay.querySelector(".whats-new-close").addEventListener("click", close);
+  overlay.querySelectorAll("[data-help-jump]").forEach((button) => {
+    button.addEventListener("click", () => {
+      close();
+      showView("settingsView");
+      openSettingsDetail(button.dataset.helpJump);
+    });
+  });
+  document.body.append(overlay);
+}
+
 function hasCompletedOperationTutorial() {
   return localStorage.getItem(OPERATION_TUTORIAL_STORAGE_KEY) === "1";
 }
@@ -702,9 +775,11 @@ function shouldOfferOperationTutorial() {
   return hasSeenOnboarding() && !hasCompletedOperationTutorial() && !hasConfiguredSchedule && !hasNormas;
 }
 
+/** チュートリアルを始めたら true。 */
 function startOperationTutorial() {
-  if (!shouldOfferOperationTutorial()) return;
+  if (!shouldOfferOperationTutorial()) return false;
   beginOperationTutorial();
+  return true;
 }
 
 /** 設定から「もう一度見る」で呼ぶ。すでに設定済みでも動くようにする。 */
@@ -2455,7 +2530,15 @@ function getArchivedNormas(source = state.normas) {
 }
 
 function nextNormaPeriod(source = state.normas) {
-  return getNormas(source).reduce((max, norma) => Math.max(max, Number(norma.period) || 0), NORMA_PERIOD_BASE - 1) + 1;
+  // 削除したノルマのメモは履歴に残るので、その番号も使わない。
+  // 使い回すと、同じ科目で作り直したノルマが古いメモを引き継いでしまう。
+  const periods = [
+    ...getNormas(source),
+    ...getNormas(state.normas),
+    ...state.memos.filter((memo) => memo.type === "norma"),
+    ...(state.archivedMemos || []).filter((memo) => memo.type === "norma")
+  ].map((entry) => Number(entry.period) || 0);
+  return periods.reduce((max, period) => Math.max(max, period), NORMA_PERIOD_BASE - 1) + 1;
 }
 
 function createNorma(source) {
@@ -7176,9 +7259,17 @@ function initApp() {
   console.info("[choifuku][dbg] hasCapacitor=" + Boolean(window.Capacitor) + " plugins=" + Object.keys(window.Capacitor?.Plugins || {}).join("|") + " bridge=" + Boolean(getWidgetBridge()));
   render();
   rescheduleReviewNotificationsIfEnabled();
-  drainWidgetPendingWrites();
-  syncWidgetData();
-  if (!elements.onboardingOverlay) startOperationTutorial();
+  // ウィジェットで書いた分を取り込んでから書き出す。先に書き出すと、
+  // 取り込み前の古い内容でウィジェットの表示を上書きしてしまう
+  drainWidgetPendingWrites().finally(syncWidgetData);
+  if (elements.onboardingOverlay) {
+    // 新しく入れた人。今の版のお知らせは、次に開いたときにも出さない
+    markCurrentVersionSeen();
+    return;
+  }
+  // チュートリアルが始まるなら、ノルマもそこで案内されるのでお知らせは重ねない
+  if (startOperationTutorial()) markCurrentVersionSeen();
+  else showWhatsNewIfNeeded();
 }
 
 window.choifukuInitApp = initApp;

@@ -4749,3 +4749,83 @@ body.has-memo-selection-bar .app-shell {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---- アップデートのお知らせ ------------------------------------------ */
+
+.whats-new-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.5);
+  animation: cardFadeIn 200ms var(--ease-standard);
+}
+
+.whats-new-card {
+  width: min(100%, 380px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  padding: 26px 22px 20px;
+  box-shadow: 0 24px 58px rgba(15, 23, 42, 0.24);
+}
+
+.whats-new-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--accent-readable);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.whats-new-eyebrow span {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  padding: 2px 9px;
+  font-size: 0.74rem;
+}
+
+.whats-new-headline {
+  margin: 0 0 12px;
+  color: var(--text);
+  font-size: 1.42rem;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.whats-new-lead {
+  margin-bottom: 20px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.7;
+}
+
+.whats-new-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.whats-new-more {
+  margin-bottom: 22px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.whats-new-close {
+  width: 100%;
+  min-height: 50px;
+  margin: 0;
+}
