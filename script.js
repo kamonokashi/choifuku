@@ -83,7 +83,7 @@ const CHANGELOG = [
 const WHATS_NEW = {
   "1.1.0": {
     headline: "新しく「ノルマ」機能が\n追加されました！",
-    lead: "時間割とは別に、自分で決めた勉強の予定を立てられます。",
+    lead: "時間割とは別に、\n自分で決めた勉強の予定を立てられます。",
     action: { icon: "target", mode: "normas", label: "設定 → ノルマ設定", suffix: "から、設定できます。" }
   }
 };
@@ -613,7 +613,7 @@ function showWhatsNew(version, entry) {
     <div class="whats-new-card" role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle">
       <p class="whats-new-eyebrow">アップデートのお知らせ<span>Ver ${escapeHtml(version)}</span></p>
       <h2 id="whatsNewTitle" class="whats-new-headline">${escapeHtml(entry.headline).replace(/\n/g, "<br>")}</h2>
-      ${entry.lead ? `<p class="whats-new-lead">${escapeHtml(entry.lead)}</p>` : ""}
+      ${entry.lead ? `<p class="whats-new-lead">${escapeHtml(entry.lead).replace(/\n/g, "<br>")}</p>` : ""}
       ${
         entry.action
           ? `<p class="whats-new-line">${createSettingsHelpJumpButton(entry.action.icon, entry.action.label, {
