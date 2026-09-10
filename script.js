@@ -4924,7 +4924,7 @@ const SETTINGS_HELP = {
     title: "ノルマ設定の使い方",
     items: [
       { title: "ノルマとは", body: "時間割とは別に、自分で決めた予定です。時間割を使わなくても、両方使ってもかまいません。" },
-      { title: "科目とタイトル", body: "科目を選び、必要ならタイトルを付けます。同じ科目でも「単語帳」「長文」のように分けられます。" },
+      { title: "科目とタイトル", body: "科目を選び、必要ならタイトルを付けます。同じ科目でも「単語帳」「長文」のように分けられます。あとから科目を変えると、これまでのメモも新しい科目に移ります。" },
       { title: "毎日", body: "曜日を問わず毎日やるとき。選ぶだけで設定は終わりです。" },
       { title: "曜日ごと", body: "決まった曜日にやるとき。曜日をタップして選びます。" },
       { title: "○日やって○日休む", body: "「1日やって1日休む」で1日おき、「3日やって1日休む」で3日連続のあと1日休みです。開始日が周期の起点になります。" },
@@ -6753,11 +6753,38 @@ function applySubjectSettingsDraft() {
 }
 
 function applyNormaSettingsDraft() {
-  state.normas = getNormas(settingsDraft.normas)
+  const nextNormas = getNormas(settingsDraft.normas)
     .map(normalizeNorma)
     .filter((norma) => norma.subjectId);
+  moveNormaMemosToNewSubjects(state.normas, nextNormas);
+  state.normas = nextNormas;
   updateStreak();
   saveState();
+}
+
+/**
+ * ノルマの科目を変えたら、そのノルマで書いたメモも新しい科目に付け替える。
+ * メモは「科目＋番号」で紐付くので、そのままだと今日のメモと連続記録が切れる。
+ * 付け替え先に同じ日のメモがもうあるときは、上書きせず元の科目のまま残す。
+ */
+function moveNormaMemosToNewSubjects(previousNormas, nextNormas) {
+  const previousById = new Map(getNormas(previousNormas).map((norma) => [norma.id, norma]));
+  getNormas(nextNormas).forEach((norma) => {
+    const previous = previousById.get(norma.id);
+    if (!previous?.subjectId || !norma.subjectId || previous.subjectId === norma.subjectId) return;
+    const period = Number(norma.period);
+    const isThisNorma = (memo, subjectId) =>
+      memo.type === "norma" && Number(memo.period) === period && memo.subjectId === subjectId;
+
+    [state.memos, state.archivedMemos || []].forEach((memos) => {
+      const takenDates = new Set(memos.filter((memo) => isThisNorma(memo, norma.subjectId)).map((memo) => memo.date));
+      memos.forEach((memo) => {
+        if (!isThisNorma(memo, previous.subjectId) || takenDates.has(memo.date)) return;
+        memo.subjectId = norma.subjectId;
+        memo.updatedAt = new Date().toISOString();
+      });
+    });
+  });
 }
 
 function applyScheduleSettingsDraft() {
