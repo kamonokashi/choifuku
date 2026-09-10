@@ -30,7 +30,7 @@ const PRIVACY_POLICY_URL = "https://kamonokashi.github.io/choifuku/privacy.html"
 const FEEDBACK_FORM_URL =
   "https://docs.google.com/forms/d/e/1FAIpQLSeaeHZJHizyVgc1RaBQP34NhWEu1YzuF5dqKwr6hkbsdw-TDA/viewform";
 const FEEDBACK_FORM_VERSION_ENTRY = "entry.1995398460";
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.0.19";
 const CHANGELOG = [
   {
     version: "1.1.0",
@@ -602,16 +602,16 @@ function showWhatsNewIfNeeded() {
     markCurrentVersionSeen();
     return;
   }
-  showWhatsNew(entry);
+  showWhatsNew(APP_VERSION, entry);
 }
 
-function showWhatsNew(entry) {
+function showWhatsNew(version, entry) {
   document.querySelector(".whats-new-overlay")?.remove();
   const overlay = document.createElement("div");
   overlay.className = "whats-new-overlay";
   overlay.innerHTML = `
     <div class="whats-new-card" role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle">
-      <p class="whats-new-eyebrow">アップデートのお知らせ<span>Ver ${escapeHtml(APP_VERSION)}</span></p>
+      <p class="whats-new-eyebrow">アップデートのお知らせ<span>Ver ${escapeHtml(version)}</span></p>
       <h2 id="whatsNewTitle" class="whats-new-headline">${escapeHtml(entry.headline).replace(/\n/g, "<br>")}</h2>
       ${entry.lead ? `<p class="whats-new-lead">${escapeHtml(entry.lead)}</p>` : ""}
       ${
